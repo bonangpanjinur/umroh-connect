@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Travel } from '@/types/database';
 import { useCreateTravel, useUpdateTravel } from '@/hooks/useAgentData';
+import { ImageUpload } from '@/components/common/ImageUpload';
 
 const travelSchema = z.object({
   name: z.string().min(3, 'Nama minimal 3 karakter').max(100, 'Nama maksimal 100 karakter'),
@@ -32,6 +33,7 @@ const TravelForm = ({ travel, onClose, onSuccess }: TravelFormProps) => {
   const createTravel = useCreateTravel();
   const updateTravel = useUpdateTravel();
   const isEditing = !!travel;
+  const [logoUrl, setLogoUrl] = useState<string | null>(travel?.logo_url || null);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<TravelFormData>({
     resolver: zodResolver(travelSchema),
@@ -48,9 +50,9 @@ const TravelForm = ({ travel, onClose, onSuccess }: TravelFormProps) => {
   const onSubmit = async (data: TravelFormData) => {
     try {
       if (isEditing && travel) {
-        await updateTravel.mutateAsync({ id: travel.id, ...data });
+        await updateTravel.mutateAsync({ id: travel.id, ...data, logo_url: logoUrl });
       } else {
-        await createTravel.mutateAsync(data);
+        await createTravel.mutateAsync({ ...data, logo_url: logoUrl });
       }
       onSuccess?.();
       onClose();
@@ -91,6 +93,19 @@ const TravelForm = ({ travel, onClose, onSuccess }: TravelFormProps) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4 overflow-y-auto">
+          {/* Logo Upload */}
+          <div className="space-y-2">
+            <Label>Logo Travel</Label>
+            <ImageUpload
+              bucket="travel-logos"
+              folder="logos"
+              currentUrl={logoUrl}
+              onUpload={setLogoUrl}
+              onRemove={() => setLogoUrl(null)}
+              className="w-24"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Nama Travel *</Label>
             <Input
