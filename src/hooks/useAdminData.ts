@@ -402,6 +402,7 @@ export const useCreateTravel = () => {
       description?: string | null;
       verified?: boolean;
       owner_id?: string | null;
+      logo_url?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('travels')
@@ -414,6 +415,7 @@ export const useCreateTravel = () => {
           description: travel.description,
           verified: travel.verified || false,
           owner_id: travel.owner_id,
+          logo_url: travel.logo_url,
         })
         .select()
         .single();

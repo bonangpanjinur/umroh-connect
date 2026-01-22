@@ -13,7 +13,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateTravel } from '@/hooks/useAdminData';
 import { useAllUsers } from '@/hooks/useAdminData';
-import { Profile } from '@/types/database';
+import { ImageUpload } from '@/components/common/ImageUpload';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Nama minimal 3 karakter'),
@@ -30,6 +30,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export const AddTravelForm = () => {
   const [open, setOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const createTravel = useCreateTravel();
   const { data: users } = useAllUsers();
   
@@ -61,9 +62,11 @@ export const AddTravelForm = () => {
         description: data.description || null,
         verified: data.verified,
         owner_id: data.owner_id === 'none' ? null : data.owner_id || null,
+        logo_url: logoUrl,
       });
       toast.success('Travel berhasil ditambahkan');
       form.reset();
+      setLogoUrl(null);
       setOpen(false);
     } catch (error) {
       toast.error('Gagal menambahkan travel');
@@ -84,6 +87,19 @@ export const AddTravelForm = () => {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Logo Travel</label>
+              <ImageUpload
+                bucket="travel-logos"
+                folder="logos"
+                currentUrl={logoUrl}
+                onUpload={setLogoUrl}
+                onRemove={() => setLogoUrl(null)}
+                className="w-32"
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="name"
