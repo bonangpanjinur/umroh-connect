@@ -1,22 +1,23 @@
-import { useState } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePackages } from '@/hooks/usePackages';
-import { PackageWithDetails } from '@/types/database';
+import { PackageWithDetails, PackageFilters as FilterType } from '@/types/database';
 import PackageCard from './PackageCard';
 import PackageDetailModal from './PackageDetailModal';
+import { PackageFiltersSheet, QuickFilterTags } from './PackageFilters';
 import { mockPackages } from '@/data/mockData';
 
-const filterTags = [
-  { id: 'all', label: 'Semua' },
-  { id: 'feb', label: 'Bulan Feb' },
-  { id: 'price', label: '< Rp 25Jt' },
-  { id: 'star5', label: 'Bintang 5' },
-];
-
 const PaketView = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [filters, setFilters] = useState<FilterType>({
+    search: '',
+    minPrice: null,
+    maxPrice: null,
+    months: [],
+    hotelStars: [],
+    flightType: 'all',
+    duration: 'all',
+  });
   const [selectedPackage, setSelectedPackage] = useState<PackageWithDetails | null>(null);
   
   const { data: packages, isLoading, error } = usePackages();
@@ -72,16 +73,66 @@ const PaketView = () => {
         })),
       }));
 
-  const filteredPackages = displayPackages.filter(pkg => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        pkg.name.toLowerCase().includes(query) ||
-        pkg.travel.name.toLowerCase().includes(query)
-      );
-    }
-    return true;
-  });
+  // Apply all filters
+  const filteredPackages = useMemo(() => {
+    return displayPackages.filter(pkg => {
+      // Search filter
+      if (filters.search) {
+        const query = filters.search.toLowerCase();
+        const matchesSearch = 
+          pkg.name.toLowerCase().includes(query) ||
+          pkg.travel.name.toLowerCase().includes(query) ||
+          pkg.description?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+
+      // Price filter (based on departures)
+      if (filters.minPrice !== null || filters.maxPrice !== null) {
+        const lowestPrice = pkg.departures.length > 0 
+          ? Math.min(...pkg.departures.map(d => d.price))
+          : 0;
+        
+        if (filters.minPrice !== null && lowestPrice < filters.minPrice) return false;
+        if (filters.maxPrice !== null && lowestPrice > filters.maxPrice) return false;
+      }
+
+      // Month filter
+      if (filters.months.length > 0) {
+        const hasMatchingDeparture = pkg.departures.some(d => {
+          const departureMonth = new Date(d.departure_date).getMonth() + 1;
+          return filters.months.includes(departureMonth);
+        });
+        if (!hasMatchingDeparture) return false;
+      }
+
+      // Hotel star filter
+      if (filters.hotelStars.length > 0) {
+        if (!filters.hotelStars.includes(pkg.hotel_star)) return false;
+      }
+
+      // Flight type filter
+      if (filters.flightType !== 'all') {
+        if (pkg.flight_type !== filters.flightType) return false;
+      }
+
+      // Duration filter
+      if (filters.duration !== 'all') {
+        switch (filters.duration) {
+          case 'short':
+            if (pkg.duration_days >= 9) return false;
+            break;
+          case 'medium':
+            if (pkg.duration_days < 9 || pkg.duration_days > 12) return false;
+            break;
+          case 'long':
+            if (pkg.duration_days <= 12) return false;
+            break;
+        }
+      }
+
+      return true;
+    });
+  }, [displayPackages, filters]);
 
   return (
     <motion.div
@@ -97,40 +148,24 @@ const PaketView = () => {
             <input
               type="text"
               placeholder="Cari paket / travel..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
               className="w-full bg-secondary pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             />
-            {searchQuery && (
+            {filters.search && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => setFilters(prev => ({ ...prev, search: '' }))}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             )}
           </div>
-          <button className="bg-secondary w-11 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
+          <PackageFiltersSheet filters={filters} onFiltersChange={setFilters} />
         </div>
         
-        {/* Filter Tags */}
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar">
-          {filterTags.map((tag) => (
-            <button
-              key={tag.id}
-              onClick={() => setActiveFilter(tag.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                activeFilter === tag.id
-                  ? 'bg-foreground text-background'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground border border-border'
-              }`}
-            >
-              {tag.label}
-            </button>
-          ))}
-        </div>
+        {/* Quick Filter Tags */}
+        <QuickFilterTags filters={filters} onFiltersChange={setFilters} />
       </div>
       
       {/* Package List */}
@@ -160,6 +195,22 @@ const PaketView = () => {
         {!isLoading && filteredPackages.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Tidak ada paket ditemukan</p>
+            {(filters.months.length > 0 || filters.hotelStars.length > 0 || filters.maxPrice !== null) && (
+              <button 
+                onClick={() => setFilters(prev => ({ 
+                  ...prev, 
+                  months: [], 
+                  hotelStars: [], 
+                  minPrice: null, 
+                  maxPrice: null,
+                  flightType: 'all',
+                  duration: 'all',
+                }))}
+                className="text-primary text-sm mt-2 hover:underline"
+              >
+                Reset filter
+              </button>
+            )}
           </div>
         )}
       </div>

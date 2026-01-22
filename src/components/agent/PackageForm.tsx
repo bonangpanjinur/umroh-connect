@@ -10,19 +10,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package } from '@/types/database';
 import { useCreatePackage, useUpdatePackage } from '@/hooks/useAgentData';
+import { useHotels, useAirlines } from '@/hooks/useMasterData';
+import MultiImageUpload from '@/components/common/MultiImageUpload';
+import { useState } from 'react';
 
 const packageSchema = z.object({
   name: z.string().min(3, 'Nama minimal 3 karakter').max(100, 'Nama maksimal 100 karakter'),
   description: z.string().max(1000, 'Deskripsi maksimal 1000 karakter').optional(),
   duration_days: z.coerce.number().min(1, 'Minimal 1 hari').max(60, 'Maksimal 60 hari'),
-  hotel_makkah: z.string().max(100, 'Nama hotel maksimal 100 karakter').optional(),
-  hotel_madinah: z.string().max(100, 'Nama hotel maksimal 100 karakter').optional(),
+  hotel_makkah: z.string().optional(),
+  hotel_madinah: z.string().optional(),
   hotel_star: z.coerce.number().min(1).max(5),
-  airline: z.string().max(50, 'Nama maskapai maksimal 50 karakter').optional(),
+  airline: z.string().optional(),
   flight_type: z.enum(['direct', 'transit']),
   meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
   facilities: z.string().optional(),
-  images: z.string().optional(),
 });
 
 type PackageFormData = z.infer<typeof packageSchema>;
@@ -38,6 +40,14 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
   const isEditing = !!pkg;
+  
+  // Load master data
+  const { data: makkahHotels } = useHotels('Makkah');
+  const { data: madinahHotels } = useHotels('Madinah');
+  const { data: airlines } = useAirlines();
+  
+  // Image state
+  const [images, setImages] = useState<string[]>(pkg?.images || []);
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<PackageFormData>({
     resolver: zodResolver(packageSchema),
@@ -52,7 +62,6 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
       flight_type: pkg?.flight_type || 'direct',
       meal_type: pkg?.meal_type || 'fullboard',
       facilities: pkg?.facilities?.join(', ') || '',
-      images: pkg?.images?.join('\n') || '',
     },
   });
 
@@ -61,8 +70,11 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
       const packageData = {
         ...data,
         travel_id: travelId,
+        hotel_makkah: data.hotel_makkah || null,
+        hotel_madinah: data.hotel_madinah || null,
+        airline: data.airline || null,
         facilities: data.facilities ? data.facilities.split(',').map(f => f.trim()).filter(Boolean) : [],
-        images: data.images ? data.images.split('\n').map(i => i.trim()).filter(Boolean) : [],
+        images: images,
       };
 
       if (isEditing && pkg) {
@@ -130,6 +142,18 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
             />
           </div>
 
+          {/* Package Images */}
+          <div className="space-y-2">
+            <Label>Gambar Paket</Label>
+            <MultiImageUpload
+              bucket="package-images"
+              folder="packages"
+              value={images}
+              onChange={setImages}
+              maxImages={5}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="duration_days">Durasi (Hari) *</Label>
@@ -164,30 +188,63 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="hotel_makkah">Hotel Makkah</Label>
-              <Input
-                id="hotel_makkah"
-                placeholder="Anjum Hotel"
-                {...register('hotel_makkah')}
-              />
+              <Select
+                value={watch('hotel_makkah') || ''}
+                onValueChange={(val) => setValue('hotel_makkah', val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih hotel..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- Pilih Hotel --</SelectItem>
+                  {makkahHotels?.map((hotel) => (
+                    <SelectItem key={hotel.id} value={hotel.name}>
+                      {hotel.name} ({hotel.distance_to_haram})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="hotel_madinah">Hotel Madinah</Label>
-              <Input
-                id="hotel_madinah"
-                placeholder="Dar Al Taqwa"
-                {...register('hotel_madinah')}
-              />
+              <Select
+                value={watch('hotel_madinah') || ''}
+                onValueChange={(val) => setValue('hotel_madinah', val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih hotel..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- Pilih Hotel --</SelectItem>
+                  {madinahHotels?.map((hotel) => (
+                    <SelectItem key={hotel.id} value={hotel.name}>
+                      {hotel.name} ({hotel.distance_to_haram})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="airline">Maskapai</Label>
-              <Input
-                id="airline"
-                placeholder="Garuda Indonesia"
-                {...register('airline')}
-              />
+              <Select
+                value={watch('airline') || ''}
+                onValueChange={(val) => setValue('airline', val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih maskapai..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">-- Pilih Maskapai --</SelectItem>
+                  {airlines?.map((airline) => (
+                    <SelectItem key={airline.id} value={airline.name}>
+                      {airline.name} {airline.code && `(${airline.code})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Jenis Penerbangan *</Label>
@@ -229,16 +286,6 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
               id="facilities"
               placeholder="Visa, Hotel, Makan, Transport, Muthawif"
               {...register('facilities')}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="images">URL Gambar (1 per baris)</Label>
-            <Textarea
-              id="images"
-              placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
-              rows={2}
-              {...register('images')}
             />
           </div>
 
