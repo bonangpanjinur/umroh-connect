@@ -1,0 +1,104 @@
+import { Star, Hotel, Plane, UtensilsCrossed, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { UmrohPackage } from '@/types';
+import { Button } from '@/components/ui/button';
+
+interface PackageCardProps {
+  package: UmrohPackage;
+  onClick: () => void;
+}
+
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+};
+
+const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
+  const lowestPrice = Math.min(...pkg.departures.map(d => d.price));
+  const availableDepartures = pkg.departures.filter(d => d.status !== 'full').length;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      onClick={onClick}
+      className="bg-card rounded-2xl shadow-card border border-border overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+    >
+      {/* Image Header */}
+      <div className="relative h-40">
+        <img
+          src={pkg.images[0]}
+          alt={pkg.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        
+        {/* Rating Badge */}
+        <div className="absolute top-3 left-3">
+          <span className="bg-card/95 backdrop-blur-sm text-foreground text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
+            <Star className="w-3 h-3 fill-accent text-accent" />
+            {pkg.travel.rating} ({pkg.travel.reviewCount})
+          </span>
+        </div>
+        
+        {/* Travel Name Overlay */}
+        <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-foreground/90 to-transparent p-3">
+          <p className="text-primary-foreground text-xs font-medium flex items-center gap-1.5">
+            <Hotel className="w-3 h-3" /> {pkg.travel.name}
+          </p>
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-bold text-foreground leading-tight flex-1 pr-2">
+            {pkg.name}
+          </h3>
+          <div className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+            availableDepartures > 0
+              ? 'bg-primary/10 text-primary border-primary/20'
+              : 'bg-destructive/10 text-destructive border-destructive/20'
+          }`}>
+            {availableDepartures > 0 ? 'AVAILABLE' : 'FULL'}
+          </div>
+        </div>
+        
+        {/* Facilities Icons */}
+        <div className="flex gap-4 text-xs text-muted-foreground mb-3 pb-3 border-b border-border">
+          <span className="flex items-center gap-1">
+            <Hotel className="w-3.5 h-3.5 text-accent" /> *{pkg.hotelStar}
+          </span>
+          <span className="flex items-center gap-1">
+            <Plane className={`w-3.5 h-3.5 ${pkg.flightType === 'direct' ? 'text-blue-500' : 'text-muted-foreground'}`} />
+            {pkg.flightType === 'direct' ? 'Direct' : 'Transit'}
+          </span>
+          <span className="flex items-center gap-1">
+            <UtensilsCrossed className="w-3.5 h-3.5 text-accent" />
+            {pkg.mealType === 'fullboard' ? 'Fullboard' : pkg.mealType === 'halfboard' ? 'Halfboard' : 'Breakfast'}
+          </span>
+        </div>
+        
+        {/* Pricing & CTA */}
+        <div className="flex justify-between items-end">
+          <div>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Mulai dari</p>
+            <p className="text-lg font-bold text-accent">
+              {formatPrice(lowestPrice)}
+            </p>
+          </div>
+          <Button size="sm" className="shadow-primary gap-1">
+            Lihat {pkg.departures.length} Tanggal
+            <ChevronRight className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default PackageCard;
