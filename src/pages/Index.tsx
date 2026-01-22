@@ -10,12 +10,14 @@ import AkunView from '@/components/akun/AkunView';
 import SOSModal from '@/components/modals/SOSModal';
 import TasbihModal from '@/components/modals/TasbihModal';
 import QiblaModal from '@/components/modals/QiblaModal';
+import ManasikView from '@/components/manasik/ManasikView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
+  const [showManasik, setShowManasik] = useState(false);
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -25,12 +27,20 @@ const Index = () => {
       case 'qibla':
         setIsQiblaOpen(true);
         break;
+      case 'doa':
+        setShowManasik(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Manasik view when doa menu is clicked
+    if (showManasik) {
+      return <ManasikView onBack={() => setShowManasik(false)} />;
+    }
+
     switch (activeTab) {
       case 'home':
         return <HomeView onMenuClick={handleMenuClick} />;
@@ -57,7 +67,9 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        {!showManasik && (
+          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        )}
         
         {/* Modals */}
         <SOSModal isOpen={isSOSOpen} onClose={() => setIsSOSOpen(false)} />

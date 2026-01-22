@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const menuItems = [
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600' },
-  { id: 'doa', label: 'Doa', icon: BookOpen, color: 'text-purple-600' },
+  { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent' },
 ];
 
