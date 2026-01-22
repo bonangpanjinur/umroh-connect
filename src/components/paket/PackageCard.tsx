@@ -1,10 +1,10 @@
 import { Star, Hotel, Plane, UtensilsCrossed, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { UmrohPackage } from '@/types';
+import { PackageWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
 
 interface PackageCardProps {
-  package: UmrohPackage;
+  package: PackageWithDetails;
   onClick: () => void;
 }
 
@@ -18,7 +18,9 @@ const formatPrice = (price: number) => {
 };
 
 const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
-  const lowestPrice = Math.min(...pkg.departures.map(d => d.price));
+  const lowestPrice = pkg.departures.length > 0 
+    ? Math.min(...pkg.departures.map(d => d.price))
+    : 0;
   const availableDepartures = pkg.departures.filter(d => d.status !== 'full').length;
   
   return (
@@ -32,7 +34,7 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
       {/* Image Header */}
       <div className="relative h-40">
         <img
-          src={pkg.images[0]}
+          src={pkg.images[0] || 'https://images.unsplash.com/photo-1565552629477-087529670247?w=800'}
           alt={pkg.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -41,7 +43,7 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
         <div className="absolute top-3 left-3">
           <span className="bg-card/95 backdrop-blur-sm text-foreground text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
             <Star className="w-3 h-3 fill-accent text-accent" />
-            {pkg.travel.rating} ({pkg.travel.reviewCount})
+            {pkg.travel.rating} ({pkg.travel.review_count})
           </span>
         </div>
         
@@ -71,15 +73,15 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
         {/* Facilities Icons */}
         <div className="flex gap-4 text-xs text-muted-foreground mb-3 pb-3 border-b border-border">
           <span className="flex items-center gap-1">
-            <Hotel className="w-3.5 h-3.5 text-accent" /> *{pkg.hotelStar}
+            <Hotel className="w-3.5 h-3.5 text-accent" /> *{pkg.hotel_star}
           </span>
           <span className="flex items-center gap-1">
-            <Plane className={`w-3.5 h-3.5 ${pkg.flightType === 'direct' ? 'text-blue-500' : 'text-muted-foreground'}`} />
-            {pkg.flightType === 'direct' ? 'Direct' : 'Transit'}
+            <Plane className={`w-3.5 h-3.5 ${pkg.flight_type === 'direct' ? 'text-blue-500' : 'text-muted-foreground'}`} />
+            {pkg.flight_type === 'direct' ? 'Direct' : 'Transit'}
           </span>
           <span className="flex items-center gap-1">
             <UtensilsCrossed className="w-3.5 h-3.5 text-accent" />
-            {pkg.mealType === 'fullboard' ? 'Fullboard' : pkg.mealType === 'halfboard' ? 'Halfboard' : 'Breakfast'}
+            {pkg.meal_type === 'fullboard' ? 'Fullboard' : pkg.meal_type === 'halfboard' ? 'Halfboard' : 'Breakfast'}
           </span>
         </div>
         
@@ -88,7 +90,7 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
           <div>
             <p className="text-[10px] text-muted-foreground mb-0.5">Mulai dari</p>
             <p className="text-lg font-bold text-accent">
-              {formatPrice(lowestPrice)}
+              {lowestPrice > 0 ? formatPrice(lowestPrice) : '-'}
             </p>
           </div>
           <Button size="sm" className="shadow-primary gap-1">
