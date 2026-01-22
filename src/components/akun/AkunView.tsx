@@ -1,4 +1,4 @@
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 const AkunView = () => {
-  const [isAgentMode, setIsAgentMode] = useState(false);
   const [isLansiaMode, setIsLansiaMode] = useState(false);
   const { user, profile, signOut, loading } = useAuthContext();
   const navigate = useNavigate();
@@ -44,6 +43,8 @@ const AkunView = () => {
     );
   }
 
+  const isAgentOrAdmin = profile?.role === 'agent' || profile?.role === 'admin';
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -76,34 +77,25 @@ const AkunView = () => {
           </button>
         </div>
 
-        {/* Agent Mode Toggle */}
-        {profile?.role === 'agent' && (
-          <motion.div
+        {/* Agent Dashboard Button */}
+        {isAgentOrAdmin && (
+          <motion.button
             whileHover={{ scale: 1.01 }}
-            className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between"
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/agent')}
+            className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500 text-primary-foreground flex items-center justify-center">
-                <Briefcase className="w-5 h-5" />
+                <LayoutDashboard className="w-5 h-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-foreground">Mode Travel Agent</h4>
+              <div className="text-left">
+                <h4 className="text-sm font-bold text-foreground">Dashboard Agent</h4>
                 <p className="text-[11px] text-muted-foreground">Kelola paket umroh Anda</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsAgentMode(!isAgentMode)}
-              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${
-                isAgentMode ? 'bg-blue-500' : 'bg-muted'
-              }`}
-            >
-              <motion.div
-                animate={{ x: isAgentMode ? 22 : 2 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                className="w-5 h-5 bg-card rounded-full absolute top-1 shadow-md"
-              />
-            </button>
-          </motion.div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </motion.button>
         )}
       </div>
 
