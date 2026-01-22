@@ -8,8 +8,10 @@ import { useAllTravels, useVerifyTravel, useDeleteTravel } from '@/hooks/useAdmi
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Search, Building2, CheckCircle, XCircle, Star, Trash2 } from 'lucide-react';
+import { Search, Building2, CheckCircle, XCircle, Star, Trash2, Pencil } from 'lucide-react';
 import { AddTravelForm } from './AddTravelForm';
+import { EditTravelForm } from './EditTravelForm';
+import { Travel } from '@/types/database';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +29,7 @@ export const TravelsManagement = () => {
   const verifyTravel = useVerifyTravel();
   const deleteTravel = useDeleteTravel();
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingTravel, setEditingTravel] = useState<(Travel & { owner?: { id: string; full_name: string | null } | null }) | null>(null);
 
   const filteredTravels = travels?.filter(travel =>
     travel.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -163,6 +166,13 @@ export const TravelsManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingTravel(travel)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         {travel.verified ? (
                           <Button
                             variant="outline"
@@ -213,6 +223,15 @@ export const TravelsManagement = () => {
           </Table>
         </div>
       </CardContent>
+
+      {/* Edit Travel Modal */}
+      {editingTravel && (
+        <EditTravelForm
+          travel={editingTravel}
+          open={!!editingTravel}
+          onOpenChange={(open) => !open && setEditingTravel(null)}
+        />
+      )}
     </Card>
   );
 };
