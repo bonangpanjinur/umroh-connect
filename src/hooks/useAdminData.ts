@@ -449,3 +449,36 @@ export const useDeleteTravel = () => {
     }
   });
 };
+
+// Update travel (admin)
+export const useUpdateTravelAdmin = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...data }: {
+      id: string;
+      name?: string;
+      phone?: string;
+      whatsapp?: string | null;
+      email?: string | null;
+      address?: string | null;
+      description?: string | null;
+      verified?: boolean;
+      owner_id?: string | null;
+      logo_url?: string | null;
+    }) => {
+      const { data: result, error } = await supabase
+        .from('travels')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
+    }
+  });
+};
