@@ -384,7 +384,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
-          owner_id: string
+          owner_id: string | null
           phone: string | null
           rating: number | null
           review_count: number | null
@@ -400,7 +400,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
-          owner_id: string
+          owner_id?: string | null
           phone?: string | null
           rating?: number | null
           review_count?: number | null
@@ -416,7 +416,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
-          owner_id?: string
+          owner_id?: string | null
           phone?: string | null
           rating?: number | null
           review_count?: number | null
