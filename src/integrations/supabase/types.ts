@@ -14,16 +14,259 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      departures: {
+        Row: {
+          available_seats: number
+          created_at: string
+          departure_date: string
+          id: string
+          original_price: number | null
+          package_id: string
+          price: number
+          return_date: string
+          status: string | null
+          total_seats: number
+          updated_at: string
+        }
+        Insert: {
+          available_seats?: number
+          created_at?: string
+          departure_date: string
+          id?: string
+          original_price?: number | null
+          package_id: string
+          price: number
+          return_date: string
+          status?: string | null
+          total_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          available_seats?: number
+          created_at?: string
+          departure_date?: string
+          id?: string
+          original_price?: number | null
+          package_id?: string
+          price?: number
+          return_date?: string
+          status?: string | null
+          total_seats?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departures_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          airline: string | null
+          created_at: string
+          description: string | null
+          duration_days: number
+          facilities: string[] | null
+          flight_type: string | null
+          hotel_madinah: string | null
+          hotel_makkah: string | null
+          hotel_star: number | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          meal_type: string | null
+          name: string
+          travel_id: string
+          updated_at: string
+        }
+        Insert: {
+          airline?: string | null
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          facilities?: string[] | null
+          flight_type?: string | null
+          hotel_madinah?: string | null
+          hotel_makkah?: string | null
+          hotel_star?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          meal_type?: string | null
+          name: string
+          travel_id: string
+          updated_at?: string
+        }
+        Update: {
+          airline?: string | null
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          facilities?: string[] | null
+          flight_type?: string | null
+          hotel_madinah?: string | null
+          hotel_makkah?: string | null
+          hotel_star?: number | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          meal_type?: string | null
+          name?: string
+          travel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      travels: {
+        Row: {
+          address: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          owner_id: string
+          phone: string | null
+          rating: number | null
+          review_count: number | null
+          updated_at: string
+          verified: boolean | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          updated_at?: string
+          verified?: boolean | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          updated_at?: string
+          verified?: boolean | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travels_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_profile_id: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      owns_departure: {
+        Args: { _departure_id: string; _user_id: string }
+        Returns: boolean
+      }
+      owns_package: {
+        Args: { _package_id: string; _user_id: string }
+        Returns: boolean
+      }
+      owns_travel: {
+        Args: { _travel_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "jamaah" | "agent" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +393,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["jamaah", "agent", "admin"],
+    },
   },
 } as const

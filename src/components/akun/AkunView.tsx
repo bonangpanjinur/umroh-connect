@@ -1,11 +1,48 @@
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const AkunView = () => {
   const [isAgentMode, setIsAgentMode] = useState(false);
   const [isLansiaMode, setIsLansiaMode] = useState(false);
+  const { user, profile, signOut, loading } = useAuthContext();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center"
+      >
+        <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+          <User className="w-10 h-10 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2">Belum Login</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Masuk untuk menyimpan progress ibadah dan melihat paket favorit
+        </p>
+        <Button onClick={() => navigate('/auth')} className="gap-2">
+          <LogIn className="w-4 h-4" /> Masuk / Daftar
+        </Button>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -18,12 +55,19 @@ const AkunView = () => {
       <div className="bg-card pb-6 pt-4 px-4 border-b border-border">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground text-2xl border-2 border-card shadow-primary">
-            <User className="w-7 h-7" />
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <User className="w-7 h-7" />
+            )}
           </div>
           <div className="flex-1">
-            <h2 className="font-bold text-xl text-foreground">Abdullah Fulan</h2>
+            <h2 className="font-bold text-xl text-foreground">
+              {profile?.full_name || user.email?.split('@')[0] || 'Pengguna'}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Jamaah <span className="mx-1">•</span>
+              {profile?.role === 'agent' ? 'Travel Agent' : profile?.role === 'admin' ? 'Admin' : 'Jamaah'}
+              <span className="mx-1">•</span>
               <span className="text-primary font-medium">Free Plan</span>
             </p>
           </div>
@@ -33,32 +77,34 @@ const AkunView = () => {
         </div>
 
         {/* Agent Mode Toggle */}
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500 text-primary-foreground flex items-center justify-center">
-              <Briefcase className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-foreground">Mode Travel Agent</h4>
-              <p className="text-[11px] text-muted-foreground">Kelola paket umroh Anda</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsAgentMode(!isAgentMode)}
-            className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${
-              isAgentMode ? 'bg-blue-500' : 'bg-muted'
-            }`}
+        {profile?.role === 'agent' && (
+          <motion.div
+            whileHover={{ scale: 1.01 }}
+            className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between"
           >
-            <motion.div
-              animate={{ x: isAgentMode ? 22 : 2 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              className="w-5 h-5 bg-card rounded-full absolute top-1 shadow-md"
-            />
-          </button>
-        </motion.div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500 text-primary-foreground flex items-center justify-center">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-foreground">Mode Travel Agent</h4>
+                <p className="text-[11px] text-muted-foreground">Kelola paket umroh Anda</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsAgentMode(!isAgentMode)}
+              className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${
+                isAgentMode ? 'bg-blue-500' : 'bg-muted'
+              }`}
+            >
+              <motion.div
+                animate={{ x: isAgentMode ? 22 : 2 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="w-5 h-5 bg-card rounded-full absolute top-1 shadow-md"
+              />
+            </button>
+          </motion.div>
+        )}
       </div>
 
       {/* Settings */}
@@ -110,6 +156,7 @@ const AkunView = () => {
         {/* Logout */}
         <Button 
           variant="destructive" 
+          onClick={handleSignOut}
           className="w-full mt-6 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20"
         >
           <LogOut className="w-4 h-4 mr-2" />

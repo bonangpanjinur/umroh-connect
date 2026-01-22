@@ -1,10 +1,10 @@
 import { X, Plane, Hotel, MessageCircle, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UmrohPackage, PackageDeparture } from '@/types';
+import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
 
 interface PackageDetailModalProps {
-  package: UmrohPackage | null;
+  package: PackageWithDetails | null;
   onClose: () => void;
 }
 
@@ -25,7 +25,7 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const DepartureOption = ({ departure, isBestseller }: { departure: PackageDeparture; isBestseller?: boolean }) => {
+const DepartureOption = ({ departure, isBestseller }: { departure: Departure; isBestseller?: boolean }) => {
   const isAvailable = departure.status !== 'full';
   
   return (
@@ -48,7 +48,7 @@ const DepartureOption = ({ departure, isBestseller }: { departure: PackageDepart
       
       <div className="flex justify-between items-center mb-1">
         <span className="font-bold text-foreground">
-          {formatDate(departure.departureDate)}
+          {formatDate(departure.departure_date)}
         </span>
         {departure.status === 'full' && (
           <span className="text-[10px] text-destructive font-bold border border-destructive/30 px-1.5 py-0.5 rounded">
@@ -61,12 +61,12 @@ const DepartureOption = ({ departure, isBestseller }: { departure: PackageDepart
         <div className="text-xs text-muted-foreground">
           {departure.status === 'full' 
             ? 'Waitlist Available'
-            : `Sisa ${departure.availableSeats} Seat`}
+            : `Sisa ${departure.available_seats} Seat`}
         </div>
         <div className="text-right">
-          {departure.originalPrice && (
+          {departure.original_price && (
             <span className="block text-xs text-muted-foreground line-through">
-              {formatPrice(departure.originalPrice)}
+              {formatPrice(departure.original_price)}
             </span>
           )}
           <span className={`text-lg font-bold ${isAvailable ? 'text-accent' : 'text-muted-foreground'}`}>
@@ -80,6 +80,10 @@ const DepartureOption = ({ departure, isBestseller }: { departure: PackageDepart
 
 const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) => {
   if (!pkg) return null;
+
+  const whatsappUrl = pkg.travel.whatsapp 
+    ? `https://wa.me/${pkg.travel.whatsapp.replace(/\D/g, '')}?text=Halo, saya tertarik dengan ${pkg.name}`
+    : '#';
 
   return (
     <AnimatePresence>
@@ -120,10 +124,10 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               </h2>
               <div className="flex gap-2 mt-2 flex-wrap">
                 <span className="text-[10px] bg-blue-500/10 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-500/20 font-medium flex items-center gap-1">
-                  <Plane className="w-3 h-3" /> {pkg.airline}
+                  <Plane className="w-3 h-3" /> {pkg.airline || 'N/A'}
                 </span>
                 <span className="text-[10px] bg-accent/10 text-accent px-2.5 py-1 rounded-lg border border-accent/20 font-medium flex items-center gap-1">
-                  <Hotel className="w-3 h-3" /> {pkg.hotelMakkah} *{pkg.hotelStar}
+                  <Hotel className="w-3 h-3" /> {pkg.hotel_makkah} *{pkg.hotel_star}
                 </span>
               </div>
             </div>
@@ -131,21 +135,33 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
             <div className="space-y-3">
               <p className="text-sm font-semibold text-muted-foreground">Jadwal Tersedia:</p>
               
-              {pkg.departures.map((departure, index) => (
-                <DepartureOption
-                  key={departure.id}
-                  departure={departure}
-                  isBestseller={index === 0}
-                />
-              ))}
+              {pkg.departures.length > 0 ? (
+                pkg.departures.map((departure, index) => (
+                  <DepartureOption
+                    key={departure.id}
+                    departure={departure}
+                    isBestseller={index === 0}
+                  />
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Belum ada jadwal keberangkatan
+                </p>
+              )}
             </div>
           </div>
           
           {/* Footer CTA */}
           <div className="p-4 border-t border-border bg-card shadow-float">
-            <Button className="w-full shadow-primary gap-2" size="lg">
-              <MessageCircle className="w-4 h-4" />
-              Chat Agen Sekarang (WA)
+            <Button 
+              asChild
+              className="w-full shadow-primary gap-2" 
+              size="lg"
+            >
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="w-4 h-4" />
+                Chat Agen Sekarang (WA)
+              </a>
             </Button>
           </div>
         </motion.div>
