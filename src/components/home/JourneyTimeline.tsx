@@ -1,58 +1,268 @@
-import { Check, Play } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { Check, ChevronRight, Play, Calendar, MapPin, Plane, Home } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { timelinePhases, getCurrentPhase, TimelinePhase, TimelineTask } from '@/data/timelineData';
+import { cn } from '@/lib/utils';
+
+const phaseIcons: Record<string, React.ReactNode> = {
+  'h-30': <Calendar className="w-4 h-4" />,
+  'h-7': <Calendar className="w-4 h-4" />,
+  'h-1': <Plane className="w-4 h-4" />,
+  'during': <MapPin className="w-4 h-4" />,
+  'after': <Home className="w-4 h-4" />,
+};
+
+interface PhaseCardProps {
+  phase: TimelinePhase;
+  isActive: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  completedTasks: Set<string>;
+  onToggleTask: (taskId: string) => void;
+}
+
+const PhaseCard = ({ phase, isActive, isExpanded, onToggle, completedTasks, onToggleTask }: PhaseCardProps) => {
+  const completedCount = phase.tasks.filter(t => completedTasks.has(t.id)).length;
+  const progress = (completedCount / phase.tasks.length) * 100;
+
+  return (
+    <motion.div
+      layout
+      className={cn(
+        "bg-card rounded-2xl border shadow-card overflow-hidden transition-all",
+        isActive ? "border-primary ring-2 ring-primary/20" : "border-border"
+      )}
+    >
+      {/* Phase Header */}
+      <button
+        onClick={onToggle}
+        className="w-full p-4 flex items-center gap-3 text-left"
+      >
+        <div className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0",
+          phase.color
+        )}>
+          {phaseIcons[phase.id]}
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="font-bold text-foreground">{phase.name}</h4>
+            {isActive && (
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                Saat Ini
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{phase.label}</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            <span className="text-sm font-bold text-foreground">{completedCount}/{phase.tasks.length}</span>
+            <Progress value={progress} className="w-12 h-1.5 mt-1" />
+          </div>
+          <ChevronRight className={cn(
+            "w-5 h-5 text-muted-foreground transition-transform",
+            isExpanded && "rotate-90"
+          )} />
+        </div>
+      </button>
+
+      {/* Expanded Tasks */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-2">
+              <p className="text-xs text-muted-foreground mb-3">{phase.description}</p>
+              
+              {phase.tasks.map((task, index) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  isCompleted={completedTasks.has(task.id)}
+                  onToggle={() => onToggleTask(task.id)}
+                  index={index}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+interface TaskItemProps {
+  task: TimelineTask;
+  isCompleted: boolean;
+  onToggle: () => void;
+  index: number;
+}
+
+const TaskItem = ({ task, isCompleted, onToggle, index }: TaskItemProps) => {
+  const priorityColors = {
+    high: 'bg-destructive/10 text-destructive',
+    medium: 'bg-amber-500/10 text-amber-600',
+    low: 'bg-muted text-muted-foreground',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={cn(
+        "flex items-start gap-3 p-3 rounded-xl transition-all",
+        isCompleted ? "bg-primary/5" : "bg-secondary/50"
+      )}
+    >
+      <button
+        onClick={onToggle}
+        className={cn(
+          "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all mt-0.5",
+          isCompleted 
+            ? "bg-primary border-primary text-primary-foreground" 
+            : "border-muted-foreground/30 hover:border-primary"
+        )}
+      >
+        {isCompleted && <Check className="w-3.5 h-3.5" />}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h5 className={cn(
+            "text-sm font-medium",
+            isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+          )}>
+            {task.title}
+          </h5>
+          <span className={cn(
+            "text-[10px] px-1.5 py-0.5 rounded font-medium",
+            priorityColors[task.priority]
+          )}>
+            {task.priority === 'high' ? 'Penting' : task.priority === 'medium' ? 'Sedang' : 'Opsional'}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+          {task.description}
+        </p>
+      </div>
+    </motion.div>
+  );
+};
 
 const JourneyTimeline = () => {
+  const currentPhase = getCurrentPhase();
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(currentPhase?.id || 'h-7');
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set(['h30-1', 'h30-2']));
+
+  const toggleTask = (taskId: string) => {
+    setCompletedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  // Calculate overall progress
+  const totalTasks = timelinePhases.reduce((sum, p) => sum + p.tasks.length, 0);
+  const totalCompleted = completedTasks.size;
+  const overallProgress = (totalCompleted / totalTasks) * 100;
+
   return (
     <div className="p-4 bg-secondary/50 mt-4 border-t border-border">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="font-bold text-foreground">Timeline Ibadah</h3>
-        <span className="text-xs text-primary bg-primary/10 px-2.5 py-1 rounded-full font-medium">
-          H-7 Manasik
-        </span>
+      {/* Header with overall progress */}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <h3 className="font-bold text-foreground">Timeline Perjalanan</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {totalCompleted} dari {totalTasks} tugas selesai
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-primary">
+            {Math.round(overallProgress)}%
+          </span>
+          <div className="w-16">
+            <Progress value={overallProgress} className="h-2" />
+          </div>
+        </div>
       </div>
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-card p-4 rounded-2xl border border-border shadow-card relative overflow-hidden"
-      >
-        {/* Timeline line */}
-        <div className="w-0.5 h-full bg-border absolute left-[31px] top-0" />
-        
-        {/* Completed step */}
-        <div className="relative flex items-center gap-4 mb-4">
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center z-10 shadow-primary text-sm">
-            <Check className="w-4 h-4" />
+
+      {/* Phase Pills - Horizontal scroll */}
+      <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide mb-4">
+        {timelinePhases.map((phase) => {
+          const isActive = currentPhase?.id === phase.id;
+          const isSelected = expandedPhase === phase.id;
+          
+          return (
+            <button
+              key={phase.id}
+              onClick={() => setExpandedPhase(phase.id === expandedPhase ? null : phase.id)}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0",
+                isSelected 
+                  ? "bg-primary text-primary-foreground" 
+                  : isActive
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "bg-card text-muted-foreground border border-border hover:border-primary/30"
+              )}
+            >
+              {phaseIcons[phase.id]}
+              {phase.name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Phase Cards */}
+      <div className="space-y-3">
+        {timelinePhases.map((phase) => (
+          <PhaseCard
+            key={phase.id}
+            phase={phase}
+            isActive={currentPhase?.id === phase.id}
+            isExpanded={expandedPhase === phase.id}
+            onToggle={() => setExpandedPhase(phase.id === expandedPhase ? null : phase.id)}
+            completedTasks={completedTasks}
+            onToggleTask={toggleTask}
+          />
+        ))}
+      </div>
+
+      {/* Quick Action */}
+      {currentPhase && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/20"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Tugas berikutnya</p>
+              <h4 className="text-sm font-bold text-foreground mt-0.5">
+                {currentPhase.tasks.find(t => !completedTasks.has(t.id))?.title || 'Semua selesai! 🎉'}
+              </h4>
+            </div>
+            <Button size="sm" className="shadow-primary gap-1.5">
+              <Play className="w-3 h-3" /> Mulai
+            </Button>
           </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-bold text-muted-foreground line-through">
-              Cek Paspor & Visa
-            </h4>
-          </div>
-        </div>
-        
-        {/* Current step */}
-        <div className="relative flex items-center gap-4">
-          <div className="w-8 h-8 rounded-full bg-card border-2 border-primary text-primary flex items-center justify-center z-10 shadow-card font-bold text-sm">
-            2
-          </div>
-          <div className="flex-1">
-            <h4 className="text-sm font-bold text-foreground">
-              Hafalan Doa Ihram
-            </h4>
-            <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-              Audio tersedia offline 
-              <span className="w-3 h-3 rounded-full bg-primary/20 flex items-center justify-center">
-                <Check className="w-2 h-2 text-primary" />
-              </span>
-            </p>
-          </div>
-          <Button size="sm" className="shadow-primary text-xs gap-1.5">
-            <Play className="w-3 h-3" /> Mulai
-          </Button>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };
