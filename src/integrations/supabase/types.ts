@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          image_url: string
+          is_active: boolean
+          link_url: string | null
+          position: string
+          priority: number
+          start_date: string | null
+          title: string
+          travel_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          link_url?: string | null
+          position?: string
+          priority?: number
+          start_date?: string | null
+          title: string
+          travel_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          link_url?: string | null
+          position?: string
+          priority?: number
+          start_date?: string | null
+          title?: string
+          travel_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          package_id: string | null
+          price: number | null
+          transaction_type: string
+          travel_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          package_id?: string | null
+          price?: number | null
+          transaction_type: string
+          travel_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          package_id?: string | null
+          price?: number | null
+          transaction_type?: string
+          travel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departures: {
         Row: {
           available_seats: number
@@ -60,6 +161,94 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          amount: number
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          payment_proof_url: string | null
+          plan_type: string
+          start_date: string | null
+          status: string
+          travel_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          plan_type?: string
+          start_date?: string | null
+          status?: string
+          travel_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_proof_url?: string | null
+          plan_type?: string
+          start_date?: string | null
+          status?: string
+          travel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_credits: {
+        Row: {
+          created_at: string
+          credits_remaining: number
+          credits_used: number
+          id: string
+          last_purchase_date: string | null
+          travel_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_remaining?: number
+          credits_used?: number
+          id?: string
+          last_purchase_date?: string | null
+          travel_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_remaining?: number
+          credits_used?: number
+          id?: string
+          last_purchase_date?: string | null
+          travel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_credits_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: true
+            referencedRelation: "travels"
             referencedColumns: ["id"]
           },
         ]
@@ -128,6 +317,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_settings: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       profiles: {
         Row: {

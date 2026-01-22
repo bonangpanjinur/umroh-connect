@@ -83,7 +83,7 @@ const AkunView = () => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={() => navigate('/agent')}
-            className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between"
+            className="w-full bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-center justify-between mb-3"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500 text-primary-foreground flex items-center justify-center">
@@ -92,6 +92,27 @@ const AkunView = () => {
               <div className="text-left">
                 <h4 className="text-sm font-bold text-foreground">Dashboard Agent</h4>
                 <p className="text-[11px] text-muted-foreground">Kelola paket umroh Anda</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </motion.button>
+        )}
+
+        {/* Admin Dashboard Button */}
+        {profile?.role === 'admin' && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/admin')}
+            className="w-full bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-500 text-primary-foreground flex items-center justify-center">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <h4 className="text-sm font-bold text-foreground">Admin Dashboard</h4>
+                <p className="text-[11px] text-muted-foreground">Kelola platform & monetisasi</p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
