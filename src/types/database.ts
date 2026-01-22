@@ -159,3 +159,36 @@ export interface AdminStats {
   pendingMembers: number;
   totalRevenue: number;
 }
+
+// Master data types
+export interface Hotel {
+  id: string;
+  name: string;
+  city: 'Makkah' | 'Madinah';
+  star_rating: number;
+  distance_to_haram: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Airline {
+  id: string;
+  name: string;
+  code: string | null;
+  logo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Filter types for package listing
+export interface PackageFilters {
+  search: string;
+  minPrice: number | null;
+  maxPrice: number | null;
+  months: number[];
+  hotelStars: number[];
+  flightType: 'all' | 'direct' | 'transit';
+  duration: 'all' | 'short' | 'medium' | 'long';
+}
