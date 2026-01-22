@@ -387,3 +387,63 @@ export const useVerifyTravel = () => {
     }
   });
 };
+
+// Create new travel (admin)
+export const useCreateTravel = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (travel: {
+      name: string;
+      phone: string;
+      whatsapp?: string | null;
+      email?: string | null;
+      address?: string | null;
+      description?: string | null;
+      verified?: boolean;
+      owner_id?: string | null;
+    }) => {
+      const { data, error } = await supabase
+        .from('travels')
+        .insert({
+          name: travel.name,
+          phone: travel.phone,
+          whatsapp: travel.whatsapp,
+          email: travel.email,
+          address: travel.address,
+          description: travel.description,
+          verified: travel.verified || false,
+          owner_id: travel.owner_id,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    }
+  });
+};
+
+// Delete travel (admin)
+export const useDeleteTravel = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('travels')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+    }
+  });
+};

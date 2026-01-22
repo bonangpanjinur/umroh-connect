@@ -4,18 +4,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAllTravels, useVerifyTravel } from '@/hooks/useAdminData';
+import { useAllTravels, useVerifyTravel, useDeleteTravel } from '@/hooks/useAdminData';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Search, Building2, CheckCircle, XCircle, Star } from 'lucide-react';
+import { Search, Building2, CheckCircle, XCircle, Star, Trash2 } from 'lucide-react';
+import { AddTravelForm } from './AddTravelForm';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export const TravelsManagement = () => {
   const { data: travels, isLoading } = useAllTravels();
   const verifyTravel = useVerifyTravel();
+  const deleteTravel = useDeleteTravel();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredTravels = travels?.filter(travel => 
+  const filteredTravels = travels?.filter(travel =>
     travel.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     travel.phone?.includes(searchTerm)
   );
@@ -26,6 +39,15 @@ export const TravelsManagement = () => {
       toast.success(verified ? 'Travel berhasil diverifikasi' : 'Verifikasi dicabut');
     } catch (error) {
       toast.error('Gagal mengupdate verifikasi');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTravel.mutateAsync(id);
+      toast.success('Travel berhasil dihapus');
+    } catch (error) {
+      toast.error('Gagal menghapus travel');
     }
   };
 
@@ -49,14 +71,17 @@ export const TravelsManagement = () => {
             <Building2 className="h-5 w-5" />
             Manajemen Travel Agency
           </CardTitle>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari nama atau telepon..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari nama atau telepon..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <AddTravelForm />
           </div>
         </div>
       </CardHeader>
@@ -137,25 +162,49 @@ export const TravelsManagement = () => {
                       {format(new Date(travel.created_at), 'dd MMM yyyy', { locale: id })}
                     </TableCell>
                     <TableCell className="text-right">
-                      {travel.verified ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleVerify(travel.id, false)}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Cabut
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleVerify(travel.id, true)}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Verifikasi
-                        </Button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {travel.verified ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerify(travel.id, false)}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Cabut
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleVerify(travel.id, true)}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Verifikasi
+                          </Button>
+                        )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Travel</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Apakah Anda yakin ingin menghapus "{travel.name}"? 
+                                Tindakan ini tidak dapat dibatalkan.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(travel.id)}>
+                                Hapus
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
