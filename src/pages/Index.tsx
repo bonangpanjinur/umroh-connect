@@ -4,7 +4,7 @@ import { TabId } from '@/types';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import HomeView from '@/components/home/HomeView';
-import PanduanView from '@/components/panduan/PanduanView';
+import ChecklistView from '@/components/checklist/ChecklistView';
 import PaketView from '@/components/paket/PaketView';
 import AkunView from '@/components/akun/AkunView';
 import SOSModal from '@/components/modals/SOSModal';
@@ -34,8 +34,8 @@ const Index = () => {
     switch (activeTab) {
       case 'home':
         return <HomeView onMenuClick={handleMenuClick} />;
-      case 'panduan':
-        return <PanduanView />;
+      case 'checklist':
+        return <ChecklistView />;
       case 'paket':
         return <PaketView />;
       case 'akun':

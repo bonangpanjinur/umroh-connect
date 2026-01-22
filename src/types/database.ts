@@ -220,3 +220,34 @@ export interface AgentApplication {
   created_at: string;
   updated_at: string;
 }
+
+// Checklist types
+export type ChecklistCategory = 'dokumen' | 'perlengkapan' | 'kesehatan' | 'mental';
+
+export interface Checklist {
+  id: string;
+  title: string;
+  description: string | null;
+  category: ChecklistCategory;
+  phase: string;
+  priority: number;
+  icon: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserChecklist {
+  id: string;
+  user_id: string;
+  checklist_id: string;
+  is_checked: boolean;
+  checked_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChecklistWithProgress extends Checklist {
+  userProgress?: UserChecklist;
+}

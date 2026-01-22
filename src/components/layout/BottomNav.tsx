@@ -1,4 +1,4 @@
-import { Home, BookOpen, Briefcase, User } from 'lucide-react';
+import { Home, BookOpen, Briefcase, User, ClipboardCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TabId } from '@/types';
 
@@ -9,7 +9,7 @@ interface BottomNavProps {
 
 const navItems: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'home', label: 'Beranda', icon: Home },
-  { id: 'panduan', label: 'Panduan', icon: BookOpen },
+  { id: 'checklist', label: 'Checklist', icon: ClipboardCheck },
   { id: 'paket', label: 'Paket', icon: Briefcase },
   { id: 'akun', label: 'Akun', icon: User },
 ];

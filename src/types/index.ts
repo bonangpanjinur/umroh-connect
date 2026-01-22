@@ -83,4 +83,4 @@ export interface User {
 }
 
 // Tab Types
-export type TabId = 'home' | 'panduan' | 'paket' | 'akun';
+export type TabId = 'home' | 'panduan' | 'checklist' | 'paket' | 'akun';

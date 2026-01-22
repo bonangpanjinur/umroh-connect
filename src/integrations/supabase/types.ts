@@ -151,6 +151,45 @@ export type Database = {
           },
         ]
       }
+      checklists: {
+        Row: {
+          category: Database["public"]["Enums"]["checklist_category"]
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          phase: string
+          priority: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["checklist_category"]
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          phase?: string
+          priority?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["checklist_category"]
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          phase?: string
+          priority?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -572,6 +611,47 @@ export type Database = {
           },
         ]
       }
+      user_checklists: {
+        Row: {
+          checked_at: string | null
+          checklist_id: string
+          created_at: string
+          id: string
+          is_checked: boolean
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string | null
+          checklist_id: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checked_at?: string | null
+          checklist_id?: string
+          created_at?: string
+          id?: string
+          is_checked?: boolean
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_checklists_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -618,6 +698,7 @@ export type Database = {
     }
     Enums: {
       app_role: "jamaah" | "agent" | "admin"
+      checklist_category: "dokumen" | "perlengkapan" | "kesehatan" | "mental"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -746,6 +827,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["jamaah", "agent", "admin"],
+      checklist_category: ["dokumen", "perlengkapan", "kesehatan", "mental"],
     },
   },
 } as const
