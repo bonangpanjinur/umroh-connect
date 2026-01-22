@@ -60,7 +60,7 @@ export const AddTravelForm = () => {
         address: data.address || null,
         description: data.description || null,
         verified: data.verified,
-        owner_id: data.owner_id || null,
+        owner_id: data.owner_id === 'none' ? null : data.owner_id || null,
       });
       toast.success('Travel berhasil ditambahkan');
       form.reset();
@@ -181,7 +181,7 @@ export const AddTravelForm = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Tidak ada owner</SelectItem>
+                      <SelectItem value="none">Tidak ada owner</SelectItem>
                       {agents.map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>
                           {agent.full_name || agent.phone || 'Agent'}
