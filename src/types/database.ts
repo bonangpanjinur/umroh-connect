@@ -1,6 +1,8 @@
 // Database types for Arah Umroh
 
 export type AppRole = 'jamaah' | 'agent' | 'admin';
+export type TravelStatus = 'active' | 'suspended' | 'pending';
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Profile {
   id: string;
@@ -9,6 +11,9 @@ export interface Profile {
   full_name: string | null;
   phone: string | null;
   avatar_url: string | null;
+  is_suspended: boolean;
+  suspension_reason: string | null;
+  suspended_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +31,10 @@ export interface Travel {
   rating: number;
   review_count: number;
   verified: boolean;
+  verified_at: string | null;
+  verified_by: string | null;
+  approval_notes: string | null;
+  status: TravelStatus;
   created_at: string;
   updated_at: string;
 }
@@ -191,4 +200,23 @@ export interface PackageFilters {
   hotelStars: number[];
   flightType: 'all' | 'direct' | 'transit';
   duration: 'all' | 'short' | 'medium' | 'long';
+}
+
+// Agent application for registration
+export interface AgentApplication {
+  id: string;
+  user_id: string;
+  status: ApplicationStatus;
+  travel_name: string;
+  phone: string;
+  whatsapp: string | null;
+  email: string | null;
+  address: string | null;
+  description: string | null;
+  documents: string[];
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
 }

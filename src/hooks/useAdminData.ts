@@ -8,7 +8,8 @@ import {
   CreditTransaction,
   PlatformSetting,
   Travel,
-  Profile
+  Profile,
+  TravelStatus
 } from '@/types/database';
 
 // Fetch admin statistics
@@ -62,6 +63,33 @@ export const useAllUsers = () => {
       
       if (error) throw error;
       return data as Profile[];
+    }
+  });
+};
+
+// Suspend/unsuspend user
+export const useSuspendUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ user_id, is_suspended, suspension_reason }: { 
+      user_id: string; 
+      is_suspended: boolean; 
+      suspension_reason?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_suspended,
+          suspension_reason: is_suspended ? suspension_reason : null,
+          suspended_at: is_suspended ? new Date().toISOString() : null
+        })
+        .eq('user_id', user_id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
     }
   });
 };
@@ -369,15 +397,38 @@ export const useUpdateUserRole = () => {
   });
 };
 
-// Verify/unverify travel
+// Verify/unverify travel with notes
 export const useVerifyTravel = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
+    mutationFn: async ({ id, verified, approval_notes }: { id: string; verified: boolean; approval_notes?: string | null }) => {
       const { error } = await supabase
         .from('travels')
-        .update({ verified })
+        .update({ 
+          verified,
+          verified_at: verified ? new Date().toISOString() : null,
+          approval_notes: approval_notes || null
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
+    }
+  });
+};
+
+// Suspend/activate travel
+export const useSuspendTravel = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: TravelStatus }) => {
+      const { error } = await supabase
+        .from('travels')
+        .update({ status })
         .eq('id', id);
       
       if (error) throw error;
@@ -414,8 +465,10 @@ export const useCreateTravel = () => {
           address: travel.address,
           description: travel.description,
           verified: travel.verified || false,
+          verified_at: travel.verified ? new Date().toISOString() : null,
           owner_id: travel.owner_id,
           logo_url: travel.logo_url,
+          status: 'active'
         })
         .select()
         .single();

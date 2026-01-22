@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_applications: {
+        Row: {
+          address: string | null
+          admin_notes: string | null
+          created_at: string
+          description: string | null
+          documents: string[] | null
+          email: string | null
+          id: string
+          phone: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          travel_name: string
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          documents?: string[] | null
+          email?: string | null
+          id?: string
+          phone: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          travel_name: string
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          admin_notes?: string | null
+          created_at?: string
+          description?: string | null
+          documents?: string[] | null
+          email?: string | null
+          id?: string
+          phone?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          travel_name?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       airlines: {
         Row: {
           code: string | null
@@ -411,8 +465,11 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_suspended: boolean
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          suspended_at: string | null
+          suspension_reason: string | null
           updated_at: string
           user_id: string
         }
@@ -421,8 +478,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id: string
         }
@@ -431,8 +491,11 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_suspended?: boolean
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          suspended_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -441,6 +504,7 @@ export type Database = {
       travels: {
         Row: {
           address: string | null
+          approval_notes: string | null
           created_at: string
           description: string | null
           email: string | null
@@ -451,12 +515,16 @@ export type Database = {
           phone: string | null
           rating: number | null
           review_count: number | null
+          status: string
           updated_at: string
           verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
           whatsapp: string | null
         }
         Insert: {
           address?: string | null
+          approval_notes?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
@@ -467,12 +535,16 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           review_count?: number | null
+          status?: string
           updated_at?: string
           verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
           whatsapp?: string | null
         }
         Update: {
           address?: string | null
+          approval_notes?: string | null
           created_at?: string
           description?: string | null
           email?: string | null
@@ -483,8 +555,11 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           review_count?: number | null
+          status?: string
           updated_at?: string
           verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
           whatsapp?: string | null
         }
         Relationships: [
