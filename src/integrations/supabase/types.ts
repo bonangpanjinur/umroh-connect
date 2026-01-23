@@ -757,6 +757,53 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_reviews: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          is_published: boolean | null
+          is_verified_purchase: boolean | null
+          rating: number
+          review_text: string | null
+          travel_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          is_verified_purchase?: boolean | null
+          rating: number
+          review_text?: string | null
+          travel_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          is_published?: boolean | null
+          is_verified_purchase?: boolean | null
+          rating?: number
+          review_text?: string | null
+          travel_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_reviews_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travels: {
         Row: {
           address: string | null
