@@ -23,14 +23,16 @@ import {
   getCategoryLabel, 
   getPriorityColor 
 } from '@/data/reminderData';
+import { FeatureLock } from '@/components/common/FeatureLock';
 
 interface ReminderViewProps {
   onBack: () => void;
+  onViewPackages?: () => void;
 }
 
 const phases: ReminderPhase[] = ['H-30', 'H-7', 'H-1', 'during', 'after'];
 
-const ReminderView = ({ onBack }: ReminderViewProps) => {
+const ReminderView = ({ onBack, onViewPackages }: ReminderViewProps) => {
   const [activePhase, setActivePhase] = useState<ReminderPhase>('H-30');
   const [showSettings, setShowSettings] = useState(false);
   
@@ -84,12 +86,17 @@ const ReminderView = ({ onBack }: ReminderViewProps) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen bg-background"
+    <FeatureLock
+      featureName="Pengingat Persiapan"
+      description="Fitur pengingat hanya tersedia untuk jamaah yang sudah melakukan booking paket umroh."
+      onViewPackages={onViewPackages}
     >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-background"
+      >
       {/* Header */}
       <div className="sticky top-0 z-20 bg-card border-b border-border">
         <div className="flex items-center justify-between p-4">
@@ -295,6 +302,7 @@ const ReminderView = ({ onBack }: ReminderViewProps) => {
         </Tabs>
       </div>
     </motion.div>
+    </FeatureLock>
   );
 };
 
