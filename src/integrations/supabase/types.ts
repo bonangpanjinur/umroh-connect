@@ -575,6 +575,101 @@ export type Database = {
         }
         Relationships: []
       }
+      prayer_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_arabic: string | null
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_arabic?: string | null
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_arabic?: string | null
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prayers: {
+        Row: {
+          arabic_text: string
+          audio_url: string | null
+          benefits: string | null
+          category_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          source: string | null
+          title: string
+          title_arabic: string | null
+          translation: string | null
+          transliteration: string | null
+          updated_at: string
+        }
+        Insert: {
+          arabic_text: string
+          audio_url?: string | null
+          benefits?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          source?: string | null
+          title: string
+          title_arabic?: string | null
+          translation?: string | null
+          transliteration?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arabic_text?: string
+          audio_url?: string | null
+          benefits?: string | null
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          source?: string | null
+          title?: string
+          title_arabic?: string | null
+          translation?: string | null
+          transliteration?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prayers_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "prayer_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
