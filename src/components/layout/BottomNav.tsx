@@ -1,4 +1,4 @@
-import { Home, BookOpen, Briefcase, User, ClipboardCheck } from 'lucide-react';
+import { Home, BookOpen, Briefcase, User, ClipboardCheck, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TabId } from '@/types';
 
@@ -11,6 +11,7 @@ const navItems: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'home', label: 'Beranda', icon: Home },
   { id: 'checklist', label: 'Checklist', icon: ClipboardCheck },
   { id: 'paket', label: 'Paket', icon: Briefcase },
+  { id: 'haji', label: 'Haji', icon: FileText },
   { id: 'akun', label: 'Akun', icon: User },
 ];
 

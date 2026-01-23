@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Plane, Hotel, MessageCircle, Crown, Star, Send } from 'lucide-react';
+import { X, Plane, Hotel, MessageCircle, Crown, Star, Send, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,10 @@ import { useTrackInterest } from '@/hooks/usePackageInterests';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TravelReviewSection } from '@/components/reviews/TravelReviewSection';
 import { InquiryForm } from '@/components/inquiry/InquiryForm';
+import { HajiRegistrationForm } from '@/components/haji/HajiRegistrationForm';
+import { PackageType, packageTypeLabels, packageTypeColors } from '@/hooks/useHaji';
+import { Badge } from '@/components/ui/badge';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface PackageDetailModalProps {
   package: PackageWithDetails | null;
@@ -85,7 +89,11 @@ const DepartureOption = ({ departure, isBestseller }: { departure: Departure; is
 
 const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) => {
   const trackInterest = useTrackInterest();
+  const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState('jadwal');
+  const [showHajiForm, setShowHajiForm] = useState(false);
+
+  const isHajiPackage = pkg?.package_type && pkg.package_type !== 'umroh';
 
   // Track view when modal opens
   useEffect(() => {
@@ -101,6 +109,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
   useEffect(() => {
     if (pkg) {
       setActiveTab('jadwal');
+      setShowHajiForm(false);
     }
   }, [pkg?.id]);
 
@@ -165,51 +174,119 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               </div>
             </div>
             
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="jadwal" className="text-sm">
-                  Jadwal
-                </TabsTrigger>
-                <TabsTrigger value="inquiry" className="text-sm flex items-center gap-1">
-                  <Send className="h-3 w-3" />
-                  Inquiry
-                </TabsTrigger>
-                <TabsTrigger value="review" className="text-sm flex items-center gap-1">
-                  <Star className="h-3 w-3" />
-                  Review
-                </TabsTrigger>
-              </TabsList>
+            {showHajiForm && isHajiPackage ? (
+              <HajiRegistrationForm
+                packageId={pkg.id}
+                travelId={pkg.travel.id}
+                packageName={pkg.name}
+                packageType={pkg.package_type as PackageType}
+                minDp={pkg.min_dp}
+                onSuccess={() => {
+                  setShowHajiForm(false);
+                  onClose();
+                }}
+                onCancel={() => setShowHajiForm(false)}
+              />
+            ) : (
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className={`grid w-full mb-4 ${isHajiPackage ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                  <TabsTrigger value="jadwal" className="text-sm">
+                    Jadwal
+                  </TabsTrigger>
+                  {isHajiPackage && (
+                    <TabsTrigger value="daftar" className="text-sm flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Daftar
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="inquiry" className="text-sm flex items-center gap-1">
+                    <Send className="h-3 w-3" />
+                    Inquiry
+                  </TabsTrigger>
+                  <TabsTrigger value="review" className="text-sm flex items-center gap-1">
+                    <Star className="h-3 w-3" />
+                    Review
+                  </TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="jadwal" className="mt-0 space-y-3">
-                {pkg.departures.length > 0 ? (
-                  pkg.departures.map((departure, index) => (
-                    <DepartureOption
-                      key={departure.id}
-                      departure={departure}
-                      isBestseller={index === 0}
-                    />
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    Belum ada jadwal keberangkatan
-                  </p>
+                <TabsContent value="jadwal" className="mt-0 space-y-3">
+                  {isHajiPackage && (
+                    <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge className={packageTypeColors[pkg.package_type as PackageType]}>
+                          {packageTypeLabels[pkg.package_type as PackageType]}
+                        </Badge>
+                        {pkg.estimated_departure_year && (
+                          <span className="text-xs text-muted-foreground">
+                            Est. {pkg.estimated_departure_year}
+                          </span>
+                        )}
+                      </div>
+                      {pkg.min_dp && pkg.min_dp > 0 && (
+                        <p className="text-sm text-foreground">
+                          DP Minimal: <span className="font-bold text-primary">Rp {pkg.min_dp.toLocaleString('id-ID')}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {pkg.departures.length > 0 ? (
+                    pkg.departures.map((departure, index) => (
+                      <DepartureOption
+                        key={departure.id}
+                        departure={departure}
+                        isBestseller={index === 0}
+                      />
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      {isHajiPackage ? 'Jadwal keberangkatan akan diumumkan' : 'Belum ada jadwal keberangkatan'}
+                    </p>
+                  )}
+                </TabsContent>
+
+                {isHajiPackage && (
+                  <TabsContent value="daftar" className="mt-0">
+                    {user ? (
+                      <div className="text-center py-6 space-y-4">
+                        <FileText className="w-12 h-12 text-primary mx-auto" />
+                        <h3 className="font-semibold text-foreground">Pendaftaran Haji</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Daftar sekarang untuk paket {packageTypeLabels[pkg.package_type as PackageType]}
+                        </p>
+                        <Button onClick={() => setShowHajiForm(true)} className="w-full">
+                          Mulai Pendaftaran
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 space-y-4">
+                        <FileText className="w-12 h-12 text-muted-foreground mx-auto" />
+                        <h3 className="font-semibold text-foreground">Login Diperlukan</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Silakan login terlebih dahulu untuk mendaftar paket haji
+                        </p>
+                        <Button variant="outline" asChild>
+                          <a href="/auth">Masuk / Daftar</a>
+                        </Button>
+                      </div>
+                    )}
+                  </TabsContent>
                 )}
-              </TabsContent>
 
-              <TabsContent value="inquiry" className="mt-0">
-                <InquiryForm 
-                  package={pkg}
-                  onSuccess={() => setActiveTab('jadwal')}
-                />
-              </TabsContent>
+                <TabsContent value="inquiry" className="mt-0">
+                  <InquiryForm 
+                    package={pkg}
+                    onSuccess={() => setActiveTab('jadwal')}
+                  />
+                </TabsContent>
 
-              <TabsContent value="review" className="mt-0">
-                <TravelReviewSection 
-                  travelId={pkg.travel.id} 
-                  travelName={pkg.travel.name} 
-                />
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="review" className="mt-0">
+                  <TravelReviewSection 
+                    travelId={pkg.travel.id} 
+                    travelName={pkg.travel.name} 
+                  />
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
           
           {/* Footer CTA */}

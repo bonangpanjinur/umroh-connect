@@ -4,7 +4,7 @@ import { useHajiChecklists, PackageType } from '@/hooks/useHaji';
 import { CheckCircle, Circle, FileText, Heart, Wallet, Loader2 } from 'lucide-react';
 
 interface HajiChecklistDisplayProps {
-  packageType: PackageType;
+  packageType?: PackageType;
   completedItems?: string[];
   onToggle?: (itemId: string) => void;
   interactive?: boolean;

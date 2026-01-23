@@ -1,9 +1,49 @@
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useUserHajiRegistrations } from '@/hooks/useHaji';
+
+// Haji registration button component
+const HajiRegistrationButton = () => {
+  const navigate = useNavigate();
+  const { data: registrations } = useUserHajiRegistrations();
+  
+  const activeRegistrations = registrations?.filter(r => 
+    ['pending', 'verified', 'waiting'].includes(r.status)
+  ) || [];
+
+  if (activeRegistrations.length === 0) return null;
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      onClick={() => navigate('/?tab=haji')}
+      className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between mb-3"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-emerald-500 text-primary-foreground flex items-center justify-center">
+          <FileText className="w-5 h-5" />
+        </div>
+        <div className="text-left">
+          <h4 className="text-sm font-bold text-foreground">Pendaftaran Haji</h4>
+          <p className="text-[11px] text-muted-foreground">
+            {activeRegistrations.length} pendaftaran aktif
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="w-5 h-5 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+          {activeRegistrations.length}
+        </span>
+        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      </div>
+    </motion.button>
+  );
+};
 
 const AkunView = () => {
   const [isLansiaMode, setIsLansiaMode] = useState(false);
@@ -97,6 +137,9 @@ const AkunView = () => {
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </motion.button>
         )}
+
+        {/* Haji Registration Status Button */}
+        <HajiRegistrationButton />
 
         {/* Admin Dashboard Button */}
         {profile?.role === 'admin' && (
