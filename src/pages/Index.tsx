@@ -17,6 +17,7 @@ import MapsView from '@/components/maps/MapsView';
 import ReminderView from '@/components/reminder/ReminderView';
 import JournalView from '@/components/journal/JournalView';
 import DoaView from '@/components/doa/DoaView';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,6 +31,7 @@ const Index = () => {
   const [showReminder, setShowReminder] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showDoa, setShowDoa] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -77,12 +79,20 @@ const Index = () => {
       case 'doaharian':
         setShowDoa(true);
         break;
+      case 'notifikasi':
+        setShowNotifications(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Notification Center
+    if (showNotifications) {
+      return <NotificationCenter onBack={() => setShowNotifications(false)} />;
+    }
+
     // Show Doa view
     if (showDoa) {
       return <DoaView onBack={() => setShowDoa(false)} />;
@@ -136,7 +146,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
