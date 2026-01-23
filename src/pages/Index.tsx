@@ -22,6 +22,7 @@ import OfflineManagerView from '@/components/offline/OfflineManagerView';
 import PackingListGenerator from '@/components/packing/PackingListGenerator';
 import CurrencyConverter from '@/components/currency/CurrencyConverter';
 import GroupTrackingView from '@/components/tracking/GroupTrackingView';
+import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
@@ -42,6 +43,7 @@ const Index = () => {
   const [showPacking, setShowPacking] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -104,12 +106,20 @@ const Index = () => {
       case 'tracking':
         setShowTracking(true);
         break;
+      case 'reviews':
+        setShowReviews(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Public Reviews
+    if (showReviews) {
+      return <PublicReviewsView onBack={() => setShowReviews(false)} />;
+    }
+
     // Show Group Tracking - Premium Feature
     if (showTracking) {
       return (
@@ -256,7 +266,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
