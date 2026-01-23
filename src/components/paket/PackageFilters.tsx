@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { X, SlidersHorizontal, Star, Plane, Calendar, DollarSign } from 'lucide-react';
+import { X, SlidersHorizontal, Star, Plane, Calendar, DollarSign, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PackageFilters as FilterType } from '@/types/database';
+import { PackageFilters as FilterType, PackageType } from '@/types/database';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 interface PackageFiltersProps {
@@ -28,6 +28,14 @@ const months = [
   { value: 12, label: 'Des' },
 ];
 
+const packageTypes: { value: 'all' | PackageType; label: string }[] = [
+  { value: 'all', label: 'Semua' },
+  { value: 'umroh', label: 'Umroh' },
+  { value: 'haji_reguler', label: 'Haji Reguler' },
+  { value: 'haji_plus', label: 'Haji Plus' },
+  { value: 'haji_furoda', label: 'Haji Furoda' },
+];
+
 export const PackageFiltersSheet = ({ filters, onFiltersChange }: PackageFiltersProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localFilters, setLocalFilters] = useState<FilterType>(filters);
@@ -46,6 +54,7 @@ export const PackageFiltersSheet = ({ filters, onFiltersChange }: PackageFilters
       hotelStars: [],
       flightType: 'all',
       duration: 'all',
+      packageType: 'all',
     };
     setLocalFilters(defaultFilters);
     onFiltersChange(defaultFilters);
@@ -75,6 +84,7 @@ export const PackageFiltersSheet = ({ filters, onFiltersChange }: PackageFilters
     filters.hotelStars.length > 0,
     filters.flightType !== 'all',
     filters.duration !== 'all',
+    filters.packageType !== 'all',
   ].filter(Boolean).length;
 
   return (
@@ -225,6 +235,29 @@ export const PackageFiltersSheet = ({ filters, onFiltersChange }: PackageFilters
               ))}
             </div>
           </div>
+
+          {/* Package Type */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Compass className="w-4 h-4" />
+              Tipe Paket
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {packageTypes.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => setLocalFilters(prev => ({ ...prev, packageType: type.value }))}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    localFilters.packageType === type.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-muted-foreground hover:text-foreground border border-border'
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Apply Button */}
@@ -249,8 +282,20 @@ export const QuickFilterTags = ({ filters, onFiltersChange }: QuickFilterTagsPro
     { 
       id: 'all', 
       label: 'Semua',
-      isActive: () => filters.months.length === 0 && filters.hotelStars.length === 0 && filters.maxPrice === null,
-      apply: () => onFiltersChange({ ...filters, months: [], hotelStars: [], minPrice: null, maxPrice: null }),
+      isActive: () => filters.months.length === 0 && filters.hotelStars.length === 0 && filters.maxPrice === null && filters.packageType === 'all',
+      apply: () => onFiltersChange({ ...filters, months: [], hotelStars: [], minPrice: null, maxPrice: null, packageType: 'all' }),
+    },
+    { 
+      id: 'umroh', 
+      label: '🕋 Umroh',
+      isActive: () => filters.packageType === 'umroh',
+      apply: () => onFiltersChange({ ...filters, packageType: filters.packageType === 'umroh' ? 'all' : 'umroh' }),
+    },
+    { 
+      id: 'haji', 
+      label: '🏕️ Haji',
+      isActive: () => filters.packageType === 'haji_reguler' || filters.packageType === 'haji_plus' || filters.packageType === 'haji_furoda',
+      apply: () => onFiltersChange({ ...filters, packageType: filters.packageType.startsWith('haji') ? 'all' : 'haji_reguler' }),
     },
     { 
       id: 'price25', 

@@ -17,6 +17,7 @@ const PaketView = () => {
     hotelStars: [],
     flightType: 'all',
     duration: 'all',
+    packageType: 'all',
   });
   const [selectedPackage, setSelectedPackage] = useState<PackageWithDetails | null>(null);
   
@@ -40,6 +41,7 @@ const PaketView = () => {
         facilities: pkg.facilities,
         images: pkg.images,
         is_active: true,
+        package_type: 'umroh' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         travel: {
@@ -132,6 +134,11 @@ const PaketView = () => {
             if (pkg.duration_days <= 12) return false;
             break;
         }
+      }
+
+      // Package type filter
+      if (filters.packageType !== 'all') {
+        if (pkg.package_type !== filters.packageType) return false;
       }
 
       return true;
