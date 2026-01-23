@@ -18,6 +18,7 @@ import ReminderView from '@/components/reminder/ReminderView';
 import JournalView from '@/components/journal/JournalView';
 import DoaView from '@/components/doa/DoaView';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
+import OfflineManagerView from '@/components/offline/OfflineManagerView';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +33,7 @@ const Index = () => {
   const [showJournal, setShowJournal] = useState(false);
   const [showDoa, setShowDoa] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -82,12 +84,35 @@ const Index = () => {
       case 'notifikasi':
         setShowNotifications(true);
         break;
+      case 'offline':
+        setShowOffline(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Offline Manager
+    if (showOffline) {
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowOffline(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              ←
+            </button>
+            <h2 className="font-bold text-lg">Offline Manager</h2>
+          </div>
+          <div className="p-4">
+            <OfflineManagerView />
+          </div>
+        </div>
+      );
+    }
+
     // Show Notification Center
     if (showNotifications) {
       return <NotificationCenter onBack={() => setShowNotifications(false)} />;
