@@ -1,1 +1,13 @@
 project_id = "usciqlvfcgiorofdrthx"
+
+[functions.recommend-packages]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.payment-reminders]
+verify_jwt = false
+
+[functions.departure-reminders]
+verify_jwt = false

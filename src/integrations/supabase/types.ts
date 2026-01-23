@@ -160,6 +160,12 @@ export type Database = {
           contact_phone: string
           created_at: string
           departure_id: string | null
+          departure_reminder_h0: boolean | null
+          departure_reminder_h1: boolean | null
+          departure_reminder_h14: boolean | null
+          departure_reminder_h3: boolean | null
+          departure_reminder_h30: boolean | null
+          departure_reminder_h7: boolean | null
           id: string
           notes: string | null
           number_of_pilgrims: number
@@ -180,6 +186,12 @@ export type Database = {
           contact_phone: string
           created_at?: string
           departure_id?: string | null
+          departure_reminder_h0?: boolean | null
+          departure_reminder_h1?: boolean | null
+          departure_reminder_h14?: boolean | null
+          departure_reminder_h3?: boolean | null
+          departure_reminder_h30?: boolean | null
+          departure_reminder_h7?: boolean | null
           id?: string
           notes?: string | null
           number_of_pilgrims?: number
@@ -200,6 +212,12 @@ export type Database = {
           contact_phone?: string
           created_at?: string
           departure_id?: string | null
+          departure_reminder_h0?: boolean | null
+          departure_reminder_h1?: boolean | null
+          departure_reminder_h14?: boolean | null
+          departure_reminder_h3?: boolean | null
+          departure_reminder_h30?: boolean | null
+          departure_reminder_h7?: boolean | null
           id?: string
           notes?: string | null
           number_of_pilgrims?: number
@@ -370,6 +388,50 @@ export type Database = {
             columns: ["travel_id"]
             isOneToOne: false
             referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departure_notification_logs: {
+        Row: {
+          body: string
+          booking_id: string | null
+          id: string
+          is_read: boolean | null
+          notification_type: string
+          read_at: string | null
+          sent_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          booking_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          notification_type: string
+          read_at?: string | null
+          sent_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          booking_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          notification_type?: string
+          read_at?: string | null
+          sent_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departure_notification_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
