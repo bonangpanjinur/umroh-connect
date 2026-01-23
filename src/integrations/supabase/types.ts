@@ -288,6 +288,129 @@ export type Database = {
           },
         ]
       }
+      haji_checklists: {
+        Row: {
+          applies_to: string[] | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          priority: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[] | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          priority?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[] | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          priority?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      haji_registrations: {
+        Row: {
+          address: string | null
+          agent_notes: string | null
+          birth_date: string
+          created_at: string
+          documents: Json | null
+          dp_amount: number | null
+          dp_paid_at: string | null
+          email: string | null
+          estimated_departure_year: number | null
+          full_name: string
+          id: string
+          nik: string
+          package_id: string
+          phone: string
+          porsi_number: string | null
+          registration_year: number | null
+          status: string
+          travel_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          agent_notes?: string | null
+          birth_date: string
+          created_at?: string
+          documents?: Json | null
+          dp_amount?: number | null
+          dp_paid_at?: string | null
+          email?: string | null
+          estimated_departure_year?: number | null
+          full_name: string
+          id?: string
+          nik: string
+          package_id: string
+          phone: string
+          porsi_number?: string | null
+          registration_year?: number | null
+          status?: string
+          travel_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          agent_notes?: string | null
+          birth_date?: string
+          created_at?: string
+          documents?: Json | null
+          dp_amount?: number | null
+          dp_paid_at?: string | null
+          email?: string | null
+          estimated_departure_year?: number | null
+          full_name?: string
+          id?: string
+          nik?: string
+          package_id?: string
+          phone?: string
+          porsi_number?: string | null
+          registration_year?: number | null
+          status?: string
+          travel_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haji_registrations_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haji_registrations_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotels: {
         Row: {
           city: string
@@ -609,12 +732,17 @@ export type Database = {
       }
       packages: {
         Row: {
+          age_requirement: string | null
           airline: string | null
           created_at: string
           description: string | null
           duration_days: number
+          estimated_departure_year: number | null
           facilities: string[] | null
           flight_type: string | null
+          haji_season: string | null
+          haji_year: number | null
+          health_requirements: string[] | null
           hotel_madinah: string | null
           hotel_makkah: string | null
           hotel_star: number | null
@@ -622,17 +750,26 @@ export type Database = {
           images: string[] | null
           is_active: boolean | null
           meal_type: string | null
+          min_dp: number | null
           name: string
+          package_type: Database["public"]["Enums"]["package_type"]
+          quota_type: string | null
+          registration_deadline: string | null
           travel_id: string
           updated_at: string
         }
         Insert: {
+          age_requirement?: string | null
           airline?: string | null
           created_at?: string
           description?: string | null
           duration_days?: number
+          estimated_departure_year?: number | null
           facilities?: string[] | null
           flight_type?: string | null
+          haji_season?: string | null
+          haji_year?: number | null
+          health_requirements?: string[] | null
           hotel_madinah?: string | null
           hotel_makkah?: string | null
           hotel_star?: number | null
@@ -640,17 +777,26 @@ export type Database = {
           images?: string[] | null
           is_active?: boolean | null
           meal_type?: string | null
+          min_dp?: number | null
           name: string
+          package_type?: Database["public"]["Enums"]["package_type"]
+          quota_type?: string | null
+          registration_deadline?: string | null
           travel_id: string
           updated_at?: string
         }
         Update: {
+          age_requirement?: string | null
           airline?: string | null
           created_at?: string
           description?: string | null
           duration_days?: number
+          estimated_departure_year?: number | null
           facilities?: string[] | null
           flight_type?: string | null
+          haji_season?: string | null
+          haji_year?: number | null
+          health_requirements?: string[] | null
           hotel_madinah?: string | null
           hotel_makkah?: string | null
           hotel_star?: number | null
@@ -658,7 +804,11 @@ export type Database = {
           images?: string[] | null
           is_active?: boolean | null
           meal_type?: string | null
+          min_dp?: number | null
           name?: string
+          package_type?: Database["public"]["Enums"]["package_type"]
+          quota_type?: string | null
+          registration_deadline?: string | null
           travel_id?: string
           updated_at?: string
         }
@@ -1039,6 +1189,7 @@ export type Database = {
     Enums: {
       app_role: "jamaah" | "agent" | "admin"
       checklist_category: "dokumen" | "perlengkapan" | "kesehatan" | "mental"
+      package_type: "umroh" | "haji_reguler" | "haji_plus" | "haji_furoda"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1168,6 +1319,7 @@ export const Constants = {
     Enums: {
       app_role: ["jamaah", "agent", "admin"],
       checklist_category: ["dokumen", "perlengkapan", "kesehatan", "mental"],
+      package_type: ["umroh", "haji_reguler", "haji_plus", "haji_furoda"],
     },
   },
 } as const

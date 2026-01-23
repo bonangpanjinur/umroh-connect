@@ -2,6 +2,7 @@ import { Star, Hotel, Plane, UtensilsCrossed, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion';
 import { PackageWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
+import { PackageTypeBadge } from '@/components/haji/PackageTypeBadge';
 
 interface PackageCardProps {
   package: PackageWithDetails;
@@ -40,7 +41,10 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
         />
         
         {/* Rating Badge */}
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 flex gap-2">
+          {pkg.package_type && pkg.package_type !== 'umroh' && (
+            <PackageTypeBadge type={pkg.package_type} />
+          )}
           <span className="bg-card/95 backdrop-blur-sm text-foreground text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
             <Star className="w-3 h-3 fill-accent text-accent" />
             {pkg.travel.rating} ({pkg.travel.review_count})

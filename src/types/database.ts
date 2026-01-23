@@ -3,6 +3,7 @@
 export type AppRole = 'jamaah' | 'agent' | 'admin';
 export type TravelStatus = 'active' | 'suspended' | 'pending';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type PackageType = 'umroh' | 'haji_reguler' | 'haji_plus' | 'haji_furoda';
 
 export interface Profile {
   id: string;
@@ -54,6 +55,16 @@ export interface Package {
   facilities: string[];
   images: string[];
   is_active: boolean;
+  package_type: PackageType;
+  // Haji-specific fields
+  haji_year?: number | null;
+  haji_season?: string | null;
+  quota_type?: string | null;
+  estimated_departure_year?: number | null;
+  min_dp?: number | null;
+  registration_deadline?: string | null;
+  age_requirement?: string | null;
+  health_requirements?: string[] | null;
   created_at: string;
   updated_at: string;
   // Joined data
@@ -200,6 +211,7 @@ export interface PackageFilters {
   hotelStars: number[];
   flightType: 'all' | 'direct' | 'transit';
   duration: 'all' | 'short' | 'medium' | 'long';
+  packageType: 'all' | PackageType;
 }
 
 // Agent application for registration
