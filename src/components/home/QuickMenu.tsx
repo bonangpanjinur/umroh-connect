@@ -1,10 +1,11 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const menuItems = [
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600' },
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600' },
+  { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent' },
   { id: 'reminder', label: 'Pengingat', icon: Bell, color: 'text-red-500' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500' },

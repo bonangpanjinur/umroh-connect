@@ -14,6 +14,7 @@ import ManasikView from '@/components/manasik/ManasikView';
 import MapsView from '@/components/maps/MapsView';
 import ReminderView from '@/components/reminder/ReminderView';
 import JournalView from '@/components/journal/JournalView';
+import DoaView from '@/components/doa/DoaView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -24,6 +25,7 @@ const Index = () => {
   const [showMaps, setShowMaps] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
+  const [showDoa, setShowDoa] = useState(false);
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -45,12 +47,20 @@ const Index = () => {
       case 'journal':
         setShowJournal(true);
         break;
+      case 'doaharian':
+        setShowDoa(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Doa view
+    if (showDoa) {
+      return <DoaView onBack={() => setShowDoa(false)} />;
+    }
+
     // Show Journal view
     if (showJournal) {
       return <JournalView onBack={() => setShowJournal(false)} />;
@@ -97,7 +107,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && (
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         )}
         
