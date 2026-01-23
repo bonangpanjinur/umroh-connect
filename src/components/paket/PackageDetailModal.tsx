@@ -173,7 +173,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -183,18 +183,18 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
           className="absolute inset-0 bg-foreground/60 backdrop-blur-sm"
         />
         
-        {/* Modal Content - Fully responsive */}
+        {/* Modal Content - Always Centered */}
         <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="absolute inset-x-0 bottom-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
-                     w-full md:max-w-lg lg:max-w-xl bg-card rounded-t-3xl md:rounded-3xl 
-                     max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-lg bg-card rounded-3xl 
+                     max-h-[90vh] flex flex-col shadow-2xl"
         >
           {/* Header */}
-          <div className="p-4 border-b border-border flex justify-between items-center bg-card rounded-t-3xl md:rounded-t-3xl sticky top-0 z-10 shrink-0">
+          <div className="p-4 border-b border-border flex justify-between items-center bg-card rounded-t-3xl sticky top-0 z-10 shrink-0">
             <h3 className="font-bold text-base sm:text-lg text-foreground pr-2 line-clamp-1">
               Pilih Jadwal Keberangkatan
             </h3>
