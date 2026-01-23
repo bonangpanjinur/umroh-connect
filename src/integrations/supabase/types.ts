@@ -865,6 +865,66 @@ export type Database = {
         }
         Relationships: []
       }
+      important_locations: {
+        Row: {
+          address: string | null
+          category: string
+          city: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          name_arabic: string | null
+          opening_hours: string | null
+          phone: string | null
+          priority: number
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string
+          city?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          name_arabic?: string | null
+          opening_hours?: string | null
+          phone?: string | null
+          priority?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          city?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          name_arabic?: string | null
+          opening_hours?: string | null
+          phone?: string | null
+          priority?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       journal_photos: {
         Row: {
           caption: string | null
@@ -939,6 +999,51 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      manasik_guides: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          order_index: number
+          title: string
+          title_arabic: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          order_index?: number
+          title: string
+          title_arabic?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          order_index?: number
+          title?: string
+          title_arabic?: string | null
+          updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
@@ -1242,6 +1347,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      packing_templates: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          gender: string
+          id: string
+          is_active: boolean | null
+          is_essential: boolean | null
+          name: string
+          priority: number
+          quantity_suggestion: number | null
+          updated_at: string
+          weather_related: boolean | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          gender?: string
+          id?: string
+          is_active?: boolean | null
+          is_essential?: boolean | null
+          name: string
+          priority?: number
+          quantity_suggestion?: number | null
+          updated_at?: string
+          weather_related?: boolean | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          gender?: string
+          id?: string
+          is_active?: boolean | null
+          is_essential?: boolean | null
+          name?: string
+          priority?: number
+          quantity_suggestion?: number | null
+          updated_at?: string
+          weather_related?: boolean | null
+        }
+        Relationships: []
       }
       payment_notification_logs: {
         Row: {
