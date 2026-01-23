@@ -1,10 +1,11 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 const menuItems = [
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
+  { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
   { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
