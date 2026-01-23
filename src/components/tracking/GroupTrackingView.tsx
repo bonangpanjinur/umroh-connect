@@ -2,17 +2,20 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, Users, Copy, Plus, LogIn, LogOut, Navigation, 
-  Battery, Clock, Share2, ArrowLeft, Wifi, WifiOff, X
+  Battery, Clock, Share2, ArrowLeft, Wifi, WifiOff, X, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGroupTracking } from '@/hooks/useGroupTracking';
+import { useGeofencing } from '@/hooks/useGeofencing';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { GeofenceManager } from './GeofenceManager';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -52,7 +55,7 @@ const MapCenter = ({ center }: { center: [number, number] }) => {
 };
 
 const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
-  const { user } = useAuthContext();
+  const { user, profile } = useAuthContext();
   const { toast } = useToast();
   const {
     groups,
@@ -69,11 +72,23 @@ const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
     leaveGroup
   } = useGroupTracking();
 
+  const {
+    geofences,
+    alerts,
+    isLoading: isGeofenceLoading,
+    createGeofence,
+    deleteGeofence,
+    checkGeofences,
+    acknowledgeAlert,
+  } = useGeofencing(currentGroup?.id || null);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [mapCenter, setMapCenter] = useState<[number, number]>([21.4225, 39.8262]); // Makkah default
+  const [activeTab, setActiveTab] = useState('map');
+  const [currentLocation, setCurrentLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   // Subscribe to group when selected
   useEffect(() => {
@@ -83,15 +98,21 @@ const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
     }
   }, [currentGroup, subscribeToGroup]);
 
-  // Update map center to user's location
+  // Update map center to user's location and check geofences
   useEffect(() => {
     if (user && locations.length > 0) {
       const myLocation = locations.find(l => l.user_id === user.id);
       if (myLocation && myLocation.latitude !== 0) {
         setMapCenter([myLocation.latitude, myLocation.longitude]);
+        setCurrentLocation({ latitude: myLocation.latitude, longitude: myLocation.longitude });
+        
+        // Check geofences when location updates
+        if (profile?.full_name) {
+          checkGeofences(myLocation.latitude, myLocation.longitude, profile.full_name);
+        }
       }
     }
-  }, [locations, user]);
+  }, [locations, user, profile, checkGeofences]);
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) return;
@@ -183,99 +204,165 @@ const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {alerts.length > 0 && (
+                <Badge variant="destructive" className="gap-1 animate-pulse">
+                  ⚠️ {alerts.length}
+                </Badge>
+              )}
               <Badge variant="secondary" className="gap-1">
                 <Users className="w-3 h-3" />
                 {locations.length}
               </Badge>
             </div>
           </div>
-        </div>
-
-        {/* Map */}
-        <div className="flex-1 relative">
-          <MapContainer
-            center={mapCenter}
-            zoom={16}
-            style={{ height: '100%', width: '100%' }}
-            zoomControl={false}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapCenter center={mapCenter} />
-            
-            {activeLocations.map((loc) => (
-              <Marker
-                key={loc.id}
-                position={[loc.latitude, loc.longitude]}
-                icon={createMarkerIcon(
-                  loc.user_id === user.id ? '#10b981' : '#3b82f6',
-                  loc.user_id === user.id
+          
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="map" className="gap-2">
+                <MapPin className="w-4 h-4" />
+                Peta
+              </TabsTrigger>
+              <TabsTrigger value="geofence" className="gap-2">
+                <Shield className="w-4 h-4" />
+                Zona Aman
+                {geofences.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs">
+                    {geofences.length}
+                  </Badge>
                 )}
-              >
-                <Popup>
-                  <div className="text-center min-w-[120px]">
-                    <p className="font-semibold">{loc.user_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTime(loc.last_updated)}
-                    </p>
-                    {loc.battery_level && (
-                      <p className={`text-xs ${getBatteryColor(loc.battery_level)}`}>
-                        🔋 {loc.battery_level}%
-                      </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-
-          {/* Member List Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent pb-4 pt-12">
-            <ScrollArea className="max-h-40">
-              <div className="px-4 space-y-2">
-                {locations.map((loc) => (
-                  <Card 
-                    key={loc.id} 
-                    className={`p-3 flex items-center justify-between ${
-                      loc.user_id === user.id ? 'border-primary' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${
-                        loc.is_sharing && loc.latitude !== 0 ? 'bg-green-500' : 'bg-muted'
-                      }`} />
-                      <div>
-                        <p className="font-medium text-sm">
-                          {loc.user_name}
-                          {loc.user_id === user.id && (
-                            <span className="text-xs text-primary ml-1">(Anda)</span>
-                          )}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(loc.last_updated)}
-                          {loc.battery_level && (
-                            <>
-                              <Battery className={`w-3 h-3 ${getBatteryColor(loc.battery_level)}`} />
-                              {loc.battery_level}%
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {loc.is_sharing ? (
-                      <Wifi className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <WifiOff className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+
+        {activeTab === 'map' ? (
+          <>
+            {/* Map */}
+            <div className="flex-1 relative">
+              <MapContainer
+                center={mapCenter}
+                zoom={16}
+                style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapCenter center={mapCenter} />
+                
+                {/* Geofence circles */}
+                {geofences.map((geofence) => (
+                  <Circle
+                    key={geofence.id}
+                    center={[geofence.latitude, geofence.longitude]}
+                    radius={geofence.radius_meters}
+                    pathOptions={{
+                      color: geofence.zone_type === 'masjid' ? '#10b981' : '#3b82f6',
+                      fillColor: geofence.zone_type === 'masjid' ? '#10b981' : '#3b82f6',
+                      fillOpacity: 0.15,
+                      weight: 2,
+                      dashArray: '5, 5',
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-center">
+                        <p className="font-semibold">{geofence.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Radius: {geofence.radius_meters}m
+                        </p>
+                      </div>
+                    </Popup>
+                  </Circle>
+                ))}
+                
+                {/* User markers */}
+                {activeLocations.map((loc) => (
+                  <Marker
+                    key={loc.id}
+                    position={[loc.latitude, loc.longitude]}
+                    icon={createMarkerIcon(
+                      loc.user_id === user.id ? '#10b981' : '#3b82f6',
+                      loc.user_id === user.id
+                    )}
+                  >
+                    <Popup>
+                      <div className="text-center min-w-[120px]">
+                        <p className="font-semibold">{loc.user_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatTime(loc.last_updated)}
+                        </p>
+                        {loc.battery_level && (
+                          <p className={`text-xs ${getBatteryColor(loc.battery_level)}`}>
+                            🔋 {loc.battery_level}%
+                          </p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+
+              {/* Member List Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background to-transparent pb-4 pt-12">
+                <ScrollArea className="max-h-40">
+                  <div className="px-4 space-y-2">
+                    {locations.map((loc) => (
+                      <Card 
+                        key={loc.id} 
+                        className={`p-3 flex items-center justify-between ${
+                          loc.user_id === user.id ? 'border-primary' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            loc.is_sharing && loc.latitude !== 0 ? 'bg-green-500' : 'bg-muted'
+                          }`} />
+                          <div>
+                            <p className="font-medium text-sm">
+                              {loc.user_name}
+                              {loc.user_id === user.id && (
+                                <span className="text-xs text-primary ml-1">(Anda)</span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              {formatTime(loc.last_updated)}
+                              {loc.battery_level && (
+                                <>
+                                  <Battery className={`w-3 h-3 ${getBatteryColor(loc.battery_level)}`} />
+                                  {loc.battery_level}%
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {loc.is_sharing ? (
+                          <Wifi className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <WifiOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </>
+        ) : (
+          <ScrollArea className="flex-1 p-4">
+            <GeofenceManager
+              geofences={geofences}
+              alerts={alerts}
+              onCreateGeofence={createGeofence}
+              onDeleteGeofence={deleteGeofence}
+              onAcknowledgeAlert={acknowledgeAlert}
+              currentLocation={currentLocation}
+              isLoading={isGeofenceLoading}
+            />
+          </ScrollArea>
+        )}
 
         {/* Bottom Controls */}
         <div className="p-4 bg-card border-t space-y-2">

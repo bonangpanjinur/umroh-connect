@@ -543,6 +543,122 @@ export type Database = {
           },
         ]
       }
+      geofence_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string
+          distance_from_center: number | null
+          geofence_id: string
+          id: string
+          is_acknowledged: boolean | null
+          latitude: number
+          longitude: number
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          distance_from_center?: number | null
+          geofence_id: string
+          id?: string
+          is_acknowledged?: boolean | null
+          latitude: number
+          longitude: number
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          distance_from_center?: number | null
+          geofence_id?: string
+          id?: string
+          is_acknowledged?: boolean | null
+          latitude?: number
+          longitude?: number
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofence_alerts_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geofences: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          group_id: string | null
+          id: string
+          is_active: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters: number
+          travel_id: string | null
+          updated_at: string
+          zone_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters?: number
+          travel_id?: string | null
+          updated_at?: string
+          zone_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_meters?: number
+          travel_id?: string | null
+          updated_at?: string
+          zone_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geofences_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geofences_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_locations: {
         Row: {
           accuracy: number | null
