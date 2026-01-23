@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  TrendingUp, TrendingDown, DollarSign, Users, 
-  Package, MessageSquare, Calendar, Target,
-  ArrowUpRight, ArrowDownRight, BarChart3, PieChart
+  TrendingUp, DollarSign, Users, 
+  Package, MessageSquare, Target,
+  ArrowUpRight, ArrowDownRight, BarChart3, PieChart,
+  Clock, CheckCircle2, XCircle, AlertTriangle, Wallet
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { 
   AreaChart, Area, BarChart, Bar, PieChart as RechartsPie, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -14,7 +16,8 @@ import {
 import { useAgentBookings, usePaymentStats } from '@/hooks/useBookings';
 import { useAgentInquiries, useInquiryStats } from '@/hooks/useInquiries';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
-import { format, subDays, eachDayOfInterval } from 'date-fns';
+import { useHajiStats } from '@/hooks/useHaji';
+import { format, subDays, eachDayOfInterval, differenceInDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
 interface AnalyticsDashboardProps {
@@ -32,6 +35,13 @@ const formatPrice = (price: number) => {
 };
 
 const COLORS = ['#059669', '#10B981', '#34D399', '#6EE7B7', '#A7F3D0'];
+const STATUS_COLORS = {
+  pending: '#F59E0B',
+  confirmed: '#3B82F6', 
+  paid: '#10B981',
+  completed: '#059669',
+  cancelled: '#EF4444'
+};
 
 const StatCard = ({ 
   title, 
@@ -39,7 +49,8 @@ const StatCard = ({
   change, 
   icon: Icon, 
   trend,
-  subtitle
+  subtitle,
+  color
 }: { 
   title: string; 
   value: string | number; 
@@ -47,8 +58,11 @@ const StatCard = ({
   icon: typeof TrendingUp;
   trend?: 'up' | 'down' | 'neutral';
   subtitle?: string;
+  color?: string;
 }) => {
   const TrendIcon = trend === 'up' ? ArrowUpRight : trend === 'down' ? ArrowDownRight : null;
+  const bgColor = color || (trend === 'up' ? 'bg-green-100 dark:bg-green-950' : trend === 'down' ? 'bg-red-100 dark:bg-red-950' : 'bg-primary/10');
+  const textColor = color ? 'text-current' : (trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-primary');
   
   return (
     <motion.div
@@ -65,11 +79,7 @@ const StatCard = ({
                 <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
               )}
             </div>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-              trend === 'up' ? 'bg-green-100 text-green-600' :
-              trend === 'down' ? 'bg-red-100 text-red-600' :
-              'bg-primary/10 text-primary'
-            }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgColor} ${textColor}`}>
               <Icon className="w-5 h-5" />
             </div>
           </div>
@@ -98,6 +108,7 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
   const { data: inquiryStats } = useInquiryStats(travelId);
   const { data: packageStats } = usePackageStats(travelId);
   const { data: trendData } = useInterestTrend(travelId, 30);
+  const { data: hajiStats } = useHajiStats(travelId);
   const paymentStats = usePaymentStats(travelId);
 
   // Calculate booking metrics
@@ -109,15 +120,33 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
         avgOrderValue: 0,
         completionRate: 0,
         monthlyData: [],
-        statusData: []
+        statusData: [],
+        thisMonthBookings: 0,
+        lastMonthBookings: 0,
+        growthPercent: 0
       };
     }
+
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
     const totalRevenue = bookings.reduce((sum, b) => sum + (b.paid_amount || 0), 0);
     const totalBookings = bookings.length;
     const avgOrderValue = totalRevenue / totalBookings;
     const completedBookings = bookings.filter(b => b.status === 'paid' || b.status === 'completed').length;
     const completionRate = Math.round((completedBookings / totalBookings) * 100);
+
+    // This month vs last month
+    const thisMonthBookings = bookings.filter(b => new Date(b.created_at) >= thisMonthStart).length;
+    const lastMonthBookings = bookings.filter(b => {
+      const date = new Date(b.created_at);
+      return date >= lastMonthStart && date <= lastMonthEnd;
+    }).length;
+    const growthPercent = lastMonthBookings > 0 
+      ? Math.round(((thisMonthBookings - lastMonthBookings) / lastMonthBookings) * 100)
+      : thisMonthBookings > 0 ? 100 : 0;
 
     // Group by status
     const statusCounts = bookings.reduce((acc, b) => {
@@ -131,6 +160,7 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
             status === 'paid' ? 'Lunas' :
             status === 'cancelled' ? 'Dibatalkan' : 'Selesai',
       value: count,
+      color: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#999'
     }));
 
     // Monthly trend (last 30 days)
@@ -150,18 +180,31 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
       };
     });
 
-    return { totalRevenue, totalBookings, avgOrderValue, completionRate, monthlyData, statusData };
+    return { 
+      totalRevenue, totalBookings, avgOrderValue, completionRate, 
+      monthlyData, statusData, thisMonthBookings, lastMonthBookings, growthPercent 
+    };
   }, [bookings]);
 
   // Calculate inquiry conversion
   const conversionMetrics = useMemo(() => {
-    if (!inquiries || inquiries.length === 0 || !bookings) {
-      return { conversionRate: 0, avgResponseTime: 0, inquiryTrend: [] };
+    if (!inquiries || inquiries.length === 0) {
+      return { 
+        conversionRate: 0, 
+        avgResponseTime: 0, 
+        avgResponseTimeLabel: '-',
+        inquiryTrend: [],
+        thisWeekInquiries: 0
+      };
     }
+
+    const now = new Date();
+    const weekAgo = subDays(now, 7);
 
     const totalInquiries = inquiries.length;
     const convertedInquiries = inquiries.filter(i => i.status === 'converted').length;
     const conversionRate = Math.round((convertedInquiries / totalInquiries) * 100);
+    const thisWeekInquiries = inquiries.filter(i => new Date(i.created_at) >= weekAgo).length;
 
     // Calculate average response time (in hours)
     const respondedInquiries = inquiries.filter(i => i.contacted_at);
@@ -173,6 +216,12 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
         }, 0) / respondedInquiries.length
       : 0;
 
+    const avgResponseTimeLabel = avgResponseTime < 1 
+      ? `${Math.round(avgResponseTime * 60)} menit`
+      : avgResponseTime < 24 
+        ? `${avgResponseTime.toFixed(1)} jam`
+        : `${Math.round(avgResponseTime / 24)} hari`;
+
     // Inquiry status distribution
     const statusCounts = inquiries.reduce((acc, i) => {
       acc[i.status] = (acc[i.status] || 0) + 1;
@@ -180,14 +229,14 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
     }, {} as Record<string, number>);
 
     const inquiryTrend = [
-      { name: 'Baru', value: statusCounts['pending'] || 0 },
-      { name: 'Dihubungi', value: statusCounts['contacted'] || 0 },
-      { name: 'Konversi', value: statusCounts['converted'] || 0 },
-      { name: 'Ditolak', value: statusCounts['cancelled'] || 0 },
+      { name: 'Baru', value: statusCounts['pending'] || 0, color: '#F59E0B' },
+      { name: 'Dihubungi', value: statusCounts['contacted'] || 0, color: '#3B82F6' },
+      { name: 'Konversi', value: statusCounts['converted'] || 0, color: '#10B981' },
+      { name: 'Ditolak', value: statusCounts['cancelled'] || 0, color: '#EF4444' },
     ];
 
-    return { conversionRate, avgResponseTime, inquiryTrend };
-  }, [inquiries, bookings]);
+    return { conversionRate, avgResponseTime, avgResponseTimeLabel, inquiryTrend, thisWeekInquiries };
+  }, [inquiries]);
 
   // Package performance
   const packagePerformance = useMemo(() => {
@@ -195,6 +244,7 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
     
     return packageStats.slice(0, 5).map(pkg => ({
       name: pkg.package_name.substring(0, 15) + (pkg.package_name.length > 15 ? '...' : ''),
+      fullName: pkg.package_name,
       views: pkg.total_views,
       inquiries: pkg.unique_users,
       whatsapp: pkg.whatsapp_clicks,
@@ -226,28 +276,29 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
             title="Total Pendapatan"
             value={formatPrice(bookingMetrics.totalRevenue)}
             icon={DollarSign}
-            trend="up"
-            change={12}
+            trend={bookingMetrics.growthPercent > 0 ? 'up' : bookingMetrics.growthPercent < 0 ? 'down' : 'neutral'}
+            change={Math.abs(bookingMetrics.growthPercent)}
           />
           <StatCard 
             title="Total Booking"
             value={bookingMetrics.totalBookings}
             icon={Package}
-            trend="up"
-            change={8}
+            trend={bookingMetrics.growthPercent > 0 ? 'up' : bookingMetrics.growthPercent < 0 ? 'down' : 'neutral'}
+            subtitle={`${bookingMetrics.thisMonthBookings} bulan ini`}
           />
           <StatCard 
             title="Konversi Inquiry"
             value={`${conversionMetrics.conversionRate}%`}
             icon={Target}
-            trend={conversionMetrics.conversionRate > 20 ? 'up' : 'down'}
+            trend={conversionMetrics.conversionRate >= 20 ? 'up' : conversionMetrics.conversionRate > 0 ? 'neutral' : 'down'}
             subtitle={`${inquiryStats?.total || 0} total inquiry`}
           />
           <StatCard 
-            title="Rata-rata Order"
-            value={formatPrice(bookingMetrics.avgOrderValue)}
-            icon={Users}
-            trend="neutral"
+            title="Tingkat Selesai"
+            value={`${bookingMetrics.completionRate}%`}
+            icon={CheckCircle2}
+            trend={bookingMetrics.completionRate >= 70 ? 'up' : bookingMetrics.completionRate > 40 ? 'neutral' : 'down'}
+            subtitle="Booking selesai/lunas"
           />
         </div>
       </div>
@@ -472,7 +523,7 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2 text-amber-800 dark:text-amber-200">
-            <Calendar className="w-4 h-4" />
+            <Wallet className="w-4 h-4" />
             Status Pembayaran
           </CardTitle>
         </CardHeader>
@@ -493,6 +544,111 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
             <div className="text-center p-3 bg-white/60 dark:bg-black/20 rounded-xl">
               <p className="text-2xl font-bold text-foreground">{formatPrice(paymentStats.totalRemaining)}</p>
               <p className="text-xs text-muted-foreground">Sisa</p>
+            </div>
+          </div>
+          {paymentStats.totalPaid + paymentStats.totalRemaining > 0 && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Progress Pembayaran</span>
+                <span>{Math.round((paymentStats.totalPaid / (paymentStats.totalPaid + paymentStats.totalRemaining)) * 100)}%</span>
+              </div>
+              <Progress 
+                value={(paymentStats.totalPaid / (paymentStats.totalPaid + paymentStats.totalRemaining)) * 100} 
+                className="h-2"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Response Time & Haji Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Response Time Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs flex items-center gap-2">
+              <Clock className="w-3 h-3 text-blue-600" />
+              Waktu Respon
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold text-blue-600">{conversionMetrics.avgResponseTimeLabel}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Rata-rata waktu respon inquiry
+            </p>
+            {conversionMetrics.avgResponseTime > 0 && conversionMetrics.avgResponseTime < 2 && (
+              <Badge variant="secondary" className="mt-2 bg-green-100 text-green-800 text-[10px]">
+                <CheckCircle2 className="w-3 h-3 mr-1" /> Excellent
+              </Badge>
+            )}
+            {conversionMetrics.avgResponseTime >= 2 && conversionMetrics.avgResponseTime < 24 && (
+              <Badge variant="secondary" className="mt-2 bg-amber-100 text-amber-800 text-[10px]">
+                <AlertTriangle className="w-3 h-3 mr-1" /> Good
+              </Badge>
+            )}
+            {conversionMetrics.avgResponseTime >= 24 && (
+              <Badge variant="secondary" className="mt-2 bg-red-100 text-red-800 text-[10px]">
+                <XCircle className="w-3 h-3 mr-1" /> Perlu Dipercepat
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Haji Stats Card */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs flex items-center gap-2">
+              <Users className="w-3 h-3 text-amber-600" />
+              Pendaftaran Haji
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-2xl font-bold text-amber-600">{hajiStats?.total || 0}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total pendaftar</p>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              {hajiStats && hajiStats.pending > 0 && (
+                <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800">
+                  {hajiStats.pending} pending
+                </Badge>
+              )}
+              {hajiStats && hajiStats.verified > 0 && (
+                <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800">
+                  {hajiStats.verified} verified
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Summary */}
+      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="p-4">
+          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" />
+            Insight Minggu Ini
+          </h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${conversionMetrics.thisWeekInquiries > 0 ? 'bg-green-500' : 'bg-muted'}`} />
+              <span className="text-muted-foreground">
+                {conversionMetrics.thisWeekInquiries} inquiry baru minggu ini
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${bookingMetrics.growthPercent > 0 ? 'bg-green-500' : bookingMetrics.growthPercent < 0 ? 'bg-red-500' : 'bg-muted'}`} />
+              <span className="text-muted-foreground">
+                {bookingMetrics.growthPercent > 0 ? '+' : ''}{bookingMetrics.growthPercent}% pertumbuhan booking
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${paymentStats.overduePayments > 0 ? 'bg-red-500' : 'bg-green-500'}`} />
+              <span className="text-muted-foreground">
+                {paymentStats.overduePayments > 0 
+                  ? `${paymentStats.overduePayments} pembayaran terlambat`
+                  : 'Semua pembayaran tepat waktu'
+                }
+              </span>
             </div>
           </div>
         </CardContent>
