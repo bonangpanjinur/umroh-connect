@@ -1,4 +1,4 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
@@ -10,6 +10,7 @@ const menuItems = [
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
   { id: 'reminder', label: 'Pengingat', icon: Bell, color: 'text-red-500', audioLabel: 'Pengingat' },
   { id: 'notifikasi', label: 'Notifikasi', icon: BellRing, color: 'text-amber-500', audioLabel: 'Notifikasi' },
+  { id: 'packing', label: 'Packing', icon: Briefcase, color: 'text-teal-500', audioLabel: 'Daftar Packing' },
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
 ];

@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.departure-reminders]
 verify_jwt = false
+
+[functions.generate-packing-list]
+verify_jwt = false
+
+[functions.send-whatsapp-reminder]
+verify_jwt = false
