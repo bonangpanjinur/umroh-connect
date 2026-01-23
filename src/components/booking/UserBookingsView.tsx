@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, Calendar, CreditCard, ChevronRight, Clock,
   AlertTriangle, CheckCircle2, XCircle, Loader2, MessageCircle,
-  Upload, Camera
+  Upload, Camera, MessageSquare
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useUserBookings, Booking, PaymentSchedule } from '@/hooks/useBookings';
+import { ChatView } from '@/components/chat/ChatView';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import PaymentProofUpload from './PaymentProofUpload';
@@ -193,6 +194,7 @@ const UserBookingsView = () => {
   const { data: bookings, isLoading, refetch } = useUserBookings();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [uploadingSchedule, setUploadingSchedule] = useState<PaymentSchedule | null>(null);
+  const [showChat, setShowChat] = useState(false);
   
   if (isLoading) {
     return (
@@ -398,17 +400,46 @@ const UserBookingsView = () => {
                   </Card>
                 )}
                 
-                {/* WhatsApp Button */}
-                {selectedBookingDetails.travel?.whatsapp && (
-                  <Button asChild className="w-full" size="lg">
-                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Hubungi Travel via WhatsApp
-                    </a>
+                {/* Action Buttons */}
+                <div className="space-y-2">
+                  {/* In-App Chat Button */}
+                  <Button 
+                    variant="default"
+                    className="w-full" 
+                    size="lg"
+                    onClick={() => setShowChat(true)}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    Chat dengan Travel
                   </Button>
-                )}
+                  
+                  {/* WhatsApp Button */}
+                  {selectedBookingDetails.travel?.whatsapp && (
+                    <Button asChild variant="outline" className="w-full" size="lg">
+                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Hubungi via WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
+          )}
+        </SheetContent>
+      </Sheet>
+      
+      {/* Chat Sheet */}
+      <Sheet open={showChat} onOpenChange={setShowChat}>
+        <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl p-0">
+          {selectedBooking && (
+            <ChatView
+              bookingId={selectedBooking.id}
+              travelId={selectedBooking.travel_id}
+              travelName={selectedBooking.travel?.name || 'Travel'}
+              senderType="jamaah"
+              onBack={() => setShowChat(false)}
+            />
           )}
         </SheetContent>
       </Sheet>
