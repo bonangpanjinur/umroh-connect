@@ -23,6 +23,8 @@ import PackingListGenerator from '@/components/packing/PackingListGenerator';
 import CurrencyConverter from '@/components/currency/CurrencyConverter';
 import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
+import QuranView from '@/components/quran/QuranView';
+import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
@@ -44,6 +46,7 @@ const Index = () => {
   const [showCurrency, setShowCurrency] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [showQuran, setShowQuran] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -109,12 +112,20 @@ const Index = () => {
       case 'reviews':
         setShowReviews(true);
         break;
+      case 'quran':
+        setShowQuran(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Al-Quran Reader
+    if (showQuran) {
+      return <QuranView onBack={() => setShowQuran(false)} />;
+    }
+
     // Show Public Reviews
     if (showReviews) {
       return <PublicReviewsView onBack={() => setShowReviews(false)} />;
@@ -256,6 +267,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-secondary/30 flex justify-center">
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+      
       {/* App Container - Mobile viewport simulation */}
       <div className="w-full max-w-md bg-background min-h-screen relative shadow-float">
         <AppHeader onSOSClick={() => setIsSOSOpen(true)} />
@@ -266,7 +280,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
