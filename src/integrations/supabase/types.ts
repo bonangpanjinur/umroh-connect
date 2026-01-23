@@ -321,6 +321,83 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          journal_id: string
+          order_index: number
+          photo_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          journal_id: string
+          order_index?: number
+          photo_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          journal_id?: string
+          order_index?: number
+          photo_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_photos_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "journals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journals: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
+          mood: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          mood?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          mood?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           amount: number
