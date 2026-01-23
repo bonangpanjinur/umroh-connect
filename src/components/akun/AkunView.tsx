@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { useUserHajiRegistrations } from '@/hooks/useHaji';
 import { useUserBookings } from '@/hooks/useBookings';
 import UserBookingsView from '@/components/booking/UserBookingsView';
+import PushNotificationSettings from '@/components/notifications/PushNotificationSettings';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -112,6 +113,7 @@ const AkunView = () => {
   const { user, profile, signOut, loading } = useAuthContext();
   const navigate = useNavigate();
   const [showBookings, setShowBookings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -303,6 +305,20 @@ const AkunView = () => {
           </button>
         </div>
 
+        {/* Notification Settings */}
+        <button 
+          onClick={() => setShowNotifications(true)}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Bell style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
+            <span className={`font-medium text-foreground ${fontSize.sm}`}>Push Notification</span>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </button>
+
         {/* Language Setting */}
         <button className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
           isElderlyMode ? 'p-5' : 'p-4'
@@ -352,6 +368,23 @@ const AkunView = () => {
             </div>
             <div className="p-4">
               <UserBookingsView />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Push Notifications Sheet */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full overflow-y-auto">
+            <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowNotifications(false)}>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              <h2 className={`font-bold ${fontSize.lg}`}>Push Notification</h2>
+            </div>
+            <div className="p-4">
+              <PushNotificationSettings />
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { HajiManagement } from '@/components/agent/HajiManagement';
 import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManager';
 import { BookingsManagement } from '@/components/agent/BookingsManagement';
+import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -159,8 +160,12 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                   <TabsTrigger value="overview" className="text-xs px-1">Overview</TabsTrigger>
+                  <TabsTrigger value="analytics" className="text-xs px-1">
+                    <TrendingUp className="w-3 h-3 mr-0.5" />
+                    Analitik
+                  </TabsTrigger>
                   <TabsTrigger value="packages" className="text-xs px-1">Paket</TabsTrigger>
                   <TabsTrigger value="bookings" className="relative text-xs px-1">
                     <ClipboardList className="w-3 h-3 mr-0.5" />
@@ -196,6 +201,10 @@ const AgentDashboard = () => {
                 <TabsContent value="overview" className="mt-4 space-y-4">
                   <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
                   <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+                </TabsContent>
+
+                <TabsContent value="analytics" className="mt-4">
+                  <AnalyticsDashboard travelId={travel?.id} />
                 </TabsContent>
 
                 <TabsContent value="packages" className="mt-4">
