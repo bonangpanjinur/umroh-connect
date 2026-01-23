@@ -68,6 +68,45 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          notification_type: string
+          read_at: string | null
+          reference_id: string | null
+          reference_type: string | null
+          title: string
+          travel_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_type: string
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title: string
+          travel_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          notification_type?: string
+          read_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          title?: string
+          travel_id?: string
+        }
+        Relationships: []
+      }
       airlines: {
         Row: {
           code: string | null

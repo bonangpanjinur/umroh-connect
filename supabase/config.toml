@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-whatsapp-reminder]
 verify_jwt = false
+
+[functions.check-agent-notifications]
+verify_jwt = false
