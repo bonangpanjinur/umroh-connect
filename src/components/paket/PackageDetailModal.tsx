@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Plane, Hotel, MessageCircle, Crown, Star, Send, FileText } from 'lucide-react';
+import { X, Plane, Hotel, MessageCircle, Crown, Star, Send, FileText, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { HajiRegistrationForm } from '@/components/haji/HajiRegistrationForm';
 import { PackageType, packageTypeLabels, packageTypeColors } from '@/hooks/useHaji';
 import { Badge } from '@/components/ui/badge';
 import { useAuthContext } from '@/contexts/AuthContext';
+import BookingForm from '@/components/booking/BookingForm';
 
 interface PackageDetailModalProps {
   package: PackageWithDetails | null;
@@ -34,13 +35,21 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const DepartureOption = ({ departure, isBestseller }: { departure: Departure; isBestseller?: boolean }) => {
+interface DepartureOptionProps {
+  departure: Departure;
+  isBestseller?: boolean;
+  onSelect?: (departure: Departure) => void;
+  isUmroh?: boolean;
+}
+
+const DepartureOption = ({ departure, isBestseller, onSelect, isUmroh }: DepartureOptionProps) => {
   const isAvailable = departure.status !== 'full';
   
   return (
     <motion.div
       whileHover={isAvailable ? { scale: 1.01 } : {}}
       whileTap={isAvailable ? { scale: 0.99 } : {}}
+      onClick={() => isAvailable && isUmroh && onSelect?.(departure)}
       className={`border p-4 rounded-2xl relative cursor-pointer transition-all ${
         isBestseller
           ? 'border-primary bg-primary/5'
@@ -83,6 +92,20 @@ const DepartureOption = ({ departure, isBestseller }: { departure: Departure; is
           </span>
         </div>
       </div>
+      
+      {isAvailable && isUmroh && (
+        <Button 
+          size="sm" 
+          className="w-full mt-3 gap-2"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.(departure);
+          }}
+        >
+          <ShoppingCart className="h-3 w-3" />
+          Booking Sekarang
+        </Button>
+      )}
     </motion.div>
   );
 };
@@ -92,8 +115,11 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
   const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState('jadwal');
   const [showHajiForm, setShowHajiForm] = useState(false);
+  const [selectedDeparture, setSelectedDeparture] = useState<Departure | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
 
   const isHajiPackage = pkg?.package_type && pkg.package_type !== 'umroh';
+  const isUmrohPackage = pkg?.package_type === 'umroh';
 
   // Track view when modal opens
   useEffect(() => {
@@ -110,8 +136,26 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
     if (pkg) {
       setActiveTab('jadwal');
       setShowHajiForm(false);
+      setShowBookingForm(false);
+      setSelectedDeparture(null);
     }
   }, [pkg?.id]);
+
+  const handleDepartureSelect = (departure: Departure) => {
+    setSelectedDeparture(departure);
+    setShowBookingForm(true);
+  };
+
+  const handleBookingSuccess = () => {
+    setShowBookingForm(false);
+    setSelectedDeparture(null);
+    onClose();
+  };
+
+  const handleBookingCancel = () => {
+    setShowBookingForm(false);
+    setSelectedDeparture(null);
+  };
 
   if (!pkg) return null;
 
@@ -174,7 +218,14 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               </div>
             </div>
             
-            {showHajiForm && isHajiPackage ? (
+            {showBookingForm && selectedDeparture && isUmrohPackage ? (
+              <BookingForm
+                package={pkg}
+                departure={selectedDeparture}
+                onSuccess={handleBookingSuccess}
+                onCancel={handleBookingCancel}
+              />
+            ) : showHajiForm && isHajiPackage ? (
               <HajiRegistrationForm
                 packageId={pkg.id}
                 travelId={pkg.travel.id}
@@ -210,6 +261,14 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                 </TabsList>
 
                 <TabsContent value="jadwal" className="mt-0 space-y-3">
+                  {isUmrohPackage && (
+                    <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="text-sm text-foreground font-medium flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4 text-primary" />
+                        Pilih jadwal dan klik "Booking Sekarang"
+                      </p>
+                    </div>
+                  )}
                   {isHajiPackage && (
                     <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
                       <div className="flex items-center gap-2 mb-2">
@@ -235,6 +294,8 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                         key={departure.id}
                         departure={departure}
                         isBestseller={index === 0}
+                        onSelect={handleDepartureSelect}
+                        isUmroh={isUmrohPackage}
                       />
                     ))
                   ) : (

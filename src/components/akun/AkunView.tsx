@@ -1,10 +1,13 @@
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2 } from 'lucide-react';
+import { useState } from 'react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { useUserHajiRegistrations } from '@/hooks/useHaji';
+import { useUserBookings } from '@/hooks/useBookings';
+import UserBookingsView from '@/components/booking/UserBookingsView';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -52,10 +55,63 @@ const HajiRegistrationButton = () => {
   );
 };
 
+// Booking button component
+const BookingButton = ({ onClick }: { onClick: () => void }) => {
+  const { data: bookings } = useUserBookings();
+  const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
+  
+  const activeBookings = bookings?.filter(b => 
+    ['pending', 'confirmed'].includes(b.status)
+  ) || [];
+
+  const pendingPayments = bookings?.reduce((acc, booking) => {
+    return acc + (booking.payment_schedules?.filter(s => !s.is_paid)?.length || 0);
+  }, 0) || 0;
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      onClick={onClick}
+      className={`w-full bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-between mb-3 ${
+        isElderlyMode ? 'p-5' : 'p-4'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`rounded-full bg-primary text-primary-foreground flex items-center justify-center ${
+          isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+        }`}>
+          <ShoppingBag style={{ width: iconSize.md, height: iconSize.md }} />
+        </div>
+        <div className="text-left">
+          <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Booking Saya</h4>
+          <p className={`text-muted-foreground ${fontSize.xs}`}>
+            {activeBookings.length > 0 
+              ? `${activeBookings.length} aktif${pendingPayments > 0 ? ` • ${pendingPayments} bayar` : ''}`
+              : 'Lihat reservasi Anda'
+            }
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {pendingPayments > 0 && (
+          <span className={`bg-amber-500 text-white font-bold rounded-full flex items-center justify-center ${
+            isElderlyMode ? 'w-7 h-7 text-base' : 'w-5 h-5 text-xs'
+          }`}>
+            {pendingPayments}
+          </span>
+        )}
+        <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+      </div>
+    </motion.button>
+  );
+};
+
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
   const { user, profile, signOut, loading } = useAuthContext();
   const navigate = useNavigate();
+  const [showBookings, setShowBookings] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -166,6 +222,9 @@ const AkunView = () => {
             <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
           </motion.button>
         )}
+
+        {/* User Booking Button */}
+        <BookingButton onClick={() => setShowBookings(true)} />
 
         {/* Haji Registration Status Button */}
         <HajiRegistrationButton />
@@ -280,6 +339,23 @@ const AkunView = () => {
           Keluar Aplikasi
         </Button>
       </div>
+
+      {/* Bookings Sheet */}
+      {showBookings && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full overflow-y-auto">
+            <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowBookings(false)}>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              <h2 className={`font-bold ${fontSize.lg}`}>Booking Saya</h2>
+            </div>
+            <div className="p-4">
+              <UserBookingsView />
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
