@@ -132,7 +132,6 @@ const Index = () => {
         </div>
       );
     }
-    }
 
     // Show Offline Manager
     if (showOffline) {
