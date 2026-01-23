@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Bell, BellOff, BellRing, 
   FileText, CreditCard, Package, Settings, Plane,
-  Volume2, VolumeX, Vibrate, Clock, Trash2
+  Volume2, VolumeX, Vibrate, Clock, Trash2, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { format, differenceInDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { usePushNotifications, NotificationType } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
+import UpcomingPayments from '@/components/booking/UpcomingPayments';
 
 interface NotificationCenterProps {
   onBack: () => void;
@@ -183,16 +184,24 @@ const NotificationCenter = ({ onBack }: NotificationCenterProps) => {
           </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
+              <TabsTrigger value="payments">
+                <Wallet className="w-4 h-4 mr-2" />
+                Bayar
+              </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="w-4 h-4 mr-2" />
                 Pengaturan
               </TabsTrigger>
               <TabsTrigger value="scheduled">
                 <Clock className="w-4 h-4 mr-2" />
-                Terjadwal ({scheduledNotifications.length})
+                Jadwal
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="payments" className="mt-4 space-y-4">
+              <UpcomingPayments />
+            </TabsContent>
 
             <TabsContent value="settings" className="mt-4 space-y-4">
               {/* Master Toggle */}

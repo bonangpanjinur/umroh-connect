@@ -151,6 +151,91 @@ export type Database = {
           },
         ]
       }
+      bookings: {
+        Row: {
+          agent_notes: string | null
+          booking_code: string
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          departure_id: string | null
+          id: string
+          notes: string | null
+          number_of_pilgrims: number
+          package_id: string
+          paid_amount: number
+          remaining_amount: number | null
+          status: string
+          total_price: number
+          travel_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_notes?: string | null
+          booking_code: string
+          contact_email?: string | null
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          notes?: string | null
+          number_of_pilgrims?: number
+          package_id: string
+          paid_amount?: number
+          remaining_amount?: number | null
+          status?: string
+          total_price: number
+          travel_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_notes?: string | null
+          booking_code?: string
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          notes?: string | null
+          number_of_pilgrims?: number
+          package_id?: string
+          paid_amount?: number
+          remaining_amount?: number | null
+          status?: string
+          total_price?: number
+          travel_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklists: {
         Row: {
           category: Database["public"]["Enums"]["checklist_category"]
@@ -879,6 +964,125 @@ export type Database = {
           },
         ]
       }
+      payment_notification_logs: {
+        Row: {
+          body: string
+          booking_id: string | null
+          id: string
+          is_read: boolean | null
+          notification_type: string
+          payment_schedule_id: string | null
+          read_at: string | null
+          sent_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          booking_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          notification_type: string
+          payment_schedule_id?: string | null
+          read_at?: string | null
+          sent_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          booking_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          notification_type?: string
+          payment_schedule_id?: string | null
+          read_at?: string | null
+          sent_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_notification_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_notification_logs_payment_schedule_id_fkey"
+            columns: ["payment_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "payment_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_schedules: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          due_date: string
+          id: string
+          is_paid: boolean
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          payment_proof_url: string | null
+          payment_type: string
+          reminder_sent_h1: boolean | null
+          reminder_sent_h3: boolean | null
+          reminder_sent_h7: boolean | null
+          reminder_sent_overdue: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          payment_type: string
+          reminder_sent_h1?: boolean | null
+          reminder_sent_h3?: boolean | null
+          reminder_sent_h7?: boolean | null
+          reminder_sent_overdue?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          payment_type?: string
+          reminder_sent_h1?: boolean | null
+          reminder_sent_h3?: boolean | null
+          reminder_sent_h7?: boolean | null
+          reminder_sent_overdue?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_schedules_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           description: string | null
@@ -1222,6 +1426,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_booking_code: { Args: never; Returns: string }
       get_profile_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
