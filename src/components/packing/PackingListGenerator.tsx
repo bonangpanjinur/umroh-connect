@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, Sparkles, Sun, Cloud, ThermometerSun,
   CheckCircle2, Circle, ChevronDown, ChevronUp,
-  Lightbulb, Calendar, User, Clock
+  Lightbulb, Calendar, User, Clock, Share2, FileText,
+  MessageCircle, Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays } from 'date-fns';
-import { id } from 'date-fns/locale';
+import { id as idLocale } from 'date-fns/locale';
 
 interface PackingItem {
   name: string;
@@ -60,6 +62,7 @@ interface PackingListGeneratorProps {
 
 const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
   const { toast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'form' | 'result'>('form');
   
@@ -148,6 +151,180 @@ const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
 
   const totalItems = packingList?.categories.reduce((sum, cat) => sum + cat.items.length, 0) || 0;
   const checkedCount = checkedItems.size;
+
+  // Generate text for sharing
+  const generateShareText = () => {
+    if (!packingList) return '';
+    
+    let text = `📦 *PACKING LIST UMROH*\n`;
+    text += `📅 ${format(new Date(departureDate), 'd MMM', { locale: idLocale })} - ${format(new Date(returnDate), 'd MMM yyyy', { locale: idLocale })}\n`;
+    text += `⏱️ Durasi: ${duration} hari\n\n`;
+    
+    if (weather) {
+      text += `🌡️ *Cuaca:*\n`;
+      text += `Makkah: ${weather.makkah.temp}°C (${weather.makkah.condition})\n`;
+      text += `Madinah: ${weather.madinah.temp}°C (${weather.madinah.condition})\n\n`;
+    }
+    
+    packingList.categories.forEach(cat => {
+      text += `${cat.icon} *${cat.name}*\n`;
+      cat.items.forEach(item => {
+        const checked = checkedItems.has(`${cat.name}-${item.name}`);
+        const checkbox = checked ? '✅' : '⬜';
+        const priority = item.priority === 'high' ? '🔴' : item.priority === 'medium' ? '🟡' : '🟢';
+        text += `${checkbox} ${item.name} ${priority}`;
+        if (item.quantity) text += ` (${item.quantity})`;
+        text += `\n`;
+      });
+      text += `\n`;
+    });
+    
+    if (packingList.tips.length > 0) {
+      text += `💡 *Tips:*\n`;
+      packingList.tips.forEach(tip => {
+        text += `• ${tip}\n`;
+      });
+    }
+    
+    text += `\n📱 _Dibuat dengan Arah Umroh App_`;
+    return text;
+  };
+
+  // Share to WhatsApp
+  const shareToWhatsApp = () => {
+    const text = generateShareText();
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+    toast({ title: 'Membuka WhatsApp...' });
+  };
+
+  // Download as PDF (using print)
+  const downloadAsPDF = () => {
+    const text = generateShareText();
+    
+    // Create a printable version
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({ title: 'Pop-up diblokir', description: 'Izinkan pop-up untuk download PDF', variant: 'destructive' });
+      return;
+    }
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Packing List Umroh</title>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+          }
+          h1 { color: #10b981; margin-bottom: 5px; }
+          h2 { color: #333; margin-top: 20px; margin-bottom: 10px; font-size: 16px; }
+          .header { border-bottom: 2px solid #10b981; padding-bottom: 15px; margin-bottom: 20px; }
+          .date { color: #666; font-size: 14px; }
+          .weather { background: #f0fdf4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+          .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+          .weather-item { text-align: center; }
+          .weather-temp { font-size: 24px; font-weight: bold; color: #10b981; }
+          .category { margin-bottom: 20px; }
+          .item { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; }
+          .checkbox { width: 18px; height: 18px; border: 2px solid #10b981; border-radius: 3px; }
+          .checkbox.checked { background: #10b981; }
+          .priority-high { color: #ef4444; font-size: 12px; }
+          .priority-medium { color: #f59e0b; font-size: 12px; }
+          .priority-low { color: #22c55e; font-size: 12px; }
+          .tips { background: #fef3c7; padding: 15px; border-radius: 8px; margin-top: 20px; }
+          .footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📦 Packing List Umroh</h1>
+          <p class="date">📅 ${format(new Date(departureDate), 'd MMMM yyyy', { locale: idLocale })} - ${format(new Date(returnDate), 'd MMMM yyyy', { locale: idLocale })}</p>
+          <p class="date">⏱️ Durasi: ${duration} hari | 👤 ${gender === 'male' ? 'Laki-laki' : 'Perempuan'}</p>
+        </div>
+        
+        ${weather ? `
+        <div class="weather">
+          <h2>🌡️ Prediksi Cuaca</h2>
+          <div class="weather-grid">
+            <div class="weather-item">
+              <div>Makkah</div>
+              <div class="weather-temp">${weather.makkah.temp}°C</div>
+              <div>${weather.makkah.condition}</div>
+            </div>
+            <div class="weather-item">
+              <div>Madinah</div>
+              <div class="weather-temp">${weather.madinah.temp}°C</div>
+              <div>${weather.madinah.condition}</div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${packingList?.categories.map(cat => `
+          <div class="category">
+            <h2>${cat.icon} ${cat.name}</h2>
+            ${cat.items.map(item => {
+              const isChecked = checkedItems.has(`${cat.name}-${item.name}`);
+              const priorityClass = `priority-${item.priority}`;
+              const priorityLabel = item.priority === 'high' ? 'Wajib' : item.priority === 'medium' ? 'Penting' : 'Opsional';
+              return `
+                <div class="item">
+                  <div class="checkbox ${isChecked ? 'checked' : ''}"></div>
+                  <span>${item.name}</span>
+                  <span class="${priorityClass}">${priorityLabel}</span>
+                  ${item.quantity ? `<span style="color:#666">(${item.quantity})</span>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('') || ''}
+        
+        ${packingList?.tips && packingList.tips.length > 0 ? `
+        <div class="tips">
+          <h2>💡 Tips Packing</h2>
+          <ul>
+            ${packingList.tips.map(tip => `<li>${tip}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+        
+        <div class="footer">
+          <p>Dibuat dengan ❤️ oleh Arah Umroh App</p>
+        </div>
+        
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    toast({ title: 'Menyiapkan PDF...' });
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = async () => {
+    const text = generateShareText();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: 'Disalin ke clipboard!' });
+    } catch (error) {
+      toast({ title: 'Gagal menyalin', variant: 'destructive' });
+    }
+  };
 
   // Form view
   if (step === 'form') {
@@ -264,12 +441,35 @@ const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
             <div>
               <h3 className="font-semibold">Packing List Anda</h3>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(departureDate), 'd MMM', { locale: id })} - {format(new Date(returnDate), 'd MMM yyyy', { locale: id })}
+                {format(new Date(departureDate), 'd MMM', { locale: idLocale })} - {format(new Date(returnDate), 'd MMM yyyy', { locale: idLocale })}
               </p>
             </div>
-            <Badge variant="secondary">
-              {checkedCount}/{totalItems} item
-            </Badge>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Share2 className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={shareToWhatsApp}>
+                    <MessageCircle className="w-4 h-4 mr-2 text-green-500" />
+                    Kirim via WhatsApp
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadAsPDF}>
+                    <FileText className="w-4 h-4 mr-2 text-red-500" />
+                    Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={copyToClipboard}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Salin ke Clipboard
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Badge variant="secondary">
+                {checkedCount}/{totalItems} item
+              </Badge>
+            </div>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <motion.div

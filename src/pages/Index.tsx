@@ -21,6 +21,7 @@ import NotificationCenter from '@/components/notifications/NotificationCenter';
 import OfflineManagerView from '@/components/offline/OfflineManagerView';
 import PackingListGenerator from '@/components/packing/PackingListGenerator';
 import CurrencyConverter from '@/components/currency/CurrencyConverter';
+import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,6 +39,7 @@ const Index = () => {
   const [showOffline, setShowOffline] = useState(false);
   const [showPacking, setShowPacking] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
+  const [showTracking, setShowTracking] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -97,12 +99,20 @@ const Index = () => {
       case 'kurs':
         setShowCurrency(true);
         break;
+      case 'tracking':
+        setShowTracking(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Group Tracking
+    if (showTracking) {
+      return <GroupTrackingView onBack={() => setShowTracking(false)} />;
+    }
+
     // Show Packing List Generator
     if (showPacking) {
       return (
@@ -121,6 +131,7 @@ const Index = () => {
           </div>
         </div>
       );
+    }
     }
 
     // Show Offline Manager
@@ -201,7 +212,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         

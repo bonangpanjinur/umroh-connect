@@ -543,6 +543,56 @@ export type Database = {
           },
         ]
       }
+      group_locations: {
+        Row: {
+          accuracy: number | null
+          battery_level: number | null
+          created_at: string
+          group_id: string
+          id: string
+          is_sharing: boolean | null
+          last_updated: string
+          latitude: number
+          longitude: number
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          accuracy?: number | null
+          battery_level?: number | null
+          created_at?: string
+          group_id: string
+          id?: string
+          is_sharing?: boolean | null
+          last_updated?: string
+          latitude: number
+          longitude: number
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          accuracy?: number | null
+          battery_level?: number | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_sharing?: boolean | null
+          last_updated?: string
+          latitude?: number
+          longitude?: number
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_locations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       haji_checklists: {
         Row: {
           applies_to: string[] | null
@@ -1387,6 +1437,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_groups: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          travel_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          travel_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          travel_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_groups_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_reviews: {
         Row: {
           admin_notes: string | null
@@ -1570,6 +1661,7 @@ export type Database = {
     }
     Functions: {
       generate_booking_code: { Args: never; Returns: string }
+      generate_group_code: { Args: never; Returns: string }
       get_profile_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
