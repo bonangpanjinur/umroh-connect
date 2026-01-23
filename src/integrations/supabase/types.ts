@@ -486,6 +486,51 @@ export type Database = {
           },
         ]
       }
+      package_interests: {
+        Row: {
+          created_at: string
+          departure_id: string | null
+          id: string
+          interest_type: string
+          package_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          interest_type?: string
+          package_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          interest_type?: string
+          package_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_interests_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_interests_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packages: {
         Row: {
           airline: string | null
