@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePackages } from '@/hooks/usePackages';
 import { PackageWithDetails, PackageFilters as FilterType } from '@/types/database';
@@ -7,6 +7,8 @@ import PackageCard from './PackageCard';
 import PackageDetailModal from './PackageDetailModal';
 import { PackageFiltersSheet, QuickFilterTags } from './PackageFilters';
 import { mockPackages } from '@/data/mockData';
+import { Button } from '@/components/ui/button';
+import AIRecommendationWizard from '@/components/recommendation/AIRecommendationWizard';
 
 interface PaketViewProps {
   initialPackageId?: string | null;
@@ -24,6 +26,7 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
     packageType: 'all',
   });
   const [selectedPackage, setSelectedPackage] = useState<PackageWithDetails | null>(null);
+  const [showAIWizard, setShowAIWizard] = useState(false);
   
   const { data: packages, isLoading, error } = usePackages();
 
@@ -182,6 +185,18 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
         {/* Quick Filter Tags */}
         <QuickFilterTags filters={filters} onFiltersChange={setFilters} />
       </div>
+
+      {/* AI Recommendation CTA */}
+      <div className="p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 border-b border-primary/20">
+        <Button 
+          onClick={() => setShowAIWizard(true)}
+          className="w-full gap-2 shadow-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          size="lg"
+        >
+          <Sparkles className="h-5 w-5" />
+          Rekomendasi AI - Temukan Paket Ideal
+        </Button>
+      </div>
       
       {/* Package List */}
       <div className="p-4 space-y-4 pb-24 bg-secondary/30 min-h-screen">
@@ -235,6 +250,19 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
         package={selectedPackage}
         onClose={() => setSelectedPackage(null)}
       />
+
+      {/* AI Recommendation Wizard */}
+      <AnimatePresence>
+        {showAIWizard && (
+          <AIRecommendationWizard 
+            onClose={() => setShowAIWizard(false)}
+            onSelectPackage={(pkg) => {
+              setShowAIWizard(false);
+              setSelectedPackage(pkg);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

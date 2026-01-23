@@ -183,36 +183,40 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
           className="absolute inset-0 bg-foreground/60 backdrop-blur-sm"
         />
         
-        {/* Modal Content */}
+        {/* Modal Content - Fully responsive */}
         <motion.div
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="absolute bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-card rounded-t-3xl max-h-[85vh] flex flex-col"
+          className="absolute inset-x-0 bottom-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 
+                     w-full md:max-w-lg lg:max-w-xl bg-card rounded-t-3xl md:rounded-3xl 
+                     max-h-[90vh] md:max-h-[85vh] flex flex-col shadow-2xl"
         >
           {/* Header */}
-          <div className="p-4 border-b border-border flex justify-between items-center bg-card rounded-t-3xl sticky top-0 z-10">
-            <h3 className="font-bold text-lg text-foreground">Pilih Jadwal Keberangkatan</h3>
+          <div className="p-4 border-b border-border flex justify-between items-center bg-card rounded-t-3xl md:rounded-t-3xl sticky top-0 z-10 shrink-0">
+            <h3 className="font-bold text-base sm:text-lg text-foreground pr-2 line-clamp-1">
+              Pilih Jadwal Keberangkatan
+            </h3>
             <button
               onClick={onClose}
-              className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 hide-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 hide-scrollbar min-h-0">
             <div className="mb-4">
-              <h2 className="text-xl font-bold text-foreground leading-snug">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug line-clamp-2">
                 {pkg.name} - {pkg.travel.name}
               </h2>
               <div className="flex gap-2 mt-2 flex-wrap">
-                <span className="text-[10px] bg-blue-500/10 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-500/20 font-medium flex items-center gap-1">
+                <span className="text-[10px] sm:text-xs bg-blue-500/10 text-blue-600 px-2 sm:px-2.5 py-1 rounded-lg border border-blue-500/20 font-medium flex items-center gap-1">
                   <Plane className="w-3 h-3" /> {pkg.airline || 'N/A'}
                 </span>
-                <span className="text-[10px] bg-accent/10 text-accent px-2.5 py-1 rounded-lg border border-accent/20 font-medium flex items-center gap-1">
+                <span className="text-[10px] sm:text-xs bg-accent/10 text-accent px-2 sm:px-2.5 py-1 rounded-lg border border-accent/20 font-medium flex items-center gap-1">
                   <Hotel className="w-3 h-3" /> {pkg.hotel_makkah} *{pkg.hotel_star}
                 </span>
               </div>
@@ -240,22 +244,22 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               />
             ) : (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className={`grid w-full mb-4 ${isHajiPackage ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                  <TabsTrigger value="jadwal" className="text-sm">
+                <TabsList className={`grid w-full mb-4 ${isHajiPackage ? 'grid-cols-4' : 'grid-cols-3'} h-auto`}>
+                  <TabsTrigger value="jadwal" className="text-xs sm:text-sm py-2">
                     Jadwal
                   </TabsTrigger>
                   {isHajiPackage && (
-                    <TabsTrigger value="daftar" className="text-sm flex items-center gap-1">
-                      <FileText className="h-3 w-3" />
+                    <TabsTrigger value="daftar" className="text-xs sm:text-sm py-2 flex items-center gap-1">
+                      <FileText className="h-3 w-3 hidden sm:block" />
                       Daftar
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="inquiry" className="text-sm flex items-center gap-1">
-                    <Send className="h-3 w-3" />
+                  <TabsTrigger value="inquiry" className="text-xs sm:text-sm py-2 flex items-center gap-1">
+                    <Send className="h-3 w-3 hidden sm:block" />
                     Inquiry
                   </TabsTrigger>
-                  <TabsTrigger value="review" className="text-sm flex items-center gap-1">
-                    <Star className="h-3 w-3" />
+                  <TabsTrigger value="review" className="text-xs sm:text-sm py-2 flex items-center gap-1">
+                    <Star className="h-3 w-3 hidden sm:block" />
                     Review
                   </TabsTrigger>
                 </TabsList>
@@ -263,15 +267,15 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                 <TabsContent value="jadwal" className="mt-0 space-y-3">
                   {isUmrohPackage && (
                     <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <p className="text-sm text-foreground font-medium flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4 text-primary" />
-                        Pilih jadwal dan klik "Booking Sekarang"
+                      <p className="text-xs sm:text-sm text-foreground font-medium flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4 text-primary shrink-0" />
+                        <span>Pilih jadwal dan klik "Booking Sekarang"</span>
                       </p>
                     </div>
                   )}
                   {isHajiPackage && (
                     <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <Badge className={packageTypeColors[pkg.package_type as PackageType]}>
                           {packageTypeLabels[pkg.package_type as PackageType]}
                         </Badge>
@@ -299,7 +303,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                       />
                     ))
                   ) : (
-                    <p className="text-center text-muted-foreground py-8">
+                    <p className="text-center text-muted-foreground py-8 text-sm">
                       {isHajiPackage ? 'Jadwal keberangkatan akan diumumkan' : 'Belum ada jadwal keberangkatan'}
                     </p>
                   )}
@@ -311,10 +315,10 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                       <div className="text-center py-6 space-y-4">
                         <FileText className="w-12 h-12 text-primary mx-auto" />
                         <h3 className="font-semibold text-foreground">Pendaftaran Haji</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground px-4">
                           Daftar sekarang untuk paket {packageTypeLabels[pkg.package_type as PackageType]}
                         </p>
-                        <Button onClick={() => setShowHajiForm(true)} className="w-full">
+                        <Button onClick={() => setShowHajiForm(true)} className="w-full max-w-xs">
                           Mulai Pendaftaran
                         </Button>
                       </div>
@@ -322,7 +326,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                       <div className="text-center py-6 space-y-4">
                         <FileText className="w-12 h-12 text-muted-foreground mx-auto" />
                         <h3 className="font-semibold text-foreground">Login Diperlukan</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground px-4">
                           Silakan login terlebih dahulu untuk mendaftar paket haji
                         </p>
                         <Button variant="outline" asChild>
@@ -350,11 +354,11 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
             )}
           </div>
           
-          {/* Footer CTA */}
-          <div className="p-4 border-t border-border bg-card shadow-float">
+          {/* Footer CTA - Always visible */}
+          <div className="p-3 sm:p-4 border-t border-border bg-card shadow-float shrink-0 safe-area-bottom">
             <Button 
               asChild
-              className="w-full shadow-primary gap-2" 
+              className="w-full shadow-primary gap-2 text-sm sm:text-base" 
               size="lg"
               onClick={handleWhatsAppClick}
             >
