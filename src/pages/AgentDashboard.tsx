@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
 import { useInquiryStats } from '@/hooks/useInquiries';
+import { useHajiStats } from '@/hooks/useHaji';
 import TravelForm from '@/components/agent/TravelForm';
 import PackageForm from '@/components/agent/PackageForm';
 import PackageCardAgent from '@/components/agent/PackageCardAgent';
 import PackageStatsCard from '@/components/agent/PackageStatsCard';
 import InterestTrendChart from '@/components/agent/InterestTrendChart';
 import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
+import { HajiManagement } from '@/components/agent/HajiManagement';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -30,6 +32,7 @@ const AgentDashboard = () => {
   const { data: packageStats, isLoading: statsLoading } = usePackageStats(travel?.id);
   const { data: trendData, isLoading: trendLoading } = useInterestTrend(travel?.id, 7);
   const { data: inquiryStats } = useInquiryStats(travel?.id);
+  const { data: hajiStats } = useHajiStats(travel?.id);
 
   // Redirect if not logged in or not agent
   useEffect(() => {
@@ -152,9 +155,17 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="packages">Paket</TabsTrigger>
+                  <TabsTrigger value="haji" className="relative">
+                    Haji
+                    {hajiStats && hajiStats.pending > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {hajiStats.pending}
+                      </span>
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="inquiries" className="relative">
                     Inquiry
                     {inquiryStats && inquiryStats.pending > 0 && (
@@ -174,7 +185,7 @@ const AgentDashboard = () => {
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-foreground flex items-center gap-2">
                       <Package className="w-4 h-4 text-primary" />
-                      Paket Umroh
+                      Paket Umroh & Haji
                     </h3>
                     <Button size="sm" onClick={() => setShowPackageForm(true)}>
                       <Plus className="w-4 h-4 mr-1" /> Tambah
@@ -204,13 +215,23 @@ const AgentDashboard = () => {
                       <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                       <h4 className="font-medium mb-1">Belum Ada Paket</h4>
                       <p className="text-sm text-muted-foreground mb-4">
-                        Mulai buat paket umroh pertama Anda
+                        Mulai buat paket umroh atau haji pertama Anda
                       </p>
                       <Button onClick={() => setShowPackageForm(true)}>
                         <Plus className="w-4 h-4 mr-2" /> Buat Paket
                       </Button>
                     </motion.div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="haji" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <Users className="w-4 h-4 text-amber-600" />
+                      Pendaftaran Haji
+                    </h3>
+                  </div>
+                  <HajiManagement travelId={travel?.id} />
                 </TabsContent>
 
                 <TabsContent value="inquiries" className="mt-4">
