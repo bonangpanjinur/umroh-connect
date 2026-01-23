@@ -17,6 +17,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useChecklistsWithProgress, useToggleChecklist, useChecklistStats } from '@/hooks/useChecklist';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { FeatureLock } from '@/components/common/FeatureLock';
 
 type ChecklistCategory = 'dokumen' | 'perlengkapan' | 'kesehatan' | 'mental';
 
