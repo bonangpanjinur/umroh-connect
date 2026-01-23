@@ -36,16 +36,18 @@ import {
   getMoodLabel
 } from '@/hooks/useJournals';
 import { locationsData } from '@/data/locationsData';
+import { FeatureLock } from '@/components/common/FeatureLock';
 
 interface JournalViewProps {
   onBack: () => void;
+  onViewPackages?: () => void;
 }
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const moods: JournalMood[] = ['grateful', 'peaceful', 'emotional', 'inspired', 'tired', 'happy'];
 
-const JournalView = ({ onBack }: JournalViewProps) => {
+const JournalView = ({ onBack, onViewPackages }: JournalViewProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedJournal, setSelectedJournal] = useState<Journal | null>(null);
   const [formData, setFormData] = useState<CreateJournalInput>({
@@ -235,12 +237,17 @@ const JournalView = ({ onBack }: JournalViewProps) => {
 
   // List view
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen bg-background"
+    <FeatureLock
+      featureName="Jurnal Umroh"
+      description="Fitur jurnal hanya tersedia untuk jamaah yang sudah melakukan booking paket umroh."
+      onViewPackages={onViewPackages}
     >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen bg-background"
+      >
       {/* Header */}
       <div className="sticky top-0 z-20 bg-card border-b border-border">
         <div className="flex items-center justify-between p-4">
@@ -381,6 +388,7 @@ const JournalView = ({ onBack }: JournalViewProps) => {
         )}
       </div>
     </motion.div>
+    </FeatureLock>
   );
 };
 
