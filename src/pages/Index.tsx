@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { TabId } from '@/types';
 import AppHeader from '@/components/layout/AppHeader';
@@ -7,6 +8,7 @@ import HomeView from '@/components/home/HomeView';
 import ChecklistView from '@/components/checklist/ChecklistView';
 import PaketView from '@/components/paket/PaketView';
 import AkunView from '@/components/akun/AkunView';
+import HajiView from '@/components/haji/HajiView';
 import SOSModal from '@/components/modals/SOSModal';
 import TasbihModal from '@/components/modals/TasbihModal';
 import QiblaModal from '@/components/modals/QiblaModal';
@@ -17,7 +19,9 @@ import JournalView from '@/components/journal/JournalView';
 import DoaView from '@/components/doa/DoaView';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || 'home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
@@ -26,6 +30,22 @@ const Index = () => {
   const [showReminder, setShowReminder] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showDoa, setShowDoa] = useState(false);
+
+  // Sync URL param with active tab
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    if (tab !== 'home') {
+      setSearchParams({ tab });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -88,6 +108,8 @@ const Index = () => {
         return <ChecklistView />;
       case 'paket':
         return <PaketView />;
+      case 'haji':
+        return <HajiView />;
       case 'akun':
         return <AkunView />;
       default:
@@ -108,7 +130,7 @@ const Index = () => {
         </main>
         
         {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && (
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
         {/* Modals */}
