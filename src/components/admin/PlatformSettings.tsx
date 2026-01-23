@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { usePlatformSettings, useUpdatePlatformSetting } from '@/hooks/useAdminData';
 import { toast } from 'sonner';
-import { Settings, Save } from 'lucide-react';
+import { Settings, Save, Sparkles } from 'lucide-react';
 
 export const PlatformSettings = () => {
   const { data: settings, isLoading } = usePlatformSettings();
@@ -30,15 +30,36 @@ export const PlatformSettings = () => {
     amount: 3
   });
 
+  const [featuredPricing, setFeaturedPricing] = useState({
+    daily_credits: 5,
+    weekly_credits: 25,
+    monthly_credits: 80,
+    positions: {
+      home: 1.5,
+      category: 1.0,
+      search: 1.2
+    }
+  });
+
+  const [featuredLimits, setFeaturedLimits] = useState({
+    max_per_travel: 3,
+    max_home_total: 6,
+    max_category_total: 10
+  });
+
   useEffect(() => {
     if (settings) {
       const membershipSetting = settings.find(s => s.key === 'membership_prices');
       const creditSetting = settings.find(s => s.key === 'credit_prices');
       const freeCreditSetting = settings.find(s => s.key === 'free_credits_on_register');
+      const featuredPricingSetting = settings.find(s => s.key === 'featured_package_pricing');
+      const featuredLimitsSetting = settings.find(s => s.key === 'featured_package_limits');
       
       if (membershipSetting) setMembershipPrices(membershipSetting.value as any);
       if (creditSetting) setCreditPrices(creditSetting.value as any);
       if (freeCreditSetting) setFreeCredits(freeCreditSetting.value as any);
+      if (featuredPricingSetting) setFeaturedPricing(featuredPricingSetting.value as any);
+      if (featuredLimitsSetting) setFeaturedLimits(featuredLimitsSetting.value as any);
     }
   }, [settings]);
 
@@ -86,6 +107,30 @@ export const PlatformSettings = () => {
     }
   };
 
+  const handleSaveFeaturedPricing = async () => {
+    try {
+      await updateSetting.mutateAsync({
+        key: 'featured_package_pricing',
+        value: featuredPricing
+      });
+      toast.success('Harga featured package berhasil disimpan');
+    } catch (error) {
+      toast.error('Gagal menyimpan pengaturan');
+    }
+  };
+
+  const handleSaveFeaturedLimits = async () => {
+    try {
+      await updateSetting.mutateAsync({
+        key: 'featured_package_limits',
+        value: featuredLimits
+      });
+      toast.success('Limit featured package berhasil disimpan');
+    } catch (error) {
+      toast.error('Gagal menyimpan pengaturan');
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -104,6 +149,206 @@ export const PlatformSettings = () => {
         <Settings className="h-6 w-6" />
         <h2 className="text-2xl font-bold">Pengaturan Platform</h2>
       </div>
+
+      {/* Featured Package Pricing */}
+      <Card className="border-amber-200 bg-amber-50/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            Harga Featured Package
+          </CardTitle>
+          <CardDescription>
+            Atur harga kredit untuk fitur paket unggulan berdasarkan durasi
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Duration Pricing */}
+          <div>
+            <Label className="text-sm font-medium mb-3 block">Harga Berdasarkan Durasi (dalam kredit)</Label>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">1 Hari</Label>
+                <Input
+                  type="number"
+                  value={featuredPricing.daily_credits}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    daily_credits: parseInt(e.target.value) || 0
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {featuredPricing.daily_credits} kredit/hari
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">7 Hari</Label>
+                <Input
+                  type="number"
+                  value={featuredPricing.weekly_credits}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    weekly_credits: parseInt(e.target.value) || 0
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  ~{(featuredPricing.weekly_credits / 7).toFixed(1)} kredit/hari
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">30 Hari</Label>
+                <Input
+                  type="number"
+                  value={featuredPricing.monthly_credits}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    monthly_credits: parseInt(e.target.value) || 0
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  ~{(featuredPricing.monthly_credits / 30).toFixed(1)} kredit/hari
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Position Multipliers */}
+          <div>
+            <Label className="text-sm font-medium mb-3 block">Multiplier Berdasarkan Posisi</Label>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Beranda (Home)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={featuredPricing.positions.home}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    positions: {
+                      ...featuredPricing.positions,
+                      home: parseFloat(e.target.value) || 1
+                    }
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Harga = kredit × {featuredPricing.positions.home}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Pencarian (Search)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={featuredPricing.positions.search}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    positions: {
+                      ...featuredPricing.positions,
+                      search: parseFloat(e.target.value) || 1
+                    }
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Harga = kredit × {featuredPricing.positions.search}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Kategori</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={featuredPricing.positions.category}
+                  onChange={(e) => setFeaturedPricing({
+                    ...featuredPricing,
+                    positions: {
+                      ...featuredPricing.positions,
+                      category: parseFloat(e.target.value) || 1
+                    }
+                  })}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Harga = kredit × {featuredPricing.positions.category}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Example Calculation */}
+          <div className="bg-amber-100 rounded-lg p-3">
+            <p className="text-sm font-medium text-amber-800 mb-1">Contoh Perhitungan:</p>
+            <p className="text-xs text-amber-700">
+              Featured 7 hari di Beranda = {featuredPricing.weekly_credits} × {featuredPricing.positions.home} = <strong>{Math.ceil(featuredPricing.weekly_credits * featuredPricing.positions.home)} kredit</strong>
+            </p>
+          </div>
+
+          <Button onClick={handleSaveFeaturedPricing} className="bg-amber-600 hover:bg-amber-700">
+            <Save className="h-4 w-4 mr-2" />
+            Simpan Harga Featured
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Featured Package Limits */}
+      <Card className="border-amber-200 bg-amber-50/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            Limit Featured Package
+          </CardTitle>
+          <CardDescription>
+            Atur batasan jumlah paket unggulan yang bisa aktif bersamaan
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <Label>Maks per Travel</Label>
+              <Input
+                type="number"
+                value={featuredLimits.max_per_travel}
+                onChange={(e) => setFeaturedLimits({
+                  ...featuredLimits,
+                  max_per_travel: parseInt(e.target.value) || 0
+                })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Setiap travel maksimal {featuredLimits.max_per_travel} paket featured
+              </p>
+            </div>
+            <div>
+              <Label>Maks di Beranda</Label>
+              <Input
+                type="number"
+                value={featuredLimits.max_home_total}
+                onChange={(e) => setFeaturedLimits({
+                  ...featuredLimits,
+                  max_home_total: parseInt(e.target.value) || 0
+                })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Total {featuredLimits.max_home_total} paket di beranda
+              </p>
+            </div>
+            <div>
+              <Label>Maks di Kategori</Label>
+              <Input
+                type="number"
+                value={featuredLimits.max_category_total}
+                onChange={(e) => setFeaturedLimits({
+                  ...featuredLimits,
+                  max_category_total: parseInt(e.target.value) || 0
+                })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Total {featuredLimits.max_category_total} paket per kategori
+              </p>
+            </div>
+          </div>
+          <Button onClick={handleSaveFeaturedLimits} className="bg-amber-600 hover:bg-amber-700">
+            <Save className="h-4 w-4 mr-2" />
+            Simpan Limit Featured
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Membership Prices */}
       <Card>
