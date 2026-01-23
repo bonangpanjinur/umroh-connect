@@ -13,6 +13,7 @@ import QiblaModal from '@/components/modals/QiblaModal';
 import ManasikView from '@/components/manasik/ManasikView';
 import MapsView from '@/components/maps/MapsView';
 import ReminderView from '@/components/reminder/ReminderView';
+import JournalView from '@/components/journal/JournalView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -22,6 +23,7 @@ const Index = () => {
   const [showManasik, setShowManasik] = useState(false);
   const [showMaps, setShowMaps] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
+  const [showJournal, setShowJournal] = useState(false);
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -40,12 +42,20 @@ const Index = () => {
       case 'reminder':
         setShowReminder(true);
         break;
+      case 'journal':
+        setShowJournal(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Journal view
+    if (showJournal) {
+      return <JournalView onBack={() => setShowJournal(false)} />;
+    }
+
     // Show Reminder view
     if (showReminder) {
       return <ReminderView onBack={() => setShowReminder(false)} />;
@@ -87,7 +97,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && (
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         )}
         
