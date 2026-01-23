@@ -30,6 +30,13 @@ const Index = () => {
   const [showReminder, setShowReminder] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const [showDoa, setShowDoa] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+
+  const handlePackageClick = (packageId: string) => {
+    setSelectedPackageId(packageId);
+    setActiveTab('paket');
+    setSearchParams({ tab: 'paket', package: packageId });
+  };
 
   // Sync URL param with active tab
   useEffect(() => {
@@ -103,17 +110,17 @@ const Index = () => {
 
     switch (activeTab) {
       case 'home':
-        return <HomeView onMenuClick={handleMenuClick} />;
+        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
       case 'checklist':
         return <ChecklistView />;
       case 'paket':
-        return <PaketView />;
+        return <PaketView initialPackageId={selectedPackageId} />;
       case 'haji':
         return <HajiView />;
       case 'akun':
         return <AkunView />;
       default:
-        return <HomeView onMenuClick={handleMenuClick} />;
+        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
     }
   };
 

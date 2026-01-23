@@ -288,6 +288,63 @@ export type Database = {
           },
         ]
       }
+      featured_packages: {
+        Row: {
+          created_at: string
+          credits_used: number
+          end_date: string
+          id: string
+          package_id: string
+          position: string
+          priority: number
+          start_date: string
+          status: string
+          travel_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number
+          end_date: string
+          id?: string
+          package_id: string
+          position?: string
+          priority?: number
+          start_date?: string
+          status?: string
+          travel_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number
+          end_date?: string
+          id?: string
+          package_id?: string
+          position?: string
+          priority?: number
+          start_date?: string
+          status?: string
+          travel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_packages_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       haji_checklists: {
         Row: {
           applies_to: string[] | null

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import PackageStatsCard from '@/components/agent/PackageStatsCard';
 import InterestTrendChart from '@/components/agent/InterestTrendChart';
 import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { HajiManagement } from '@/components/agent/HajiManagement';
+import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManager';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -155,21 +156,25 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="packages">Paket</TabsTrigger>
-                  <TabsTrigger value="haji" className="relative">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="overview" className="text-xs px-2">Overview</TabsTrigger>
+                  <TabsTrigger value="packages" className="text-xs px-2">Paket</TabsTrigger>
+                  <TabsTrigger value="featured" className="text-xs px-2">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Featured
+                  </TabsTrigger>
+                  <TabsTrigger value="haji" className="relative text-xs px-2">
                     Haji
                     {hajiStats && hajiStats.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-xs rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center">
                         {hajiStats.pending}
                       </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="inquiries" className="relative">
+                  <TabsTrigger value="inquiries" className="relative text-xs px-2">
                     Inquiry
                     {inquiryStats && inquiryStats.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
                         {inquiryStats.pending}
                       </span>
                     )}
@@ -222,6 +227,16 @@ const AgentDashboard = () => {
                       </Button>
                     </motion.div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="featured" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      Paket Unggulan
+                    </h3>
+                  </div>
+                  <FeaturedPackageManager travelId={travel?.id} />
                 </TabsContent>
 
                 <TabsContent value="haji" className="mt-4">

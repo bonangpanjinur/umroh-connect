@@ -8,7 +8,11 @@ import PackageDetailModal from './PackageDetailModal';
 import { PackageFiltersSheet, QuickFilterTags } from './PackageFilters';
 import { mockPackages } from '@/data/mockData';
 
-const PaketView = () => {
+interface PaketViewProps {
+  initialPackageId?: string | null;
+}
+
+const PaketView = ({ initialPackageId }: PaketViewProps) => {
   const [filters, setFilters] = useState<FilterType>({
     search: '',
     minPrice: null,
