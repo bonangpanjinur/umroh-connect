@@ -17,6 +17,8 @@ import { id } from 'date-fns/locale';
 import { usePushNotifications, NotificationType } from '@/hooks/usePushNotifications';
 import { useToast } from '@/hooks/use-toast';
 import UpcomingPayments from '@/components/booking/UpcomingPayments';
+import DepartureNotificationList from '@/components/countdown/DepartureNotificationList';
+import { useUnreadDepartureCount } from '@/hooks/useDepartureNotifications';
 
 interface NotificationCenterProps {
   onBack: () => void;
@@ -56,7 +58,8 @@ const notificationTypeConfig: Record<NotificationType, {
 
 const NotificationCenter = ({ onBack }: NotificationCenterProps) => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('departure');
+  const unreadDepartureCount = useUnreadDepartureCount();
   
   const {
     isSupported,
@@ -184,20 +187,33 @@ const NotificationCenter = ({ onBack }: NotificationCenterProps) => {
           </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="departure" className="relative">
+                <Plane className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Berangkat</span>
+                {unreadDepartureCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
+                    {unreadDepartureCount > 9 ? '9+' : unreadDepartureCount}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="payments">
-                <Wallet className="w-4 h-4 mr-2" />
-                Bayar
+                <Wallet className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Bayar</span>
               </TabsTrigger>
               <TabsTrigger value="settings">
-                <Settings className="w-4 h-4 mr-2" />
-                Pengaturan
+                <Settings className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Atur</span>
               </TabsTrigger>
               <TabsTrigger value="scheduled">
-                <Clock className="w-4 h-4 mr-2" />
-                Jadwal
+                <Clock className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Jadwal</span>
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="departure" className="mt-4 space-y-4">
+              <DepartureNotificationList showHeader={false} maxItems={20} />
+            </TabsContent>
 
             <TabsContent value="payments" className="mt-4 space-y-4">
               <UpcomingPayments />
