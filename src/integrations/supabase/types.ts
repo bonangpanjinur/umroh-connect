@@ -486,6 +486,82 @@ export type Database = {
           },
         ]
       }
+      package_inquiries: {
+        Row: {
+          agent_notes: string | null
+          contacted_at: string | null
+          created_at: string
+          departure_id: string | null
+          email: string | null
+          full_name: string
+          id: string
+          message: string | null
+          number_of_people: number | null
+          package_id: string
+          phone: string
+          status: string
+          travel_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_notes?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          departure_id?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          message?: string | null
+          number_of_people?: number | null
+          package_id: string
+          phone: string
+          status?: string
+          travel_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_notes?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          departure_id?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          message?: string | null
+          number_of_people?: number | null
+          package_id?: string
+          phone?: string
+          status?: string
+          travel_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_inquiries_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_inquiries_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_inquiries_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       package_interests: {
         Row: {
           created_at: string

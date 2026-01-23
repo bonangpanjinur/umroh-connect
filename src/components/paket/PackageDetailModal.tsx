@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { X, Plane, Hotel, MessageCircle, Crown, Star } from 'lucide-react';
+import { X, Plane, Hotel, MessageCircle, Crown, Star, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { useTrackInterest } from '@/hooks/usePackageInterests';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TravelReviewSection } from '@/components/reviews/TravelReviewSection';
+import { InquiryForm } from '@/components/inquiry/InquiryForm';
 
 interface PackageDetailModalProps {
   package: PackageWithDetails | null;
@@ -165,9 +166,13 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
             </div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
                 <TabsTrigger value="jadwal" className="text-sm">
-                  Jadwal Keberangkatan
+                  Jadwal
+                </TabsTrigger>
+                <TabsTrigger value="inquiry" className="text-sm flex items-center gap-1">
+                  <Send className="h-3 w-3" />
+                  Inquiry
                 </TabsTrigger>
                 <TabsTrigger value="review" className="text-sm flex items-center gap-1">
                   <Star className="h-3 w-3" />
@@ -189,6 +194,13 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                     Belum ada jadwal keberangkatan
                   </p>
                 )}
+              </TabsContent>
+
+              <TabsContent value="inquiry" className="mt-0">
+                <InquiryForm 
+                  package={pkg}
+                  onSuccess={() => setActiveTab('jadwal')}
+                />
               </TabsContent>
 
               <TabsContent value="review" className="mt-0">

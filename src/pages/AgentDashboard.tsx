@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
+import { useInquiryStats } from '@/hooks/useInquiries';
 import TravelForm from '@/components/agent/TravelForm';
 import PackageForm from '@/components/agent/PackageForm';
 import PackageCardAgent from '@/components/agent/PackageCardAgent';
 import PackageStatsCard from '@/components/agent/PackageStatsCard';
 import InterestTrendChart from '@/components/agent/InterestTrendChart';
+import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -20,11 +23,13 @@ const AgentDashboard = () => {
   const [showTravelForm, setShowTravelForm] = useState(false);
   const [showPackageForm, setShowPackageForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: travel, isLoading: travelLoading } = useAgentTravel();
   const { data: packages, isLoading: packagesLoading } = useAgentPackages(travel?.id);
   const { data: packageStats, isLoading: statsLoading } = usePackageStats(travel?.id);
   const { data: trendData, isLoading: trendLoading } = useInterestTrend(travel?.id, 7);
+  const { data: inquiryStats } = useInquiryStats(travel?.id);
 
   // Redirect if not logged in or not agent
   useEffect(() => {
@@ -145,58 +150,73 @@ const AgentDashboard = () => {
                 </div>
               </motion.div>
 
-              {/* Package Stats Section */}
-              <div className="flex items-center gap-2 mt-6 mb-3">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                <h3 className="font-bold text-foreground">Statistik & Minat</h3>
-              </div>
+              {/* Tabs for different sections */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="packages">Paket</TabsTrigger>
+                  <TabsTrigger value="inquiries" className="relative">
+                    Inquiry
+                    {inquiryStats && inquiryStats.pending > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                        {inquiryStats.pending}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-4">
-                <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
-                <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
-              </div>
+                <TabsContent value="overview" className="mt-4 space-y-4">
+                  <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
+                  <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+                </TabsContent>
 
-              {/* Packages Section */}
-              <div className="flex items-center justify-between mt-6 mb-3">
-                <h3 className="font-bold text-foreground flex items-center gap-2">
-                  <Package className="w-4 h-4 text-primary" />
-                  Paket Umroh
-                </h3>
-                <Button size="sm" onClick={() => setShowPackageForm(true)}>
-                  <Plus className="w-4 h-4 mr-1" /> Tambah
-                </Button>
-              </div>
+                <TabsContent value="packages" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <Package className="w-4 h-4 text-primary" />
+                      Paket Umroh
+                    </h3>
+                    <Button size="sm" onClick={() => setShowPackageForm(true)}>
+                      <Plus className="w-4 h-4 mr-1" /> Tambah
+                    </Button>
+                  </div>
 
-              {packagesLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-                </div>
-              ) : packages && packages.length > 0 ? (
-                <div className="space-y-4">
-                  {packages.map((pkg) => (
-                    <PackageCardAgent
-                      key={pkg.id}
-                      package={pkg}
-                      onEdit={() => setEditingPackage(pkg)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="bg-card rounded-2xl border-2 border-dashed border-border p-8 text-center"
-                >
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <h4 className="font-medium mb-1">Belum Ada Paket</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Mulai buat paket umroh pertama Anda
-                  </p>
-                  <Button onClick={() => setShowPackageForm(true)}>
-                    <Plus className="w-4 h-4 mr-2" /> Buat Paket
-                  </Button>
-                </motion.div>
-              )}
+                  {packagesLoading ? (
+                    <div className="flex justify-center py-12">
+                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                    </div>
+                  ) : packages && packages.length > 0 ? (
+                    <div className="space-y-4">
+                      {packages.map((pkg) => (
+                        <PackageCardAgent
+                          key={pkg.id}
+                          package={pkg}
+                          onEdit={() => setEditingPackage(pkg)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="bg-card rounded-2xl border-2 border-dashed border-border p-8 text-center"
+                    >
+                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <h4 className="font-medium mb-1">Belum Ada Paket</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Mulai buat paket umroh pertama Anda
+                      </p>
+                      <Button onClick={() => setShowPackageForm(true)}>
+                        <Plus className="w-4 h-4 mr-2" /> Buat Paket
+                      </Button>
+                    </motion.div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="inquiries" className="mt-4">
+                  <InquiriesManagement />
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </main>
