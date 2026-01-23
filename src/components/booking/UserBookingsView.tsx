@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, Calendar, CreditCard, ChevronRight, Clock,
-  AlertTriangle, CheckCircle2, XCircle, Loader2, MessageCircle
+  AlertTriangle, CheckCircle2, XCircle, Loader2, MessageCircle,
+  Upload, Camera
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useUserBookings, Booking, PaymentSchedule } from '@/hooks/useBookings';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import PaymentProofUpload from './PaymentProofUpload';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -34,10 +36,17 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   completed: { label: 'Selesai', color: 'bg-primary/10 text-primary', icon: CheckCircle2 },
 };
 
-const PaymentScheduleItem = ({ schedule }: { schedule: PaymentSchedule }) => {
+interface PaymentScheduleItemProps {
+  schedule: PaymentSchedule;
+  bookingCode: string;
+  onUploadClick?: () => void;
+}
+
+const PaymentScheduleItem = ({ schedule, bookingCode, onUploadClick }: PaymentScheduleItemProps) => {
   const dueDate = new Date(schedule.due_date);
   const isOverdue = !schedule.is_paid && isPast(dueDate);
   const daysUntilDue = differenceInDays(dueDate, new Date());
+  const hasProof = !!schedule.payment_proof_url;
   
   return (
     <div className={`p-3 rounded-lg border ${
@@ -47,7 +56,7 @@ const PaymentScheduleItem = ({ schedule }: { schedule: PaymentSchedule }) => {
         ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
         : 'bg-muted/50 border-border'
     }`}>
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start mb-2">
         <div>
           <p className="font-medium text-sm capitalize">
             {schedule.payment_type === 'dp' ? 'Down Payment' : 
@@ -73,6 +82,10 @@ const PaymentScheduleItem = ({ schedule }: { schedule: PaymentSchedule }) => {
             <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
               <CheckCircle2 className="h-3 w-3 mr-1" /> Lunas
             </Badge>
+          ) : hasProof ? (
+            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+              <Upload className="h-3 w-3 mr-1" /> Menunggu Verifikasi
+            </Badge>
           ) : isOverdue ? (
             <Badge variant="destructive" className="text-xs">
               <AlertTriangle className="h-3 w-3 mr-1" /> Overdue
@@ -84,6 +97,27 @@ const PaymentScheduleItem = ({ schedule }: { schedule: PaymentSchedule }) => {
           ) : null}
         </div>
       </div>
+      
+      {/* Upload Button for unpaid schedules without proof */}
+      {!schedule.is_paid && !hasProof && onUploadClick && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-2 gap-2 text-xs"
+          onClick={onUploadClick}
+        >
+          <Camera className="h-3 w-3" />
+          Upload Bukti Pembayaran
+        </Button>
+      )}
+      
+      {/* Show proof thumbnail if exists */}
+      {hasProof && !schedule.is_paid && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-blue-600">
+          <CheckCircle2 className="h-3 w-3" />
+          Bukti telah diupload, menunggu konfirmasi
+        </div>
+      )}
     </div>
   );
 };
@@ -156,8 +190,9 @@ const BookingCard = ({ booking, onClick }: { booking: Booking; onClick: () => vo
 };
 
 const UserBookingsView = () => {
-  const { data: bookings, isLoading } = useUserBookings();
+  const { data: bookings, isLoading, refetch } = useUserBookings();
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [uploadingSchedule, setUploadingSchedule] = useState<PaymentSchedule | null>(null);
   
   if (isLoading) {
     return (
@@ -184,6 +219,11 @@ const UserBookingsView = () => {
   const whatsappUrl = selectedBookingDetails?.travel?.whatsapp 
     ? `https://wa.me/${selectedBookingDetails.travel.whatsapp.replace(/\D/g, '')}?text=Halo, saya ingin menanyakan booking ${selectedBookingDetails.booking_code}`
     : '#';
+
+  const handleUploadSuccess = () => {
+    setUploadingSchedule(null);
+    refetch();
+  };
   
   return (
     <div className="space-y-4">
@@ -303,9 +343,23 @@ const UserBookingsView = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {selectedBookingDetails.payment_schedules.map(schedule => (
-                        <PaymentScheduleItem key={schedule.id} schedule={schedule} />
-                      ))}
+                      {uploadingSchedule ? (
+                        <PaymentProofUpload 
+                          schedule={uploadingSchedule}
+                          bookingCode={selectedBookingDetails.booking_code}
+                          onSuccess={handleUploadSuccess}
+                          onCancel={() => setUploadingSchedule(null)}
+                        />
+                      ) : (
+                        selectedBookingDetails.payment_schedules.map(schedule => (
+                          <PaymentScheduleItem 
+                            key={schedule.id} 
+                            schedule={schedule}
+                            bookingCode={selectedBookingDetails.booking_code}
+                            onUploadClick={() => setUploadingSchedule(schedule)}
+                          />
+                        ))
+                      )}
                     </CardContent>
                   </Card>
                 )}
