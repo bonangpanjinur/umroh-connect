@@ -11,6 +11,7 @@ import SOSModal from '@/components/modals/SOSModal';
 import TasbihModal from '@/components/modals/TasbihModal';
 import QiblaModal from '@/components/modals/QiblaModal';
 import ManasikView from '@/components/manasik/ManasikView';
+import MapsView from '@/components/maps/MapsView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -18,6 +19,7 @@ const Index = () => {
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
   const [showManasik, setShowManasik] = useState(false);
+  const [showMaps, setShowMaps] = useState(false);
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -30,12 +32,20 @@ const Index = () => {
       case 'doa':
         setShowManasik(true);
         break;
+      case 'peta':
+        setShowMaps(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Maps view when peta menu is clicked
+    if (showMaps) {
+      return <MapsView onBack={() => setShowMaps(false)} />;
+    }
+
     // Show Manasik view when doa menu is clicked
     if (showManasik) {
       return <ManasikView onBack={() => setShowManasik(false)} />;
@@ -67,7 +77,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && (
+        {!showManasik && !showMaps && (
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         )}
         
