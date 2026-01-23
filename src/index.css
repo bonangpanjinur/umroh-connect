@@ -202,3 +202,148 @@
 .animate-pulse-ring {
   animation: pulse-ring 1.5s ease-out infinite;
 }
+
+/* ==========================================
+   ELDERLY MODE (Mode Lansia) - Accessibility
+   ========================================== */
+
+/* High Contrast Colors for Elderly Mode */
+:root.elderly-mode {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 5%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 5%;
+  
+  --primary: 160 90% 30%;
+  --primary-foreground: 0 0% 100%;
+  
+  --muted: 220 14% 90%;
+  --muted-foreground: 0 0% 25%;
+  
+  --border: 0 0% 70%;
+  
+  /* Stronger shadows for better visibility */
+  --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.15);
+}
+
+/* Global font scaling for elderly mode */
+html.elderly-mode {
+  font-size: 125%;
+}
+
+/* Ensure minimum touch target size (48x48px) */
+.elderly-mode button,
+.elderly-mode a,
+.elderly-mode [role="button"],
+.elderly-mode input,
+.elderly-mode select,
+.elderly-mode textarea {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Increase line height for readability */
+.elderly-mode body {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+/* Bold text for better readability */
+.elderly-mode h1,
+.elderly-mode h2,
+.elderly-mode h3,
+.elderly-mode h4,
+.elderly-mode h5,
+.elderly-mode h6 {
+  font-weight: 800;
+}
+
+/* Increase contrast on borders */
+.elderly-mode .border,
+.elderly-mode [class*="border-"] {
+  border-width: 2px;
+}
+
+/* Larger icons in elderly mode */
+.elderly-mode svg {
+  transform: scale(1.25);
+  transform-origin: center;
+}
+
+/* Better focus states */
+.elderly-mode *:focus {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Simplified animations - reduce motion */
+.elderly-mode * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Audio indicator styles */
+.elderly-mode .audio-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--primary) / 0.1);
+  border: 2px solid hsl(var(--primary));
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+/* Large button variant for elderly mode */
+.elderly-mode .btn-elderly {
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  min-height: 60px;
+}
+
+/* Navigation items in elderly mode */
+.elderly-mode nav button,
+.elderly-mode nav a {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Card improvements */
+.elderly-mode .bg-card {
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--shadow-card);
+}
+
+/* Form inputs */
+.elderly-mode input,
+.elderly-mode textarea,
+.elderly-mode select {
+  font-size: 1.125rem;
+  padding: 0.875rem 1rem;
+  border-width: 2px;
+}
+
+/* Checkbox and radio buttons */
+.elderly-mode input[type="checkbox"],
+.elderly-mode input[type="radio"] {
+  width: 24px;
+  height: 24px;
+}
+
+/* Switch/Toggle buttons */
+.elderly-mode [role="switch"] {
+  min-width: 56px;
+  min-height: 32px;
+}
+
+/* Status badges */
+.elderly-mode .badge,
+.elderly-mode [class*="Badge"] {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
+}

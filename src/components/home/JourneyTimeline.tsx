@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Check, ChevronRight, Play, Calendar, MapPin, Plane, Home } from 'lucide-react';
+import { Check, ChevronRight, Play, Calendar, MapPin, Plane, Home, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { timelinePhases, getCurrentPhase, TimelinePhase, TimelineTask } from '@/data/timelineData';
 import { cn } from '@/lib/utils';
+import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 const phaseIcons: Record<string, React.ReactNode> = {
   'h-30': <Calendar className="w-4 h-4" />,
@@ -12,6 +13,17 @@ const phaseIcons: Record<string, React.ReactNode> = {
   'h-1': <Plane className="w-4 h-4" />,
   'during': <MapPin className="w-4 h-4" />,
   'after': <Home className="w-4 h-4" />,
+};
+
+const getPhaseIconsLarge = (id: string) => {
+  const icons: Record<string, React.ReactNode> = {
+    'h-30': <Calendar className="w-6 h-6" />,
+    'h-7': <Calendar className="w-6 h-6" />,
+    'h-1': <Plane className="w-6 h-6" />,
+    'during': <MapPin className="w-6 h-6" />,
+    'after': <Home className="w-6 h-6" />,
+  };
+  return icons[id];
 };
 
 interface PhaseCardProps {
@@ -161,6 +173,7 @@ const TaskItem = ({ task, isCompleted, onToggle, index }: TaskItemProps) => {
 };
 
 const JourneyTimeline = () => {
+  const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
   const currentPhase = getCurrentPhase();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(currentPhase?.id || 'h-7');
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set(['h30-1', 'h30-2']));
@@ -182,28 +195,50 @@ const JourneyTimeline = () => {
   const totalCompleted = completedTasks.size;
   const overallProgress = (totalCompleted / totalTasks) * 100;
 
+  const speakProgress = () => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(
+        `Progress perjalanan umroh: ${totalCompleted} dari ${totalTasks} tugas selesai. ${Math.round(overallProgress)} persen.`
+      );
+      utterance.lang = 'id-ID';
+      utterance.rate = 0.8;
+      speechSynthesis.speak(utterance);
+    }
+  };
+
   return (
-    <div className="p-4 bg-secondary/50 mt-4 border-t border-border">
+    <div className={`bg-secondary/50 border-t border-border ${isElderlyMode ? 'p-5 mt-5' : 'p-4 mt-4'}`}>
       {/* Header with overall progress */}
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-bold text-foreground">Timeline Perjalanan</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h3 className={`font-bold text-foreground ${fontSize.base}`}>Timeline Perjalanan</h3>
+          <p className={`text-muted-foreground mt-0.5 ${fontSize.xs}`}>
             {totalCompleted} dari {totalTasks} tugas selesai
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-primary">
+          {isElderlyMode && (
+            <button
+              onClick={speakProgress}
+              className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              aria-label="Dengarkan progress"
+            >
+              <Volume2 style={{ width: iconSize.sm, height: iconSize.sm }} />
+            </button>
+          )}
+          <span className={`font-medium text-primary ${fontSize.sm}`}>
             {Math.round(overallProgress)}%
           </span>
-          <div className="w-16">
-            <Progress value={overallProgress} className="h-2" />
+          <div className={isElderlyMode ? 'w-20' : 'w-16'}>
+            <Progress value={overallProgress} className={isElderlyMode ? 'h-3' : 'h-2'} />
           </div>
         </div>
       </div>
 
-      {/* Phase Pills - Horizontal scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide mb-4">
+      {/* Phase Pills - Horizontal scroll (simplified in elderly mode) */}
+      <div className={`flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide mb-4 ${
+        isElderlyMode ? 'gap-3' : ''
+      }`}>
         {timelinePhases.map((phase) => {
           const isActive = currentPhase?.id === phase.id;
           const isSelected = expandedPhase === phase.id;
@@ -213,7 +248,8 @@ const JourneyTimeline = () => {
               key={phase.id}
               onClick={() => setExpandedPhase(phase.id === expandedPhase ? null : phase.id)}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0",
+                "flex items-center gap-1.5 rounded-full font-medium whitespace-nowrap transition-all shrink-0",
+                isElderlyMode ? 'px-4 py-2.5 text-sm' : 'px-3 py-1.5 text-xs',
                 isSelected 
                   ? "bg-primary text-primary-foreground" 
                   : isActive
@@ -221,16 +257,18 @@ const JourneyTimeline = () => {
                     : "bg-card text-muted-foreground border border-border hover:border-primary/30"
               )}
             >
-              {phaseIcons[phase.id]}
+              {isElderlyMode ? getPhaseIconsLarge(phase.id) : phaseIcons[phase.id]}
               {phase.name}
             </button>
           );
         })}
       </div>
 
-      {/* Phase Cards */}
+      {/* Phase Cards - Show only expanded in elderly mode for simplicity */}
       <div className="space-y-3">
-        {timelinePhases.map((phase) => (
+        {timelinePhases
+          .filter(phase => isElderlyMode ? expandedPhase === phase.id : true)
+          .map((phase) => (
           <PhaseCard
             key={phase.id}
             phase={phase}
@@ -243,22 +281,28 @@ const JourneyTimeline = () => {
         ))}
       </div>
 
-      {/* Quick Action */}
+      {/* Quick Action - Larger in elderly mode */}
       {currentPhase && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/20"
+          className={`bg-primary/5 rounded-2xl border border-primary/20 ${
+            isElderlyMode ? 'mt-5 p-5' : 'mt-4 p-4'
+          }`}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Tugas berikutnya</p>
-              <h4 className="text-sm font-bold text-foreground mt-0.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <p className={`text-muted-foreground ${fontSize.xs}`}>Tugas berikutnya</p>
+              <h4 className={`font-bold text-foreground mt-0.5 ${fontSize.sm}`}>
                 {currentPhase.tasks.find(t => !completedTasks.has(t.id))?.title || 'Semua selesai! 🎉'}
               </h4>
             </div>
-            <Button size="sm" className="shadow-primary gap-1.5">
-              <Play className="w-3 h-3" /> Mulai
+            <Button 
+              size={isElderlyMode ? 'lg' : 'sm'} 
+              className={`shadow-primary gap-1.5 ${isElderlyMode ? 'h-14 px-6' : ''}`}
+            >
+              <Play style={{ width: isElderlyMode ? 20 : 12, height: isElderlyMode ? 20 : 12 }} /> 
+              <span className={fontSize.sm}>Mulai</span>
             </Button>
           </div>
         </motion.div>
