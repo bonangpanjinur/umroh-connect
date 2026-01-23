@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
 import { useInquiryStats } from '@/hooks/useInquiries';
 import { useHajiStats } from '@/hooks/useHaji';
+import { usePaymentStats } from '@/hooks/useBookings';
 import TravelForm from '@/components/agent/TravelForm';
 import PackageForm from '@/components/agent/PackageForm';
 import PackageCardAgent from '@/components/agent/PackageCardAgent';
@@ -17,6 +18,7 @@ import InterestTrendChart from '@/components/agent/InterestTrendChart';
 import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { HajiManagement } from '@/components/agent/HajiManagement';
 import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManager';
+import { BookingsManagement } from '@/components/agent/BookingsManagement';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -34,6 +36,7 @@ const AgentDashboard = () => {
   const { data: trendData, isLoading: trendLoading } = useInterestTrend(travel?.id, 7);
   const { data: inquiryStats } = useInquiryStats(travel?.id);
   const { data: hajiStats } = useHajiStats(travel?.id);
+  const bookingStats = usePaymentStats(travel?.id);
 
   // Redirect if not logged in or not agent
   useEffect(() => {
@@ -156,14 +159,19 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="overview" className="text-xs px-2">Overview</TabsTrigger>
-                  <TabsTrigger value="packages" className="text-xs px-2">Paket</TabsTrigger>
-                  <TabsTrigger value="featured" className="text-xs px-2">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Featured
+                <TabsList className="grid w-full grid-cols-6">
+                  <TabsTrigger value="overview" className="text-xs px-1">Overview</TabsTrigger>
+                  <TabsTrigger value="packages" className="text-xs px-1">Paket</TabsTrigger>
+                  <TabsTrigger value="bookings" className="relative text-xs px-1">
+                    <ClipboardList className="w-3 h-3 mr-0.5" />
+                    Booking
+                    {bookingStats.overduePayments > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-[10px] rounded-full flex items-center justify-center">
+                        {bookingStats.overduePayments}
+                      </span>
+                    )}
                   </TabsTrigger>
-                  <TabsTrigger value="haji" className="relative text-xs px-2">
+                  <TabsTrigger value="haji" className="relative text-xs px-1">
                     Haji
                     {hajiStats && hajiStats.pending > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center">
@@ -171,13 +179,17 @@ const AgentDashboard = () => {
                       </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="inquiries" className="relative text-xs px-2">
+                  <TabsTrigger value="inquiries" className="relative text-xs px-1">
                     Inquiry
                     {inquiryStats && inquiryStats.pending > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
                         {inquiryStats.pending}
                       </span>
                     )}
+                  </TabsTrigger>
+                  <TabsTrigger value="featured" className="text-xs px-1">
+                    <Sparkles className="w-3 h-3 mr-0.5" />
+                    Featured
                   </TabsTrigger>
                 </TabsList>
 
@@ -227,6 +239,16 @@ const AgentDashboard = () => {
                       </Button>
                     </motion.div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="bookings" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-primary" />
+                      Kelola Booking
+                    </h3>
+                  </div>
+                  <BookingsManagement travelId={travel?.id} />
                 </TabsContent>
 
                 <TabsContent value="featured" className="mt-4">
