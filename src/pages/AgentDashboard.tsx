@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2 } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
+import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
 import TravelForm from '@/components/agent/TravelForm';
 import PackageForm from '@/components/agent/PackageForm';
 import PackageCardAgent from '@/components/agent/PackageCardAgent';
+import PackageStatsCard from '@/components/agent/PackageStatsCard';
+import InterestTrendChart from '@/components/agent/InterestTrendChart';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -20,6 +23,8 @@ const AgentDashboard = () => {
 
   const { data: travel, isLoading: travelLoading } = useAgentTravel();
   const { data: packages, isLoading: packagesLoading } = useAgentPackages(travel?.id);
+  const { data: packageStats, isLoading: statsLoading } = usePackageStats(travel?.id);
+  const { data: trendData, isLoading: trendLoading } = useInterestTrend(travel?.id, 7);
 
   // Redirect if not logged in or not agent
   useEffect(() => {
@@ -139,6 +144,17 @@ const AgentDashboard = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* Package Stats Section */}
+              <div className="flex items-center gap-2 mt-6 mb-3">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                <h3 className="font-bold text-foreground">Statistik & Minat</h3>
+              </div>
+
+              <div className="space-y-4">
+                <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
+                <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+              </div>
 
               {/* Packages Section */}
               <div className="flex items-center justify-between mt-6 mb-3">

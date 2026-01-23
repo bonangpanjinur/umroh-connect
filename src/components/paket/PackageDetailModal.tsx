@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { X, Plane, Hotel, MessageCircle, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
+import { useTrackInterest } from '@/hooks/usePackageInterests';
 
 interface PackageDetailModalProps {
   package: PackageWithDetails | null;
@@ -79,7 +81,27 @@ const DepartureOption = ({ departure, isBestseller }: { departure: Departure; is
 };
 
 const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) => {
+  const trackInterest = useTrackInterest();
+
+  // Track view when modal opens
+  useEffect(() => {
+    if (pkg) {
+      trackInterest.mutate({ 
+        packageId: pkg.id, 
+        interestType: 'view' 
+      });
+    }
+  }, [pkg?.id]);
+
   if (!pkg) return null;
+
+  const handleWhatsAppClick = () => {
+    // Track WhatsApp click
+    trackInterest.mutate({ 
+      packageId: pkg.id, 
+      interestType: 'whatsapp_click' 
+    });
+  };
 
   const whatsappUrl = pkg.travel.whatsapp 
     ? `https://wa.me/${pkg.travel.whatsapp.replace(/\D/g, '')}?text=Halo, saya tertarik dengan ${pkg.name}`
@@ -157,6 +179,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               asChild
               className="w-full shadow-primary gap-2" 
               size="lg"
+              onClick={handleWhatsAppClick}
             >
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="w-4 h-4" />
