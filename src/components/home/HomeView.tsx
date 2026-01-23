@@ -6,6 +6,7 @@ import { FeaturedPackages } from './FeaturedPackages';
 import DepartureCountdown from '../countdown/DepartureCountdown';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useJamaahAccess } from '@/hooks/useJamaahAccess';
 
 interface HomeViewProps {
   onMenuClick?: (menuId: string) => void;
@@ -14,6 +15,7 @@ interface HomeViewProps {
 
 const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
   const { user } = useAuthContext();
+  const { hasActiveBooking } = useJamaahAccess();
 
   return (
     <motion.div
@@ -24,8 +26,8 @@ const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
     >
       <PrayerTimeCard />
       
-      {/* Countdown Timer - only show for logged in users */}
-      {user && (
+      {/* Countdown Timer - only show for users with active booking */}
+      {user && hasActiveBooking && (
         <div className="px-4">
           <DepartureCountdown 
             onNotificationClick={() => onMenuClick?.('notifikasi')} 
