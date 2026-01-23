@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
-import { X, Plane, Hotel, MessageCircle, Crown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Plane, Hotel, MessageCircle, Crown, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { useTrackInterest } from '@/hooks/usePackageInterests';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TravelReviewSection } from '@/components/reviews/TravelReviewSection';
 
 interface PackageDetailModalProps {
   package: PackageWithDetails | null;
@@ -82,6 +84,7 @@ const DepartureOption = ({ departure, isBestseller }: { departure: Departure; is
 
 const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) => {
   const trackInterest = useTrackInterest();
+  const [activeTab, setActiveTab] = useState('jadwal');
 
   // Track view when modal opens
   useEffect(() => {
@@ -90,6 +93,13 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
         packageId: pkg.id, 
         interestType: 'view' 
       });
+    }
+  }, [pkg?.id]);
+
+  // Reset tab when modal opens
+  useEffect(() => {
+    if (pkg) {
+      setActiveTab('jadwal');
     }
   }, [pkg?.id]);
 
@@ -154,23 +164,40 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               </div>
             </div>
             
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-muted-foreground">Jadwal Tersedia:</p>
-              
-              {pkg.departures.length > 0 ? (
-                pkg.departures.map((departure, index) => (
-                  <DepartureOption
-                    key={departure.id}
-                    departure={departure}
-                    isBestseller={index === 0}
-                  />
-                ))
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  Belum ada jadwal keberangkatan
-                </p>
-              )}
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="jadwal" className="text-sm">
+                  Jadwal Keberangkatan
+                </TabsTrigger>
+                <TabsTrigger value="review" className="text-sm flex items-center gap-1">
+                  <Star className="h-3 w-3" />
+                  Review
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="jadwal" className="mt-0 space-y-3">
+                {pkg.departures.length > 0 ? (
+                  pkg.departures.map((departure, index) => (
+                    <DepartureOption
+                      key={departure.id}
+                      departure={departure}
+                      isBestseller={index === 0}
+                    />
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Belum ada jadwal keberangkatan
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="review" className="mt-0">
+                <TravelReviewSection 
+                  travelId={pkg.travel.id} 
+                  travelName={pkg.travel.name} 
+                />
+              </TabsContent>
+            </Tabs>
           </div>
           
           {/* Footer CTA */}
