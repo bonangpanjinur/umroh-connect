@@ -178,16 +178,16 @@ const BookingDetailModal = ({ bookingId, onClose }: BookingDetailModalProps) => 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center"
+        className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl"
+          className="bg-card w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl"
         >
           {/* Header */}
           <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">

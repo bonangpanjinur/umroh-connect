@@ -20,6 +20,7 @@ import DoaView from '@/components/doa/DoaView';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import OfflineManagerView from '@/components/offline/OfflineManagerView';
 import PackingListGenerator from '@/components/packing/PackingListGenerator';
+import CurrencyConverter from '@/components/currency/CurrencyConverter';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +37,7 @@ const Index = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
   const [showPacking, setShowPacking] = useState(false);
+  const [showCurrency, setShowCurrency] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -91,6 +93,9 @@ const Index = () => {
         break;
       case 'packing':
         setShowPacking(true);
+        break;
+      case 'kurs':
+        setShowCurrency(true);
         break;
       default:
         break;
@@ -204,6 +209,7 @@ const Index = () => {
         <SOSModal isOpen={isSOSOpen} onClose={() => setIsSOSOpen(false)} />
         <TasbihModal isOpen={isTasbihOpen} onClose={() => setIsTasbihOpen(false)} />
         <QiblaModal isOpen={isQiblaOpen} onClose={() => setIsQiblaOpen(false)} />
+        <CurrencyConverter isOpen={showCurrency} onClose={() => setShowCurrency(false)} />
       </div>
     </div>
   );
