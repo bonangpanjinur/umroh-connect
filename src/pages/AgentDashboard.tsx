@@ -22,6 +22,7 @@ import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManage
 import { BookingsManagement } from '@/components/agent/BookingsManagement';
 import { ChatManagement } from '@/components/agent/ChatManagement';
 import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
+import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCenter';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -75,21 +76,33 @@ const AgentDashboard = () => {
     );
   }
 
+  const handleNotificationNavigate = (tab: string, referenceId?: string) => {
+    setActiveTab(tab);
+  };
+
   return (
     <div className="min-h-screen bg-secondary/30 flex justify-center">
       <div className="w-full max-w-md bg-background min-h-screen relative">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="font-bold text-lg">Dashboard Agent</h1>
-            <p className="text-xs text-muted-foreground">Kelola paket umroh Anda</p>
+        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="font-bold text-lg">Dashboard Agent</h1>
+              <p className="text-xs text-muted-foreground">Kelola paket umroh Anda</p>
+            </div>
           </div>
+          {travel && (
+            <AgentNotificationCenter 
+              travelId={travel.id} 
+              onNavigate={handleNotificationNavigate}
+            />
+          )}
         </header>
 
         <main className="p-4 pb-24 space-y-4">
