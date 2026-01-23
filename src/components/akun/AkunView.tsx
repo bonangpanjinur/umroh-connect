@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useUserHajiRegistrations } from '@/hooks/useHaji';
 import { useUserBookings } from '@/hooks/useBookings';
 import UserBookingsView from '@/components/booking/UserBookingsView';
 import PushNotificationSettings from '@/components/notifications/PushNotificationSettings';
+import { LanguageSelector } from '@/components/settings/LanguageSelector';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -111,9 +113,11 @@ const BookingButton = ({ onClick }: { onClick: () => void }) => {
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
   const { user, profile, signOut, loading } = useAuthContext();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [showBookings, setShowBookings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLanguage, setShowLanguage] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -320,16 +324,17 @@ const AkunView = () => {
         </button>
 
         {/* Language Setting */}
-        <button className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
-          isElderlyMode ? 'p-5' : 'p-4'
-        }`}>
+        <button 
+          onClick={() => setShowLanguage(true)}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
           <div className="flex items-center gap-3">
             <Globe style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
-            <span className={`font-medium text-foreground ${fontSize.sm}`}>Bahasa / Language</span>
+            <span className={`font-medium text-foreground ${fontSize.sm}`}>{t('account.language')}</span>
           </div>
-          <span className={`text-muted-foreground flex items-center gap-1 ${fontSize.xs}`}>
-            Indonesia <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} />
-          </span>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
         </button>
 
         {/* Help */}
@@ -352,7 +357,7 @@ const AkunView = () => {
           }`}
         >
           <LogOut style={{ width: iconSize.sm, height: iconSize.sm }} className="mr-2" />
-          Keluar Aplikasi
+          {t('account.logout')}
         </Button>
       </div>
 
@@ -385,6 +390,23 @@ const AkunView = () => {
             </div>
             <div className="p-4">
               <PushNotificationSettings />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Language Sheet */}
+      {showLanguage && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full overflow-y-auto">
+            <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowLanguage(false)}>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              <h2 className={`font-bold ${fontSize.lg}`}>{t('account.language')}</h2>
+            </div>
+            <div className="p-4">
+              <LanguageSelector variant="list" />
             </div>
           </div>
         </div>

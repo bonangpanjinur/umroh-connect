@@ -10,6 +10,7 @@ import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
 import { useInquiryStats } from '@/hooks/useInquiries';
 import { useHajiStats } from '@/hooks/useHaji';
 import { usePaymentStats } from '@/hooks/useBookings';
+import { useChat } from '@/hooks/useChat';
 import TravelForm from '@/components/agent/TravelForm';
 import PackageForm from '@/components/agent/PackageForm';
 import PackageCardAgent from '@/components/agent/PackageCardAgent';
@@ -19,6 +20,7 @@ import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { HajiManagement } from '@/components/agent/HajiManagement';
 import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManager';
 import { BookingsManagement } from '@/components/agent/BookingsManagement';
+import { ChatManagement } from '@/components/agent/ChatManagement';
 import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { Package as PackageType } from '@/types/database';
 
@@ -38,6 +40,7 @@ const AgentDashboard = () => {
   const { data: inquiryStats } = useInquiryStats(travel?.id);
   const { data: hajiStats } = useHajiStats(travel?.id);
   const bookingStats = usePaymentStats(travel?.id);
+  const { unreadCount: chatUnreadCount } = useChat(null, travel?.id || null);
 
   // Redirect if not logged in or not agent
   useEffect(() => {
@@ -160,15 +163,13 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-7">
-                  <TabsTrigger value="overview" className="text-xs px-1">Overview</TabsTrigger>
-                  <TabsTrigger value="analytics" className="text-xs px-1">
-                    <TrendingUp className="w-3 h-3 mr-0.5" />
-                    Analitik
+                <TabsList className="grid w-full grid-cols-8 gap-0.5">
+                  <TabsTrigger value="overview" className="text-[10px] px-1">Overview</TabsTrigger>
+                  <TabsTrigger value="analytics" className="text-[10px] px-1">
+                    <TrendingUp className="w-3 h-3" />
                   </TabsTrigger>
-                  <TabsTrigger value="packages" className="text-xs px-1">Paket</TabsTrigger>
-                  <TabsTrigger value="bookings" className="relative text-xs px-1">
-                    <ClipboardList className="w-3 h-3 mr-0.5" />
+                  <TabsTrigger value="packages" className="text-[10px] px-1">Paket</TabsTrigger>
+                  <TabsTrigger value="bookings" className="relative text-[10px] px-1">
                     Booking
                     {bookingStats.overduePayments > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-[10px] rounded-full flex items-center justify-center">
@@ -176,7 +177,15 @@ const AgentDashboard = () => {
                       </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="haji" className="relative text-xs px-1">
+                  <TabsTrigger value="chat" className="relative text-[10px] px-1">
+                    <MessageSquare className="w-3 h-3" />
+                    {chatUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center">
+                        {chatUnreadCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="haji" className="relative text-[10px] px-1">
                     Haji
                     {hajiStats && hajiStats.pending > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center">
@@ -184,7 +193,7 @@ const AgentDashboard = () => {
                       </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="inquiries" className="relative text-xs px-1">
+                  <TabsTrigger value="inquiries" className="relative text-[10px] px-1">
                     Inquiry
                     {inquiryStats && inquiryStats.pending > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
@@ -192,9 +201,8 @@ const AgentDashboard = () => {
                       </span>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="featured" className="text-xs px-1">
-                    <Sparkles className="w-3 h-3 mr-0.5" />
-                    Featured
+                  <TabsTrigger value="featured" className="text-[10px] px-1">
+                    <Sparkles className="w-3 h-3" />
                   </TabsTrigger>
                 </TabsList>
 
@@ -258,6 +266,16 @@ const AgentDashboard = () => {
                     </h3>
                   </div>
                   <BookingsManagement travelId={travel?.id} />
+                </TabsContent>
+
+                <TabsContent value="chat" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-primary" />
+                      Chat dengan Jamaah
+                    </h3>
+                  </div>
+                  <ChatManagement />
                 </TabsContent>
 
                 <TabsContent value="featured" className="mt-4">
