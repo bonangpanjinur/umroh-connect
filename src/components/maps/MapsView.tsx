@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MapPin, List, Map, Filter, Search, Locate, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, List, Map, Search, Locate, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { locationsData, Location, LocationCategory, calculateDistance, getCategoryLabel } from '@/data/locationsData';
+import { useImportantLocations, ImportantLocation, calculateDistance, getCategoryLabel } from '@/hooks/useImportantLocations';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import LocationCard from './LocationCard';
 import LocationDetail from './LocationDetail';
@@ -19,13 +19,32 @@ interface MapsViewProps {
 type ViewMode = 'list' | 'map';
 type CityFilter = 'all' | 'Makkah' | 'Madinah';
 
+// Adapter to convert ImportantLocation to the Location interface expected by child components
+const adaptLocation = (loc: ImportantLocation) => ({
+  id: loc.id,
+  name: loc.name,
+  nameArabic: loc.name_arabic || '',
+  category: loc.category as any,
+  city: loc.city as 'Makkah' | 'Madinah' | 'Other',
+  latitude: loc.latitude,
+  longitude: loc.longitude,
+  description: loc.description || '',
+  tips: '',
+  icon: loc.category,
+});
+
 const MapsView = ({ onBack }: MapsViewProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedCity, setSelectedCity] = useState<CityFilter>('all');
-  const [selectedCategory, setSelectedCategory] = useState<LocationCategory | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<ReturnType<typeof adaptLocation> | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  
+  const { data: locations = [], isLoading } = useImportantLocations(
+    selectedCity === 'all' ? undefined : selectedCity,
+    selectedCategory === 'all' ? undefined : selectedCategory
+  );
   
   const { latitude, longitude, loading: geoLoading, error: geoError, requestLocation } = useGeolocation();
   
@@ -33,17 +52,7 @@ const MapsView = ({ onBack }: MapsViewProps) => {
 
   // Filter and sort locations
   const filteredLocations = useMemo(() => {
-    let filtered = locationsData;
-
-    // Filter by city
-    if (selectedCity !== 'all') {
-      filtered = filtered.filter(loc => loc.city === selectedCity);
-    }
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(loc => loc.category === selectedCategory);
-    }
+    let filtered = locations.map(adaptLocation);
 
     // Filter by search
     if (searchQuery) {
@@ -70,20 +79,20 @@ const MapsView = ({ onBack }: MapsViewProps) => {
     }
 
     return withDistance;
-  }, [locationsData, selectedCity, selectedCategory, searchQuery, userLocation]);
+  }, [locations, searchQuery, userLocation]);
 
-  const handleSelectLocation = (location: Location) => {
+  const handleSelectLocation = (location: ReturnType<typeof adaptLocation>) => {
     setSelectedLocation(location);
     setShowDetail(true);
   };
 
-  const handleNavigateToLocation = (location: Location) => {
+  const handleNavigateToLocation = (location: ReturnType<typeof adaptLocation>) => {
     setSelectedLocation(location);
     setViewMode('map');
     setShowDetail(false);
   };
 
-  const categories: (LocationCategory | 'all')[] = ['all', 'masjid', 'miqat', 'ziarah', 'landmark'];
+  const categories = ['all', 'masjid', 'miqat', 'ziarah', 'landmark', 'hospital', 'embassy'];
 
   if (showDetail && selectedLocation) {
     return (
@@ -196,88 +205,100 @@ const MapsView = ({ onBack }: MapsViewProps) => {
         </div>
       )}
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
       {/* Content */}
-      <div className="flex-1 relative">
-        <AnimatePresence mode="wait">
-          {viewMode === 'list' ? (
-            <motion.div
-              key="list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-4 space-y-3 pb-20"
-            >
-              {/* Location Count */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  {filteredLocations.length} lokasi ditemukan
-                </p>
-                {!userLocation && !geoLoading && (
-                  <Button variant="ghost" size="sm" onClick={requestLocation}>
-                    <Locate className="w-4 h-4 mr-1" />
-                    Aktifkan GPS
-                  </Button>
-                )}
-              </div>
-
-              {/* Location Cards */}
-              {filteredLocations.map((location) => (
-                <LocationCard
-                  key={location.id}
-                  location={location}
-                  distance={location.distance}
-                  onSelect={handleSelectLocation}
-                  onNavigate={handleNavigateToLocation}
-                />
-              ))}
-
-              {filteredLocations.length === 0 && (
-                <div className="text-center py-12">
-                  <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground">Tidak ada lokasi ditemukan</p>
-                </div>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="map"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0"
-            >
-              <MapDisplay
-                locations={filteredLocations}
-                userLocation={userLocation}
-                selectedLocation={selectedLocation}
-                onLocationSelect={handleSelectLocation}
-              />
-              
-              {/* Map Legend */}
-              <div className="absolute bottom-4 left-4 right-4 bg-card/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-border">
+      {!isLoading && (
+        <div className="flex-1 relative">
+          <AnimatePresence mode="wait">
+            {viewMode === 'list' ? (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="p-4 space-y-3 pb-20"
+              >
+                {/* Location Count */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="text-xs text-muted-foreground">Lokasi Anda</span>
+                  <p className="text-sm text-muted-foreground">
+                    {filteredLocations.length} lokasi ditemukan
+                  </p>
+                  {!userLocation && !geoLoading && (
+                    <Button variant="ghost" size="sm" onClick={requestLocation}>
+                      <Locate className="w-4 h-4 mr-1" />
+                      Aktifkan GPS
+                    </Button>
+                  )}
+                </div>
+
+                {/* Location Cards */}
+                {filteredLocations.map((location) => (
+                  <LocationCard
+                    key={location.id}
+                    location={location}
+                    distance={location.distance}
+                    onSelect={handleSelectLocation}
+                    onNavigate={handleNavigateToLocation}
+                  />
+                ))}
+
+                {filteredLocations.length === 0 && (
+                  <div className="text-center py-12">
+                    <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">Tidak ada lokasi ditemukan</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Coba ubah filter atau kata pencarian
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-xs text-muted-foreground">Masjid</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-accent" />
-                    <span className="text-xs text-muted-foreground">Miqat</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-600" />
-                    <span className="text-xs text-muted-foreground">Ziarah</span>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="map"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0"
+              >
+                <MapDisplay
+                  locations={filteredLocations}
+                  userLocation={userLocation}
+                  selectedLocation={selectedLocation}
+                  onLocationSelect={handleSelectLocation}
+                />
+                
+                {/* Map Legend */}
+                <div className="absolute bottom-4 left-4 right-4 bg-card/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className="text-xs text-muted-foreground">Lokasi Anda</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                      <span className="text-xs text-muted-foreground">Masjid</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-accent" />
+                      <span className="text-xs text-muted-foreground">Miqat</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-600" />
+                      <span className="text-xs text-muted-foreground">Ziarah</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
     </motion.div>
   );
 };

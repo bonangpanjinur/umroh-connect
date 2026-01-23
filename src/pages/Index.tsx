@@ -22,6 +22,8 @@ import OfflineManagerView from '@/components/offline/OfflineManagerView';
 import PackingListGenerator from '@/components/packing/PackingListGenerator';
 import CurrencyConverter from '@/components/currency/CurrencyConverter';
 import GroupTrackingView from '@/components/tracking/GroupTrackingView';
+import { FeatureLock } from '@/components/common/FeatureLock';
+import { ArrowLeft } from 'lucide-react';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -108,12 +110,36 @@ const Index = () => {
   };
 
   const renderView = () => {
-    // Show Group Tracking
+    // Show Group Tracking - Premium Feature
     if (showTracking) {
-      return <GroupTrackingView onBack={() => setShowTracking(false)} />;
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowTracking(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-lg">Tracking Grup</h2>
+          </div>
+          <div className="p-4">
+            <FeatureLock 
+              featureName="Tracking Grup"
+              description="Pantau lokasi rombongan secara real-time. Fitur ini tersedia untuk jamaah yang sudah booking paket."
+              onViewPackages={() => {
+                setShowTracking(false);
+                handleTabChange('paket');
+              }}
+            >
+              <GroupTrackingView onBack={() => setShowTracking(false)} />
+            </FeatureLock>
+          </div>
+        </div>
+      );
     }
 
-    // Show Packing List Generator
+    // Show Packing List Generator - Premium Feature
     if (showPacking) {
       return (
         <div className="min-h-screen bg-background">
@@ -122,12 +148,21 @@ const Index = () => {
               onClick={() => setShowPacking(false)}
               className="p-2 rounded-full hover:bg-muted"
             >
-              ←
+              <ArrowLeft className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-lg">Packing List Generator</h2>
           </div>
           <div className="p-4">
-            <PackingListGenerator onBack={() => setShowPacking(false)} />
+            <FeatureLock 
+              featureName="AI Packing List"
+              description="Dapatkan rekomendasi packing list berdasarkan cuaca. Fitur ini tersedia untuk jamaah yang sudah booking."
+              onViewPackages={() => {
+                setShowPacking(false);
+                handleTabChange('paket');
+              }}
+            >
+              <PackingListGenerator onBack={() => setShowPacking(false)} />
+            </FeatureLock>
           </div>
         </div>
       );
@@ -142,7 +177,7 @@ const Index = () => {
               onClick={() => setShowOffline(false)}
               className="p-2 rounded-full hover:bg-muted"
             >
-              ←
+              <ArrowLeft className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-lg">Offline Manager</h2>
           </div>
@@ -187,7 +222,17 @@ const Index = () => {
       case 'home':
         return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
       case 'checklist':
-        return <ChecklistView />;
+        return (
+          <div className="p-4">
+            <FeatureLock 
+              featureName="Checklist Persiapan"
+              description="Pantau progress persiapan umroh/haji Anda. Fitur ini tersedia untuk jamaah yang sudah booking."
+              onViewPackages={() => handleTabChange('paket')}
+            >
+              <ChecklistView />
+            </FeatureLock>
+          </div>
+        );
       case 'paket':
         return <PaketView initialPackageId={selectedPackageId} />;
       case 'haji':

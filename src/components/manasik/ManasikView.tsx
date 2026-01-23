@@ -2,18 +2,18 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Pause, Volume2, VolumeX, ChevronRight, ChevronLeft,
-  BookOpen, Check, Star, Lightbulb, ArrowLeft
+  BookOpen, Star, ArrowLeft, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { manasikSteps, ManasikStep } from '@/data/manasikData';
+import { useAllManasikGuides, ManasikGuide } from '@/hooks/useManasikGuides';
 import { cn } from '@/lib/utils';
 
 interface ManasikViewProps {
   onBack?: () => void;
 }
 
-const typeStyles = {
+const typeStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
   rukun: {
     bg: 'bg-primary/10',
     text: 'text-primary',
@@ -31,10 +31,22 @@ const typeStyles = {
     text: 'text-blue-600',
     border: 'border-blue-500/20',
     label: 'Sunnah'
+  },
+  umroh: {
+    bg: 'bg-primary/10',
+    text: 'text-primary',
+    border: 'border-primary/20',
+    label: 'Umroh'
+  },
+  haji: {
+    bg: 'bg-accent/10',
+    text: 'text-accent',
+    border: 'border-accent/20',
+    label: 'Haji'
   }
 };
 
-const AudioPlayer = ({ step }: { step: ManasikStep }) => {
+const AudioPlayer = ({ }: { guide: ManasikGuide }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -82,7 +94,7 @@ const AudioPlayer = ({ step }: { step: ManasikStep }) => {
             <span className="text-[10px] text-muted-foreground">
               {Math.floor(progress * 0.03)}:{String(Math.floor((progress * 1.8) % 60)).padStart(2, '0')}
             </span>
-            <span className="text-[10px] text-muted-foreground">{step.audioDuration}</span>
+            <span className="text-[10px] text-muted-foreground">3:00</span>
           </div>
         </div>
       </div>
@@ -91,15 +103,17 @@ const AudioPlayer = ({ step }: { step: ManasikStep }) => {
 };
 
 const StepCard = ({ 
-  step, 
+  guide, 
+  index,
   isActive, 
   onClick 
 }: { 
-  step: ManasikStep; 
+  guide: ManasikGuide; 
+  index: number;
   isActive: boolean;
   onClick: () => void;
 }) => {
-  const style = typeStyles[step.type];
+  const style = typeStyles[guide.category] || typeStyles.umroh;
   
   return (
     <motion.button
@@ -116,7 +130,7 @@ const StepCard = ({
         "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold",
         isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
       )}>
-        {step.order}
+        {index + 1}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -127,8 +141,10 @@ const StepCard = ({
             {style.label}
           </span>
         </div>
-        <p className="font-semibold text-sm text-foreground truncate">{step.title}</p>
-        <p className="text-xs text-muted-foreground font-arabic">{step.titleArabic}</p>
+        <p className="font-semibold text-sm text-foreground truncate">{guide.title}</p>
+        {guide.title_arabic && (
+          <p className="text-xs text-muted-foreground font-arabic">{guide.title_arabic}</p>
+        )}
       </div>
       <ChevronRight className={cn(
         "w-5 h-5 transition-colors",
@@ -138,8 +154,11 @@ const StepCard = ({
   );
 };
 
-const StepDetail = ({ step }: { step: ManasikStep }) => {
-  const style = typeStyles[step.type];
+const StepDetail = ({ guide, index }: { guide: ManasikGuide; index: number }) => {
+  const style = typeStyles[guide.category] || typeStyles.umroh;
+  
+  // Parse content for detailed steps (content can be markdown or plain text)
+  const contentLines = guide.content.split('\n').filter(line => line.trim());
   
   return (
     <motion.div
@@ -150,103 +169,123 @@ const StepDetail = ({ step }: { step: ManasikStep }) => {
     >
       {/* Header Image */}
       <div className="relative rounded-2xl overflow-hidden">
-        <img 
-          src={step.imageUrl} 
-          alt={step.title}
-          className="w-full h-48 object-cover"
-        />
+        {guide.image_url ? (
+          <img 
+            src={guide.image_url} 
+            alt={guide.title}
+            className="w-full h-48 object-cover"
+          />
+        ) : (
+          <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+            <BookOpen className="w-16 h-16 text-primary/50" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
           <span className={cn(
             "text-[10px] font-bold px-2 py-1 rounded-lg uppercase inline-block mb-1",
             style.bg, style.text
           )}>
-            {style.label} {step.order}
+            {style.label} {index + 1}
           </span>
-          <h2 className="text-xl font-bold text-white">{step.title}</h2>
-          <p className="text-white/80 font-arabic text-sm">{step.titleArabic}</p>
+          <h2 className="text-xl font-bold text-white">{guide.title}</h2>
+          {guide.title_arabic && (
+            <p className="text-white/80 font-arabic text-sm">{guide.title_arabic}</p>
+          )}
         </div>
       </div>
 
       {/* Description */}
-      <div className="bg-card rounded-xl p-4 border border-border">
-        <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-      </div>
-
-      {/* Doa Section */}
-      {step.doaArabic && (
-        <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-xl p-4 border border-primary/20">
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">Bacaan Doa</span>
-          </div>
-          
-          <div className="text-center mb-4">
-            <p className="text-2xl font-arabic text-foreground leading-loose mb-2 dir-rtl">
-              {step.doaArabic}
-            </p>
-            {step.doaLatin && (
-              <p className="text-sm italic text-muted-foreground mb-2">{step.doaLatin}</p>
-            )}
-            {step.doaMeaning && (
-              <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg p-2">
-                <span className="font-medium">Artinya:</span> {step.doaMeaning}
-              </p>
-            )}
-          </div>
-
-          {step.audioDuration && <AudioPlayer step={step} />}
+      {guide.description && (
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <p className="text-sm text-muted-foreground leading-relaxed">{guide.description}</p>
         </div>
       )}
 
-      {/* Detailed Steps */}
+      {/* Video */}
+      {guide.video_url && (
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Play className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Video Panduan</span>
+          </div>
+          <a 
+            href={guide.video_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-primary underline"
+          >
+            Tonton Video
+          </a>
+        </div>
+      )}
+
+      {/* Content / Detailed Steps */}
       <div className="bg-card rounded-xl p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
           <Star className="w-4 h-4 text-accent" />
-          <span className="text-sm font-semibold text-foreground">Langkah-langkah</span>
+          <span className="text-sm font-semibold text-foreground">Panduan Lengkap</span>
         </div>
-        <div className="space-y-2">
-          {step.detailedSteps.map((s, idx) => (
+        <div className="space-y-2 prose prose-sm max-w-none">
+          {contentLines.map((line, idx) => (
             <div key={idx} className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-[10px] font-bold">{idx + 1}</span>
               </div>
-              <p className="text-sm text-muted-foreground">{s}</p>
+              <p className="text-sm text-muted-foreground">{line}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Tips */}
-      {step.tips && step.tips.length > 0 && (
-        <div className="bg-accent/5 rounded-xl p-4 border border-accent/20">
-          <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-4 h-4 text-accent" />
-            <span className="text-sm font-semibold text-foreground">Tips Penting</span>
-          </div>
-          <ul className="space-y-2">
-            {step.tips.map((tip, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <Check className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                <span>{tip}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Audio Player (demo) */}
+      <AudioPlayer guide={guide} />
     </motion.div>
   );
 };
 
 const ManasikView = ({ onBack }: ManasikViewProps) => {
+  const { data: guides = [], isLoading } = useAllManasikGuides();
   const [activeStep, setActiveStep] = useState(0);
   const [showList, setShowList] = useState(true);
 
-  const currentStep = manasikSteps[activeStep];
-  const progress = ((activeStep + 1) / manasikSteps.length) * 100;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (guides.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="p-4"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          {onBack && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          )}
+          <h2 className="text-lg font-bold text-foreground">Panduan Manasik</h2>
+        </div>
+        <div className="text-center py-12">
+          <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Belum ada panduan manasik tersedia.</p>
+          <p className="text-sm text-muted-foreground mt-1">Panduan akan ditambahkan oleh admin.</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const currentGuide = guides[activeStep];
+  const progress = ((activeStep + 1) / guides.length) * 100;
 
   const handleNext = () => {
-    if (activeStep < manasikSteps.length - 1) {
+    if (activeStep < guides.length - 1) {
       setActiveStep(prev => prev + 1);
     }
   };
@@ -276,7 +315,7 @@ const ManasikView = ({ onBack }: ManasikViewProps) => {
             <div>
               <h2 className="text-lg font-bold text-foreground">Panduan Manasik</h2>
               <p className="text-xs text-muted-foreground">
-                Langkah {activeStep + 1} dari {manasikSteps.length}
+                Langkah {activeStep + 1} dari {guides.length}
               </p>
             </div>
           </div>
@@ -302,10 +341,11 @@ const ManasikView = ({ onBack }: ManasikViewProps) => {
               exit={{ opacity: 0 }}
               className="space-y-2"
             >
-              {manasikSteps.map((step, idx) => (
+              {guides.map((guide, idx) => (
                 <StepCard
-                  key={step.id}
-                  step={step}
+                  key={guide.id}
+                  guide={guide}
+                  index={idx}
                   isActive={idx === activeStep}
                   onClick={() => {
                     setActiveStep(idx);
@@ -321,7 +361,7 @@ const ManasikView = ({ onBack }: ManasikViewProps) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <StepDetail step={currentStep} />
+              <StepDetail guide={currentGuide} index={activeStep} />
               
               {/* Navigation */}
               <div className="flex gap-3 mt-6">
@@ -336,7 +376,7 @@ const ManasikView = ({ onBack }: ManasikViewProps) => {
                 </Button>
                 <Button
                   className="flex-1"
-                  disabled={activeStep === manasikSteps.length - 1}
+                  disabled={activeStep === guides.length - 1}
                   onClick={handleNext}
                 >
                   Selanjutnya
