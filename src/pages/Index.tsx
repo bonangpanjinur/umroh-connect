@@ -12,6 +12,7 @@ import TasbihModal from '@/components/modals/TasbihModal';
 import QiblaModal from '@/components/modals/QiblaModal';
 import ManasikView from '@/components/manasik/ManasikView';
 import MapsView from '@/components/maps/MapsView';
+import ReminderView from '@/components/reminder/ReminderView';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -20,6 +21,7 @@ const Index = () => {
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
   const [showManasik, setShowManasik] = useState(false);
   const [showMaps, setShowMaps] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
 
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
@@ -35,12 +37,20 @@ const Index = () => {
       case 'peta':
         setShowMaps(true);
         break;
+      case 'reminder':
+        setShowReminder(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Reminder view
+    if (showReminder) {
+      return <ReminderView onBack={() => setShowReminder(false)} />;
+    }
+
     // Show Maps view when peta menu is clicked
     if (showMaps) {
       return <MapsView onBack={() => setShowMaps(false)} />;
@@ -77,7 +87,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && (
+        {!showManasik && !showMaps && !showReminder && (
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         )}
         

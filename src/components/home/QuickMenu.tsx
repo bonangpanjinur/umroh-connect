@@ -1,4 +1,4 @@
-import { Compass, Fingerprint, BookOpen, Map } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const menuItems = [
@@ -6,6 +6,7 @@ const menuItems = [
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600' },
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent' },
+  { id: 'reminder', label: 'Pengingat', icon: Bell, color: 'text-red-500' },
 ];
 
 interface QuickMenuProps {
