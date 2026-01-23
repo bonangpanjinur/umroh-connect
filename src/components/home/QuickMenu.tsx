@@ -1,4 +1,4 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const menuItems = [
@@ -8,6 +8,7 @@ const menuItems = [
   { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent' },
   { id: 'reminder', label: 'Pengingat', icon: Bell, color: 'text-red-500' },
+  { id: 'notifikasi', label: 'Notifikasi', icon: BellRing, color: 'text-amber-500' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500' },
 ];
 
