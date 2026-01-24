@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Bell, BellOff, BellRing, 
   FileText, CreditCard, Package, Settings, Plane,
-  Volume2, VolumeX, Vibrate, Clock, Trash2, Wallet
+  Volume2, VolumeX, Vibrate, Clock, Trash2, Wallet, Moon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import UpcomingPayments from '@/components/booking/UpcomingPayments';
 import DepartureNotificationList from '@/components/countdown/DepartureNotificationList';
 import { useUnreadDepartureCount } from '@/hooks/useDepartureNotifications';
+import AdzanSettings from '@/components/notifications/AdzanSettings';
 
 interface NotificationCenterProps {
   onBack: () => void;
@@ -187,32 +188,40 @@ const NotificationCenter = ({ onBack }: NotificationCenterProps) => {
           </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-4">
-              <TabsTrigger value="departure" className="relative">
-                <Plane className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Berangkat</span>
+            <TabsList className="w-full grid grid-cols-5">
+              <TabsTrigger value="departure" className="relative px-2">
+                <Plane className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-xs">Berangkat</span>
                 {unreadDepartureCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
                     {unreadDepartureCount > 9 ? '9+' : unreadDepartureCount}
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="payments">
-                <Wallet className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Bayar</span>
+              <TabsTrigger value="adzan" className="px-2">
+                <Moon className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-xs">Adzan</span>
               </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Settings className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Atur</span>
+              <TabsTrigger value="payments" className="px-2">
+                <Wallet className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-xs">Bayar</span>
               </TabsTrigger>
-              <TabsTrigger value="scheduled">
-                <Clock className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Jadwal</span>
+              <TabsTrigger value="settings" className="px-2">
+                <Settings className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-xs">Atur</span>
+              </TabsTrigger>
+              <TabsTrigger value="scheduled" className="px-2">
+                <Clock className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline text-xs">Jadwal</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="departure" className="mt-4 space-y-4">
               <DepartureNotificationList showHeader={false} maxItems={20} />
+            </TabsContent>
+
+            <TabsContent value="adzan" className="mt-4">
+              <AdzanSettings />
             </TabsContent>
 
             <TabsContent value="payments" className="mt-4 space-y-4">
