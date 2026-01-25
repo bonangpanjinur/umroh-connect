@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, Music, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ManasikGuide {
@@ -21,6 +21,10 @@ interface ManasikGuide {
   content: string;
   image_url: string | null;
   video_url: string | null;
+  audio_url: string | null;
+  doa_arabic: string | null;
+  doa_latin: string | null;
+  doa_meaning: string | null;
   order_index: number;
   category: string;
   is_active: boolean;
@@ -31,6 +35,7 @@ export const ManasikManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<ManasikGuide | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -40,6 +45,10 @@ export const ManasikManagement = () => {
     content: '',
     image_url: '',
     video_url: '',
+    audio_url: '',
+    doa_arabic: '',
+    doa_latin: '',
+    doa_meaning: '',
     category: 'both',
     is_active: true,
   });
@@ -71,6 +80,10 @@ export const ManasikManagement = () => {
       content: '',
       image_url: '',
       video_url: '',
+      audio_url: '',
+      doa_arabic: '',
+      doa_latin: '',
+      doa_meaning: '',
       category: 'both',
       is_active: true,
     });
@@ -86,10 +99,57 @@ export const ManasikManagement = () => {
       content: guide.content,
       image_url: guide.image_url || '',
       video_url: guide.video_url || '',
+      audio_url: guide.audio_url || '',
+      doa_arabic: guide.doa_arabic || '',
+      doa_latin: guide.doa_latin || '',
+      doa_meaning: guide.doa_meaning || '',
       category: guide.category,
       is_active: guide.is_active,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Hanya file audio yang diperbolehkan');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `manasik-${Date.now()}.${fileExt}`;
+      const filePath = `doa/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('prayer-audio')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('prayer-audio')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, audio_url: urlData.publicUrl });
+      toast.success('Audio berhasil diupload');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Gagal mengupload audio');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -105,6 +165,10 @@ export const ManasikManagement = () => {
       content: formData.content,
       image_url: formData.image_url || null,
       video_url: formData.video_url || null,
+      audio_url: formData.audio_url || null,
+      doa_arabic: formData.doa_arabic || null,
+      doa_latin: formData.doa_latin || null,
+      doa_meaning: formData.doa_meaning || null,
       category: formData.category,
       is_active: formData.is_active,
       order_index: editingGuide?.order_index ?? guides.length,
@@ -240,26 +304,107 @@ export const ManasikManagement = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Media Section */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Music className="h-4 w-4" /> Media & Audio Doa
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>URL Gambar</Label>
+                    <Input
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <Label>URL Video</Label>
+                    <Input
+                      value={formData.video_url}
+                      onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                      placeholder="https://youtube.com/..."
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Label>Audio Doa</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={formData.audio_url}
+                      onChange={(e) => setFormData({ ...formData, audio_url: e.target.value })}
+                      placeholder="URL audio atau upload file..."
+                      className="flex-1"
+                    />
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleAudioUpload}
+                        className="hidden"
+                        disabled={isUploading}
+                      />
+                      <Button type="button" variant="outline" disabled={isUploading} asChild>
+                        <span>
+                          {isUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                  {formData.audio_url && (
+                    <audio 
+                      src={formData.audio_url} 
+                      controls 
+                      className="mt-2 w-full h-8"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Doa Section */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-3">Bacaan Doa</h4>
+                
                 <div>
-                  <Label>URL Gambar</Label>
-                  <Input
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://..."
+                  <Label>Teks Arab</Label>
+                  <Textarea
+                    value={formData.doa_arabic}
+                    onChange={(e) => setFormData({ ...formData, doa_arabic: e.target.value })}
+                    placeholder="لَبَّيْكَ اللَّهُمَّ..."
+                    dir="rtl"
+                    className="font-arabic"
+                    rows={2}
                   />
                 </div>
-                <div>
-                  <Label>URL Video</Label>
+
+                <div className="mt-3">
+                  <Label>Transliterasi Latin</Label>
                   <Input
-                    value={formData.video_url}
-                    onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                    placeholder="https://youtube.com/..."
+                    value={formData.doa_latin}
+                    onChange={(e) => setFormData({ ...formData, doa_latin: e.target.value })}
+                    placeholder="Labbaikallahumma..."
+                  />
+                </div>
+
+                <div className="mt-3">
+                  <Label>Arti/Terjemahan</Label>
+                  <Textarea
+                    value={formData.doa_meaning}
+                    onChange={(e) => setFormData({ ...formData, doa_meaning: e.target.value })}
+                    placeholder="Aku memenuhi panggilan-Mu ya Allah..."
+                    rows={2}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Settings */}
+              <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div>
                   <Label>Kategori</Label>
                   <Select
@@ -304,6 +449,7 @@ export const ManasikManagement = () => {
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Judul</TableHead>
                 <TableHead>Kategori</TableHead>
+                <TableHead>Audio</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -325,6 +471,16 @@ export const ManasikManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>{getCategoryBadge(guide.category)}</TableCell>
+                  <TableCell>
+                    {guide.audio_url ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <Music className="h-3 w-3" />
+                        Ada
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Switch
                       checked={guide.is_active}

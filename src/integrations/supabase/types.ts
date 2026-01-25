@@ -1043,10 +1043,14 @@ export type Database = {
       }
       manasik_guides: {
         Row: {
+          audio_url: string | null
           category: string
           content: string
           created_at: string
           description: string | null
+          doa_arabic: string | null
+          doa_latin: string | null
+          doa_meaning: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -1057,10 +1061,14 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          audio_url?: string | null
           category?: string
           content: string
           created_at?: string
           description?: string | null
+          doa_arabic?: string | null
+          doa_latin?: string | null
+          doa_meaning?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -1071,10 +1079,14 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          audio_url?: string | null
           category?: string
           content?: string
           created_at?: string
           description?: string | null
+          doa_arabic?: string | null
+          doa_latin?: string | null
+          doa_meaning?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
