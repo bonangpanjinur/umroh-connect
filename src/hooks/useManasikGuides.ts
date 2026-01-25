@@ -11,6 +11,10 @@ export interface ManasikGuide {
   order_index: number;
   image_url: string | null;
   video_url: string | null;
+  audio_url: string | null;
+  doa_arabic: string | null;
+  doa_latin: string | null;
+  doa_meaning: string | null;
   is_active: boolean;
 }
 

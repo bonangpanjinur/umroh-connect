@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Play, Pause, Volume2, VolumeX, ChevronRight, ChevronLeft,
-  BookOpen, Star, ArrowLeft, Loader2
+  ChevronRight, ChevronLeft,
+  BookOpen, Star, ArrowLeft, Loader2, Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useAllManasikGuides, ManasikGuide } from '@/hooks/useManasikGuides';
+import ManasikAudioPlayer from './ManasikAudioPlayer';
 import { cn } from '@/lib/utils';
 
 interface ManasikViewProps {
@@ -44,62 +45,6 @@ const typeStyles: Record<string, { bg: string; text: string; border: string; lab
     border: 'border-accent/20',
     label: 'Haji'
   }
-};
-
-const AudioPlayer = ({ }: { guide: ManasikGuide }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const togglePlay = () => {
-    if (isPlaying) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setIsPlaying(false);
-    } else {
-      setIsPlaying(true);
-      intervalRef.current = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 100);
-    }
-  };
-
-  return (
-    <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl p-4 border border-border">
-      <div className="flex items-center gap-3 mb-3">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={togglePlay}
-          className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg hover:brightness-110 transition-all"
-        >
-          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-        </motion.button>
-        
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-medium text-foreground">Audio Doa</span>
-            <button onClick={() => setIsMuted(!isMuted)} className="text-muted-foreground hover:text-foreground">
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-          </div>
-          <Progress value={progress} className="h-1.5" />
-          <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">
-              {Math.floor(progress * 0.03)}:{String(Math.floor((progress * 1.8) % 60)).padStart(2, '0')}
-            </span>
-            <span className="text-[10px] text-muted-foreground">3:00</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 const StepCard = ({ 
@@ -238,8 +183,14 @@ const StepDetail = ({ guide, index }: { guide: ManasikGuide; index: number }) =>
         </div>
       </div>
 
-      {/* Audio Player (demo) */}
-      <AudioPlayer guide={guide} />
+      {/* Audio Player */}
+      <ManasikAudioPlayer 
+        audioUrl={guide.audio_url}
+        doaArabic={guide.doa_arabic}
+        doaLatin={guide.doa_latin}
+        doaMeaning={guide.doa_meaning}
+        title={guide.title}
+      />
     </motion.div>
   );
 };
