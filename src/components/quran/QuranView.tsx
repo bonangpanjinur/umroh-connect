@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, Search, ChevronRight, ChevronLeft, 
-  Star, Bookmark, Play, Pause, Volume2, X 
+  Star, Bookmark, Play, Headphones, Volume2, X 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   POPULAR_SURAHS,
   Surah
 } from '@/hooks/useQuranAPI';
+import QuranAudioPlayer from './QuranAudioPlayer';
 
 interface QuranViewProps {
   onBack?: () => void;
@@ -25,6 +26,8 @@ const QuranView = ({ onBack }: QuranViewProps) => {
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTranslation, setShowTranslation] = useState(true);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const [currentAyah, setCurrentAyah] = useState(1);
   
   const { data: surahList, isLoading: listLoading } = useSurahList();
   const { data: surahArabic, isLoading: arabicLoading } = useSurahArabic(selectedSurah);
@@ -147,14 +150,25 @@ const QuranView = ({ onBack }: QuranViewProps) => {
               {surahArabic?.name} • {surahArabic?.numberOfAyahs} Ayat • {surahArabic?.revelationType === 'Meccan' ? 'Makkiyah' : 'Madaniyah'}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="text-xs"
-          >
-            {showTranslation ? 'Sembunyikan' : 'Terjemahan'}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+              className="h-8 w-8"
+              title="Audio Reciter"
+            >
+              <Headphones className={`w-4 h-4 ${showAudioPlayer ? 'text-primary' : ''}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowTranslation(!showTranslation)}
+              className="text-xs"
+            >
+              {showTranslation ? 'Sembunyikan' : 'Terjemahan'}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -230,6 +244,25 @@ const QuranView = ({ onBack }: QuranViewProps) => {
           )}
         </div>
       </ScrollArea>
+
+      {/* Audio Player */}
+      <AnimatePresence>
+        {showAudioPlayer && surahArabic && (
+          <QuranAudioPlayer
+            surahNumber={selectedSurah!}
+            surahName={surahArabic.englishName}
+            ayahs={surahArabic.ayahs.map(a => ({
+              number: a.number,
+              numberInSurah: a.numberInSurah,
+              audio: '',
+              text: a.text,
+            }))}
+            currentAyah={currentAyah}
+            onAyahChange={setCurrentAyah}
+            onClose={() => setShowAudioPlayer(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
