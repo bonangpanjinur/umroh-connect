@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, Trash2, Check, Loader2, 
   BookOpen, MapPin, Music, HardDrive, RefreshCw, 
-  AlertTriangle, Wifi, WifiOff
+  AlertTriangle, Wifi, WifiOff, Map
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger 
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import useOfflineManager from '@/hooks/useOfflineManager';
+import useOfflineManager, { MAP_REGIONS } from '@/hooks/useOfflineManager';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 
@@ -47,6 +47,7 @@ interface DownloadCardProps {
   onDownload: () => void;
   onClear: () => void;
   extraInfo?: string;
+  downloadLabel?: string;
 }
 
 const DownloadCard = ({
@@ -61,6 +62,7 @@ const DownloadCard = ({
   onDownload,
   onClear,
   extraInfo,
+  downloadLabel = 'Unduh',
 }: DownloadCardProps) => {
   return (
     <Card className={isDownloaded ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20' : ''}>
@@ -129,7 +131,7 @@ const DownloadCard = ({
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Unduh
+                {downloadLabel}
               </Button>
             )}
           </div>
@@ -148,10 +150,13 @@ const OfflineManagerView = () => {
     downloadPrayers,
     downloadManasik,
     downloadLocations,
+    downloadMapTiles,
+    downloadAllMapTiles,
     downloadAll,
     clearPrayers,
     clearManasik,
     clearLocations,
+    clearMapTiles,
     clearAll,
   } = useOfflineManager();
   
@@ -168,6 +173,22 @@ const OfflineManagerView = () => {
       toast({
         title: 'Download Gagal',
         description: 'Terjadi kesalahan saat mengunduh konten.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDownloadMapTiles = async (region: 'makkah' | 'madinah') => {
+    try {
+      await downloadMapTiles(region);
+      toast({
+        title: 'Download Peta Selesai',
+        description: `Peta ${MAP_REGIONS[region].name} berhasil diunduh.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Download Gagal',
+        description: 'Terjadi kesalahan saat mengunduh peta.',
         variant: 'destructive',
       });
     }
@@ -190,7 +211,7 @@ const OfflineManagerView = () => {
   };
   
   const allDownloaded = status.prayers.downloaded && status.manasik.downloaded && status.locations.downloaded;
-  const anyDownloaded = status.prayers.downloaded || status.manasik.downloaded || status.locations.downloaded;
+  const anyDownloaded = status.prayers.downloaded || status.manasik.downloaded || status.locations.downloaded || status.mapTiles.downloaded;
   
   return (
     <div className="space-y-6 pb-24">
@@ -382,6 +403,111 @@ const OfflineManagerView = () => {
         />
       </div>
       
+      {/* Map Tiles Downloads */}
+      <div className="space-y-3">
+        <h3 className="font-semibold text-foreground px-1">Peta Offline</h3>
+        <p className="text-xs text-muted-foreground px-1">
+          Unduh peta area Makkah dan Madinah untuk navigasi tanpa internet
+        </p>
+        
+        <Card className={status.mapTiles.downloaded ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20' : ''}>
+          <CardContent className="p-4">
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-xl ${
+                status.mapTiles.downloaded 
+                  ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400' 
+                  : 'bg-muted text-muted-foreground'
+              }`}>
+                <Map className="h-6 w-6" />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-foreground">Peta Makkah & Madinah</h3>
+                  {status.mapTiles.downloaded && (
+                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400">
+                      <Check className="h-3 w-3 mr-1" /> Tersedia
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Tile peta untuk navigasi area Tanah Suci
+                </p>
+                
+                {status.mapTiles.downloaded && (
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <p>{status.mapTiles.count} tiles • {formatBytes(status.mapTiles.size)}</p>
+                    <p>Region: {status.mapTiles.regions.map(r => MAP_REGIONS[r as keyof typeof MAP_REGIONS]?.name || r).join(', ') || '-'}</p>
+                    <p>Diunduh: {formatDate(status.mapTiles.lastSync)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Button 
+                size="sm" 
+                variant={status.mapTiles.regions.includes('makkah') ? 'secondary' : 'default'}
+                onClick={() => handleDownloadMapTiles('makkah')}
+                disabled={isDownloading}
+                className="gap-1"
+              >
+                {isDownloading && downloadProgress?.type === 'Peta Makkah' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : status.mapTiles.regions.includes('makkah') ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Makkah
+              </Button>
+              <Button 
+                size="sm" 
+                variant={status.mapTiles.regions.includes('madinah') ? 'secondary' : 'default'}
+                onClick={() => handleDownloadMapTiles('madinah')}
+                disabled={isDownloading}
+                className="gap-1"
+              >
+                {isDownloading && downloadProgress?.type === 'Peta Madinah' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : status.mapTiles.regions.includes('madinah') ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Madinah
+              </Button>
+            </div>
+            
+            {status.mapTiles.downloaded && (
+              <div className="mt-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive w-full gap-1">
+                      <Trash2 className="h-4 w-4" /> Hapus Peta Offline
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Hapus Peta Offline?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Semua tile peta akan dihapus. Anda perlu mengunduh ulang untuk navigasi offline.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={clearMapTiles} className="bg-destructive text-destructive-foreground">
+                        Hapus
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
       {/* Tips */}
       <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
         <CardContent className="p-4">
@@ -393,7 +519,8 @@ const OfflineManagerView = () => {
                 <li>• Unduh konten sebelum berangkat ke tanah suci</li>
                 <li>• Data tersimpan di perangkat, tidak memakan kuota</li>
                 <li>• Perbarui secara berkala untuk konten terbaru</li>
-                <li>• Audio doa membutuhkan ruang penyimpanan lebih</li>
+                <li>• Audio doa dan peta membutuhkan ruang penyimpanan lebih</li>
+                <li>• Peta offline tersedia untuk zoom level 14-16</li>
               </ul>
             </div>
           </div>
