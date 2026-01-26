@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Phone, Hospital, X, Loader2, Navigation, Share2 } from 'lucide-react';
+import { AlertTriangle, MapPin, Hospital, X, Loader2, Navigation, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -224,14 +224,8 @@ _Dikirim dari Arah Umroh App_`;
                 SAYA TERSESAT - SHARE LOKASI
               </Button>
               
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={callEmergency}
-                className="w-full border-2 border-destructive/30 text-destructive hover:bg-destructive/10 gap-2"
-              >
-                <Phone className="w-4 h-4" /> Telepon Darurat (911)
-              </Button>
+              {/* Telepon Darurat - Hidden for now, different countries have different numbers */}
+              {/* TODO: Add dynamic emergency number based on location */}
               
               <Button
                 variant="outline"

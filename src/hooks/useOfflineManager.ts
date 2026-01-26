@@ -5,13 +5,14 @@ import { locationsData, Location } from '@/data/locationsData';
 
 // IndexedDB Database name and stores
 const DB_NAME = 'arah-umroh-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Upgraded for map tiles
 
 interface OfflineStore {
   prayers: 'prayers';
   manasik: 'manasik';
   locations: 'locations';
   audioCache: 'audioCache';
+  mapTiles: 'mapTiles';
   metadata: 'metadata';
 }
 
@@ -20,7 +21,32 @@ const STORES: OfflineStore = {
   manasik: 'manasik',
   locations: 'locations',
   audioCache: 'audioCache',
+  mapTiles: 'mapTiles',
   metadata: 'metadata',
+};
+
+// Map tile regions for Makkah and Madinah
+export const MAP_REGIONS = {
+  makkah: {
+    name: 'Makkah',
+    center: { lat: 21.4225, lng: 39.8262 },
+    bounds: {
+      minLat: 21.35,
+      maxLat: 21.50,
+      minLng: 39.75,
+      maxLng: 39.95,
+    },
+  },
+  madinah: {
+    name: 'Madinah',
+    center: { lat: 24.4672, lng: 39.6024 },
+    bounds: {
+      minLat: 24.40,
+      maxLat: 24.55,
+      minLng: 39.55,
+      maxLng: 39.70,
+    },
+  },
 };
 
 export interface OfflineStatus {
@@ -42,6 +68,13 @@ export interface OfflineStatus {
     count: number;
     size: number;
     lastSync: string | null;
+  };
+  mapTiles: {
+    downloaded: boolean;
+    count: number;
+    size: number;
+    lastSync: string | null;
+    regions: string[];
   };
   totalSize: number;
   isOnline: boolean;
@@ -82,6 +115,9 @@ const openDB = (): Promise<IDBDatabase> => {
       }
       if (!db.objectStoreNames.contains(STORES.audioCache)) {
         db.createObjectStore(STORES.audioCache, { keyPath: 'url' });
+      }
+      if (!db.objectStoreNames.contains(STORES.mapTiles)) {
+        db.createObjectStore(STORES.mapTiles, { keyPath: 'key' });
       }
       if (!db.objectStoreNames.contains(STORES.metadata)) {
         db.createObjectStore(STORES.metadata, { keyPath: 'key' });
@@ -225,6 +261,7 @@ export const useOfflineManager = () => {
     prayers: { downloaded: false, count: 0, audioCount: 0, size: 0, lastSync: null },
     manasik: { downloaded: false, count: 0, size: 0, lastSync: null },
     locations: { downloaded: false, count: 0, size: 0, lastSync: null },
+    mapTiles: { downloaded: false, count: 0, size: 0, lastSync: null, regions: [] },
     totalSize: 0,
     isOnline: navigator.onLine,
   });
@@ -253,16 +290,19 @@ export const useOfflineManager = () => {
   // Load status on mount
   const refreshStatus = useCallback(async () => {
     try {
-      const [prayersCount, manasikCount, locationsCount] = await Promise.all([
+      const [prayersCount, manasikCount, locationsCount, mapTilesCount] = await Promise.all([
         getStoreCount(STORES.prayers),
         getStoreCount(STORES.manasik),
         getStoreCount(STORES.locations),
+        getStoreCount(STORES.mapTiles),
       ]);
       
-      const [prayersSync, manasikSync, locationsSync] = await Promise.all([
+      const [prayersSync, manasikSync, locationsSync, mapTilesSync, downloadedRegions] = await Promise.all([
         getMetadata('prayers_lastSync'),
         getMetadata('manasik_lastSync'),
         getMetadata('locations_lastSync'),
+        getMetadata('mapTiles_lastSync'),
+        getMetadata('mapTiles_regions'),
       ]);
       
       const audioCount = await getStoreCount(STORES.audioCache);
@@ -271,10 +311,12 @@ export const useOfflineManager = () => {
       const prayers = await getFromStore<Prayer>(STORES.prayers);
       const manasik = await getFromStore<ManasikStep>(STORES.manasik);
       const locations = await getFromStore<Location>(STORES.locations);
+      const mapTiles = await getFromStore<{key: string; size: number}>(STORES.mapTiles);
       
       const prayersSize = estimateSize(prayers);
       const manasikSize = estimateSize(manasik);
       const locationsSize = estimateSize(locations);
+      const mapTilesSize = mapTiles.reduce((acc, tile) => acc + (tile.size || 0), 0);
       
       setStatus({
         prayers: {
@@ -296,7 +338,14 @@ export const useOfflineManager = () => {
           size: locationsSize,
           lastSync: locationsSync || null,
         },
-        totalSize: prayersSize + manasikSize + locationsSize,
+        mapTiles: {
+          downloaded: mapTilesCount > 0,
+          count: mapTilesCount,
+          size: mapTilesSize,
+          lastSync: mapTilesSync || null,
+          regions: downloadedRegions || [],
+        },
+        totalSize: prayersSize + manasikSize + locationsSize + mapTilesSize,
         isOnline: navigator.onLine,
       });
     } catch (error) {
@@ -419,15 +468,140 @@ export const useOfflineManager = () => {
     await refreshStatus();
   };
 
+  const clearMapTiles = async (): Promise<void> => {
+    await clearStore(STORES.mapTiles);
+    await saveMetadata('mapTiles_regions', []);
+    await refreshStatus();
+  };
+
   const clearAll = async (): Promise<void> => {
     await Promise.all([
       clearStore(STORES.prayers),
       clearStore(STORES.manasik),
       clearStore(STORES.locations),
+      clearStore(STORES.mapTiles),
       clearStore(STORES.audioCache),
       clearStore(STORES.metadata),
     ]);
     await refreshStatus();
+  };
+
+  // Download map tiles for a specific region
+  const downloadMapTiles = async (regionKey: 'makkah' | 'madinah'): Promise<void> => {
+    setIsDownloading(true);
+    const region = MAP_REGIONS[regionKey];
+    
+    try {
+      const { minLat, maxLat, minLng, maxLng } = region.bounds;
+      const zoomLevels = [14, 15, 16]; // Download tiles at these zoom levels
+      const tileUrls: { key: string; url: string }[] = [];
+      
+      // Calculate tile coordinates for each zoom level
+      for (const zoom of zoomLevels) {
+        const minTileX = Math.floor((minLng + 180) / 360 * Math.pow(2, zoom));
+        const maxTileX = Math.floor((maxLng + 180) / 360 * Math.pow(2, zoom));
+        const minTileY = Math.floor((1 - Math.log(Math.tan(maxLat * Math.PI / 180) + 1 / Math.cos(maxLat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+        const maxTileY = Math.floor((1 - Math.log(Math.tan(minLat * Math.PI / 180) + 1 / Math.cos(minLat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom));
+        
+        for (let x = minTileX; x <= maxTileX; x++) {
+          for (let y = minTileY; y <= maxTileY; y++) {
+            const key = `${zoom}/${x}/${y}`;
+            const url = `https://tile.openstreetmap.org/${key}.png`;
+            tileUrls.push({ key: `${regionKey}_${key}`, url });
+          }
+        }
+      }
+      
+      setDownloadProgress({ 
+        current: 0, 
+        total: tileUrls.length, 
+        type: `Peta ${region.name}` 
+      });
+      
+      let downloaded = 0;
+      const db = await openDB();
+      
+      for (const { key, url } of tileUrls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            await new Promise<void>((resolve, reject) => {
+              const transaction = db.transaction(STORES.mapTiles, 'readwrite');
+              const store = transaction.objectStore(STORES.mapTiles);
+              store.put({ 
+                key, 
+                data: arrayBuffer, 
+                contentType: blob.type,
+                size: blob.size,
+                region: regionKey,
+                cachedAt: new Date().toISOString() 
+              });
+              transaction.oncomplete = () => resolve();
+              transaction.onerror = () => reject(transaction.error);
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to cache tile:', key, e);
+        }
+        
+        downloaded++;
+        setDownloadProgress({ 
+          current: downloaded, 
+          total: tileUrls.length, 
+          type: `Peta ${region.name}` 
+        });
+      }
+      
+      // Update metadata with downloaded regions
+      const existingRegions = (await getMetadata('mapTiles_regions')) || [];
+      const newRegions = [...new Set([...existingRegions, regionKey])];
+      await saveMetadata('mapTiles_regions', newRegions);
+      await saveMetadata('mapTiles_lastSync', new Date().toISOString());
+      
+      await refreshStatus();
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
+
+  // Download all map regions
+  const downloadAllMapTiles = async (): Promise<void> => {
+    await downloadMapTiles('makkah');
+    await downloadMapTiles('madinah');
+  };
+
+  // Get cached map tile
+  const getCachedMapTile = async (zoom: number, x: number, y: number): Promise<Blob | null> => {
+    try {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORES.mapTiles, 'readonly');
+        const store = transaction.objectStore(STORES.mapTiles);
+        
+        // Try both region keys
+        for (const region of ['makkah', 'madinah']) {
+          const key = `${region}_${zoom}/${x}/${y}`;
+          const request = store.get(key);
+          
+          request.onsuccess = () => {
+            if (request.result) {
+              const blob = new Blob([request.result.data], { type: request.result.contentType });
+              resolve(blob);
+              return;
+            }
+          };
+        }
+        
+        // If not found in any region
+        resolve(null);
+      });
+    } catch {
+      return null;
+    }
   };
 
   // Get offline data
@@ -460,15 +634,20 @@ export const useOfflineManager = () => {
     downloadPrayers,
     downloadManasik,
     downloadLocations,
+    downloadMapTiles,
+    downloadAllMapTiles,
     downloadAll,
     clearPrayers,
     clearManasik,
     clearLocations,
+    clearMapTiles,
     clearAll,
     getOfflinePrayers,
     getOfflineManasik,
     getOfflineLocations,
     getOfflineAudioUrl,
+    getCachedMapTile,
+    MAP_REGIONS,
   };
 };
 
