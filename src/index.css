@@ -1,0 +1,356 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Arabic font */
+.font-arabic {
+  font-family: 'Amiri', 'Traditional Arabic', 'Scheherazade', serif;
+  line-height: 2;
+}
+
+@layer base {
+  :root {
+    /* Arah Umroh Design System - Emerald & Gold Theme */
+    --background: 0 0% 98%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* Primary - Emerald Green (Islamic) */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Soft Gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 10%;
+
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent - Gold/Amber */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive - Emergency Red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 160 84% 39%;
+
+    --radius: 0.75rem;
+
+    /* Custom Colors */
+    --gold: 38 92% 50%;
+    --gold-light: 45 93% 58%;
+    --emerald-dark: 162 63% 24%;
+    --emerald-light: 158 64% 52%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(162, 63%, 24%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(38, 92%, 50%) 0%, hsl(45, 93%, 58%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(160, 84%, 39%) 0%, hsl(162, 63%, 30%) 100%);
+
+    /* Shadows */
+    --shadow-primary: 0 10px 40px -10px hsl(160 84% 39% / 0.4);
+    --shadow-card: 0 4px 20px -4px hsl(220 20% 10% / 0.08);
+    --shadow-float: 0 20px 60px -15px hsl(220 20% 10% / 0.15);
+  }
+
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 20% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 160 72% 47%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 18%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 14% 18%;
+    --muted-foreground: 220 9% 60%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 20%;
+    --input: 220 13% 20%;
+    --ring: 160 72% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  /* Mobile container simulation */
+  .app-container {
+    @apply w-full max-w-md mx-auto min-h-screen bg-background relative;
+  }
+
+  /* Primary gradient background */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  /* Gold gradient */
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+
+  /* Hero gradient */
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  /* Primary shadow */
+  .shadow-primary {
+    box-shadow: var(--shadow-primary);
+  }
+
+  /* Card shadow */
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Float shadow */
+  .shadow-float {
+    box-shadow: var(--shadow-float);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+
+  /* Safe area padding for mobile */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ==========================================
+   ELDERLY MODE (Mode Lansia) - Accessibility
+   ========================================== */
+
+/* High Contrast Colors for Elderly Mode */
+:root.elderly-mode {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 5%;
+  
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 5%;
+  
+  --primary: 160 90% 30%;
+  --primary-foreground: 0 0% 100%;
+  
+  --muted: 220 14% 90%;
+  --muted-foreground: 0 0% 25%;
+  
+  --border: 0 0% 70%;
+  
+  /* Stronger shadows for better visibility */
+  --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.15);
+}
+
+/* Global font scaling for elderly mode */
+html.elderly-mode {
+  font-size: 125%;
+}
+
+/* Ensure minimum touch target size (48x48px) */
+.elderly-mode button,
+.elderly-mode a,
+.elderly-mode [role="button"],
+.elderly-mode input,
+.elderly-mode select,
+.elderly-mode textarea {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Increase line height for readability */
+.elderly-mode body {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+/* Bold text for better readability */
+.elderly-mode h1,
+.elderly-mode h2,
+.elderly-mode h3,
+.elderly-mode h4,
+.elderly-mode h5,
+.elderly-mode h6 {
+  font-weight: 800;
+}
+
+/* Increase contrast on borders */
+.elderly-mode .border,
+.elderly-mode [class*="border-"] {
+  border-width: 2px;
+}
+
+/* Larger icons in elderly mode */
+.elderly-mode svg {
+  transform: scale(1.25);
+  transform-origin: center;
+}
+
+/* Better focus states */
+.elderly-mode *:focus {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Simplified animations - reduce motion */
+.elderly-mode * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Audio indicator styles */
+.elderly-mode .audio-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--primary) / 0.1);
+  border: 2px solid hsl(var(--primary));
+  border-radius: 0.75rem;
+  font-weight: 600;
+}
+
+/* Large button variant for elderly mode */
+.elderly-mode .btn-elderly {
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 1rem;
+  min-height: 60px;
+}
+
+/* Navigation items in elderly mode */
+.elderly-mode nav button,
+.elderly-mode nav a {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Card improvements */
+.elderly-mode .bg-card {
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--shadow-card);
+}
+
+/* Form inputs */
+.elderly-mode input,
+.elderly-mode textarea,
+.elderly-mode select {
+  font-size: 1.125rem;
+  padding: 0.875rem 1rem;
+  border-width: 2px;
+}
+
+/* Checkbox and radio buttons */
+.elderly-mode input[type="checkbox"],
+.elderly-mode input[type="radio"] {
+  width: 24px;
+  height: 24px;
+}
+
+/* Switch/Toggle buttons */
+.elderly-mode [role="switch"] {
+  min-width: 56px;
+  min-height: 32px;
+}
+
+/* Status badges */
+.elderly-mode .badge,
+.elderly-mode [class*="Badge"] {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
+}
