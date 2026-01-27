@@ -25,6 +25,7 @@ import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
+import FeedbackButton from '@/components/feedback/FeedbackButton';
 import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
@@ -289,6 +290,9 @@ const Index = () => {
         <TasbihModal isOpen={isTasbihOpen} onClose={() => setIsTasbihOpen(false)} />
         <QiblaModal isOpen={isQiblaOpen} onClose={() => setIsQiblaOpen(false)} />
         <CurrencyConverter isOpen={showCurrency} onClose={() => setShowCurrency(false)} />
+        
+        {/* Feedback FAB */}
+        <FeedbackButton />
       </div>
     </div>
   );
