@@ -27,7 +27,7 @@ const TasbihModal = ({ isOpen, onClose }: TasbihModalProps) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -37,16 +37,21 @@ const TasbihModal = ({ isOpen, onClose }: TasbihModalProps) => {
           className="absolute inset-0 bg-foreground/60 backdrop-blur-sm"
         />
         
-        {/* Modal Content */}
+        {/* Modal Content - Centered */}
         <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="absolute bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 bg-card rounded-t-3xl p-6"
+          className="relative w-full max-w-sm bg-card rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
         >
-          {/* Handle */}
-          <div className="w-12 h-1 bg-muted rounded-full mx-auto mb-6" />
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
           
           <div className="text-center">
             <h3 className="text-xl font-bold text-foreground mb-2">Tasbih Digital</h3>
