@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart } from 'lucide-react';
+import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug } from 'lucide-react';
 import { AdminStatsCards } from '@/components/admin/AdminStatsCards';
 import { AdminAnalyticsDashboard } from '@/components/admin/AdminAnalyticsDashboard';
 import { UsersManagement } from '@/components/admin/UsersManagement';
@@ -17,6 +17,7 @@ import { PrayersManagement } from '@/components/admin/PrayersManagement';
 import { ReviewsManagement } from '@/components/admin/ReviewsManagement';
 import { FeaturedManagement } from '@/components/admin/FeaturedManagement';
 import { ContentManagement } from '@/components/admin/ContentManagement';
+import FeedbackManagement from '@/components/admin/FeedbackManagement';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -108,6 +109,10 @@ const AdminDashboard = () => {
               <Image className="h-4 w-4" />
               <span className="hidden sm:inline">Banner</span>
             </TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center gap-2 py-2">
+              <Bug className="h-4 w-4" />
+              <span className="hidden sm:inline">Feedback</span>
+            </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2 py-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Setting</span>
@@ -160,6 +165,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="banners">
             <BannersManagement />
+          </TabsContent>
+
+          <TabsContent value="feedback">
+            <FeedbackManagement />
           </TabsContent>
 
           <TabsContent value="settings">
