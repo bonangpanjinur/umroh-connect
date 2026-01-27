@@ -22,25 +22,32 @@ const QiblaModal = ({ isOpen, onClose }: QiblaModalProps) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-foreground/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="absolute inset-0 bg-foreground/60 backdrop-blur-sm"
         />
         
-        {/* Modal Content */}
+        {/* Modal Content - Centered */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: 'spring', damping: 20 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card w-[90%] max-w-sm rounded-3xl p-6 text-center"
+          className="relative w-full max-w-sm bg-card rounded-3xl p-6 text-center shadow-2xl max-h-[90vh] overflow-y-auto"
         >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
           <h3 className="text-xl font-bold text-foreground mb-6">Arah Kiblat</h3>
           
           {/* Compass */}
