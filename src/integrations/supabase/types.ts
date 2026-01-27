@@ -383,6 +383,39 @@ export type Database = {
         }
         Relationships: []
       }
+      content_ratings: {
+        Row: {
+          comment: string | null
+          content_id: string
+          content_type: string
+          created_at: string
+          id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          id?: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -581,6 +614,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feedbacks: {
+        Row: {
+          admin_notes: string | null
+          app_version: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          device_info: Json | null
+          feedback_type: Database["public"]["Enums"]["feedback_type"]
+          id: string
+          rating: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          screenshot_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          app_version?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          device_info?: Json | null
+          feedback_type?: Database["public"]["Enums"]["feedback_type"]
+          id?: string
+          rating?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          app_version?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          device_info?: Json | null
+          feedback_type?: Database["public"]["Enums"]["feedback_type"]
+          id?: string
+          rating?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          screenshot_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       geofence_alerts: {
         Row: {
@@ -2003,6 +2093,7 @@ export type Database = {
     Enums: {
       app_role: "jamaah" | "agent" | "admin"
       checklist_category: "dokumen" | "perlengkapan" | "kesehatan" | "mental"
+      feedback_type: "bug" | "suggestion" | "rating" | "other"
       package_type: "umroh" | "haji_reguler" | "haji_plus" | "haji_furoda"
     }
     CompositeTypes: {
@@ -2133,6 +2224,7 @@ export const Constants = {
     Enums: {
       app_role: ["jamaah", "agent", "admin"],
       checklist_category: ["dokumen", "perlengkapan", "kesehatan", "mental"],
+      feedback_type: ["bug", "suggestion", "rating", "other"],
       package_type: ["umroh", "haji_reguler", "haji_plus", "haji_furoda"],
     },
   },
