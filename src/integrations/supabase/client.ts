@@ -1,22 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
 
-// Kita paksa pakai environment variable di sini
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Supabase Env Vars missing!");
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('Supabase environment variables missing!');
 }
 
-export const myCustomSupabase = createClient(
-  supabaseUrl || '', 
-  supabaseKey || '',
+export const supabase = createClient<Database>(
+  SUPABASE_URL || '',
+  SUPABASE_KEY || '',
   {
-      auth: {
-        storage: window.localStorage,
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
   }
 );
