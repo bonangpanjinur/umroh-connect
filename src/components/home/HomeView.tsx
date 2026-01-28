@@ -4,6 +4,7 @@ import QuickMenu from './QuickMenu';
 import JourneyTimeline from './JourneyTimeline';
 import { FeaturedPackages } from './FeaturedPackages';
 import DepartureCountdown from '../countdown/DepartureCountdown';
+import WeatherWidget from './WeatherWidget';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useJamaahAccess } from '@/hooks/useJamaahAccess';
@@ -25,6 +26,9 @@ const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
       className="pb-20 space-y-6"
     >
       <PrayerTimeCard />
+      
+      {/* Weather Widget - Cuaca Makkah/Madinah */}
+      <WeatherWidget />
       
       {/* Countdown Timer - only show for users with active booking */}
       {user && hasActiveBooking && (
