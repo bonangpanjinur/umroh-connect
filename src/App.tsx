@@ -12,6 +12,8 @@ import Auth from "./pages/Auth";
 import AgentDashboard from "./pages/AgentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import { OfflineBanner } from "./components/pwa/OfflineBanner";
+import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,8 @@ const App = () => (
         <ElderlyModeProvider>
           <LanguageProvider>
             <TooltipProvider>
+              <OfflineBanner />
+              <UpdatePrompt />
               <Toaster />
               <Sonner />
               <BrowserRouter>
