@@ -1,10 +1,8 @@
-// Redirect file ini untuk menggunakan konfigurasi utama di src/integrations/supabase/client.ts
-// Ini memastikan seluruh aplikasi menggunakan satu kredensial yang sama dari .env
+// Kita ambil dari file kustom kita sendiri
+import { myCustomSupabase } from '../supabaseConfig';
 
-import { supabase } from '../integrations/supabase/client';
+// Export sebagai 'supabase' agar aplikasi tetap jalan normal
+export const supabase = myCustomSupabase;
 
-export { supabase };
-
-// Tambahkan export ini untuk menjaga kompatibilitas dengan file lama (seperti useAuth.ts)
-// yang masih mencari 'supabaseUntyped'. Kita arahkan ke client yang sama.
-export const supabaseUntyped = supabase;
+// Export alias untuk kompatibilitas kode lama
+export const supabaseUntyped = myCustomSupabase;
