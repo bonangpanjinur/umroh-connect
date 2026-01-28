@@ -1,14 +1,16 @@
-import { MapPin, Compass, Volume2, Bell, Loader2 } from 'lucide-react';
+import { MapPin, Compass, Volume2, Bell, Droplets, Wind } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useAdzanNotifications } from '@/hooks/useAdzanNotifications';
+import { useWeather } from '@/hooks/useWeather';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const PrayerTimeCard = () => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
   const { times, location, loading, currentPrayer, prayerList } = usePrayerTimes();
   const { preferences, permission, enableAll } = useAdzanNotifications();
+  const { makkahWeather, madinahWeather, isLoading: weatherLoading } = useWeather();
 
   const speakPrayerTime = () => {
     if (isElderlyMode && 'speechSynthesis' in window && times) {
@@ -156,6 +158,58 @@ const PrayerTimeCard = () => {
               </span>
             </div>
           ))}
+        </div>
+
+        {/* Weather Strip - Cuaca Makkah & Madinah */}
+        <div className={`flex gap-2 pt-3 border-t border-primary-foreground/10 ${
+          isElderlyMode ? 'mt-4' : 'mt-3'
+        }`}>
+          {weatherLoading ? (
+            <>
+              <Skeleton className="flex-1 h-10 rounded-lg bg-primary-foreground/20" />
+              <Skeleton className="flex-1 h-10 rounded-lg bg-primary-foreground/20" />
+            </>
+          ) : (
+            <>
+              {/* Makkah Weather */}
+              {makkahWeather && (
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-foreground/10">
+                  <span className="text-lg">{makkahWeather.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${isElderlyMode ? fontSize.sm : 'text-xs'}`}>
+                      Makkah
+                    </p>
+                    <div className={`flex items-center gap-2 text-primary-foreground/70 ${isElderlyMode ? fontSize.xs : 'text-[10px]'}`}>
+                      <span className="font-bold text-primary-foreground">{makkahWeather.temperature}°C</span>
+                      <span className="flex items-center gap-0.5">
+                        <Droplets className="w-2.5 h-2.5" />
+                        {makkahWeather.humidity}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Madinah Weather */}
+              {madinahWeather && (
+                <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-foreground/10">
+                  <span className="text-lg">{madinahWeather.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium truncate ${isElderlyMode ? fontSize.sm : 'text-xs'}`}>
+                      Madinah
+                    </p>
+                    <div className={`flex items-center gap-2 text-primary-foreground/70 ${isElderlyMode ? fontSize.xs : 'text-[10px]'}`}>
+                      <span className="font-bold text-primary-foreground">{madinahWeather.temperature}°C</span>
+                      <span className="flex items-center gap-0.5">
+                        <Droplets className="w-2.5 h-2.5" />
+                        {madinahWeather.humidity}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Audio instruction for elderly mode */}
