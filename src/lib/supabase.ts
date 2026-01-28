@@ -1,14 +1,6 @@
-// Temporary untyped supabase client until types are regenerated
-import { createClient } from '@supabase/supabase-js';
+// Mencegah duplikasi koneksi.
+// File ini sekarang hanya me-redirect ke konfigurasi utama di src/integrations/supabase/client.ts
+// Ini memastikan seluruh aplikasi menggunakan satu kredensial yang sama dari .env
+import { supabase } from '../integrations/supabase/client';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-// Untyped client for database operations until types are regenerated
-export const supabaseUntyped = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+export { supabase };
