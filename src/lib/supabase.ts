@@ -1,8 +1,6 @@
-// Kita ambil dari file kustom kita sendiri
-import { myCustomSupabase } from '../supabaseConfig';
+// Re-export dari client resmi Lovable Cloud
+import { supabase } from '@/integrations/supabase/client';
 
-// Export sebagai 'supabase' agar aplikasi tetap jalan normal
-export const supabase = myCustomSupabase;
-
-// Export alias untuk kompatibilitas kode lama
-export const supabaseUntyped = myCustomSupabase;
+// Export untuk kompatibilitas
+export { supabase };
+export const supabaseUntyped = supabase;
