@@ -37,7 +37,7 @@ export const useCreateTravel = () => {
       
       const { data, error } = await supabase
         .from('travels')
-        .insert({ ...travelData, owner_id: profile.id })
+        .insert([{ ...travelData, owner_id: profile.id } as any])
         .select()
         .single();
 
@@ -108,7 +108,7 @@ export const useCreatePackage = () => {
     mutationFn: async (packageData: Partial<Package>) => {
       const { data, error } = await supabase
         .from('packages')
-        .insert(packageData)
+        .insert([packageData as any])
         .select()
         .single();
 
@@ -205,7 +205,7 @@ export const useCreateDeparture = () => {
     mutationFn: async (departureData: Partial<Departure>) => {
       const { data, error } = await supabase
         .from('departures')
-        .insert(departureData)
+        .insert([departureData as any])
         .select()
         .single();
 
