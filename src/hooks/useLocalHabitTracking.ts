@@ -95,6 +95,11 @@ export const useLocalHabitLogs = () => {
     return getLogForDate(habitId, today);
   }, [getLogForDate]);
 
+  const getAllTodayLogs = useCallback((): HabitLog[] => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    return logs.filter(l => l.date === today);
+  }, [logs]);
+
   const toggleHabit = useCallback((habitId: string, targetCount: number = 1) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const allLogs = getLogs();
@@ -150,7 +155,7 @@ export const useLocalHabitLogs = () => {
     setLogs(updatedLogs);
   }, []);
 
-  return { logs, getTodayLog, toggleHabit, resetHabit };
+  return { logs, getTodayLog, getAllTodayLogs, toggleHabit, resetHabit };
 };
 
 const updateStreak = (habitId: string, completedDate: string) => {
