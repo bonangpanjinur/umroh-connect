@@ -226,6 +226,10 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
                 isRamadhanMode={isRamadhanMode}
                 onOpenTasbih={onOpenTasbih}
                 onShowLibrary={() => setShowHabitLibrary(true)}
+                stats={stats}
+                weeklyProgress={weeklyProgress}
+                onAddHabit={addHabit}
+                onRemoveHabit={removeHabit}
               />
             </motion.div>
           )}
@@ -291,9 +295,22 @@ interface IbadahSubTabsProps {
   isRamadhanMode: boolean;
   onOpenTasbih?: () => void;
   onShowLibrary: () => void;
+  stats: any;
+  weeklyProgress: any[];
+  onAddHabit: (habit: any) => void;
+  onRemoveHabit: (habitId: string) => void;
 }
 
-const IbadahSubTabs = ({ habits, isRamadhanMode, onOpenTasbih, onShowLibrary }: IbadahSubTabsProps) => {
+const IbadahSubTabs = ({ 
+  habits, 
+  isRamadhanMode, 
+  onOpenTasbih, 
+  onShowLibrary,
+  stats,
+  weeklyProgress,
+  onAddHabit,
+  onRemoveHabit,
+}: IbadahSubTabsProps) => {
   const [subTab, setSubTab] = useState('today');
 
   return (
@@ -331,23 +348,16 @@ const IbadahSubTabs = ({ habits, isRamadhanMode, onOpenTasbih, onShowLibrary }: 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-3"
           >
-            {/* Today's Habits */}
-            <TodayHabitsList habits={habits.slice(0, 7)} isRamadhanMode={isRamadhanMode} />
-            
-            {/* View All Button */}
-            <Button
-              variant="outline"
-              className="w-full justify-between text-sm h-11"
-              onClick={onShowLibrary}
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Lihat Semua Habit
-              </span>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            <TodayHabitsList 
+              habits={habits} 
+              isRamadhanMode={isRamadhanMode}
+              stats={stats}
+              weeklyProgress={weeklyProgress}
+              onAddHabit={onAddHabit}
+              onRemoveHabit={onRemoveHabit}
+              onShowLibrary={onShowLibrary}
+            />
           </motion.div>
         )}
 

@@ -1,265 +1,274 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  CheckCircle2, Circle, Clock, Book, Moon, Sunrise, Sunset, BookOpen, Heart,
-  Utensils, Eye, Sparkles, Lightbulb, FileText, PenTool, Headphones, GraduationCap, 
-  Footprints, Dumbbell, Move, Smartphone, Droplets, Apple, Target, CheckSquare, 
-  ClipboardCheck, Calendar, Home, Brain, Smile, Shield, Users, MessageCircle, 
-  Receipt, Coins, Ban, BarChart3, Flame, Trophy
+  ChevronRight, ChevronDown, Trophy, Clock, Flame,
+  CheckCircle2, Circle, Plus, Zap
 } from 'lucide-react';
-import { DefaultHabit, categoryInfo } from '@/data/defaultHabits';
+import { DefaultHabit, HabitCategory, categoryInfo } from '@/data/defaultHabits';
 import { useLocalHabitLogs } from '@/hooks/useLocalHabitTracking';
+import HabitProgressCard from './HabitProgressCard';
+import MoodCheckIn from './MoodCheckIn';
+import DailyStats from './DailyStats';
+import CategoryHabitCard from './CategoryHabitCard';
 
-const iconMap: Record<string, any> = {
-  clock: Clock, book: Book, moon: Moon, sunrise: Sunrise, sunset: Sunset,
-  'book-open': BookOpen, heart: Heart, utensils: Utensils, eye: Eye,
-  sparkles: Sparkles, lightbulb: Lightbulb, 'file-text': FileText,
-  'pen-tool': PenTool, headphones: Headphones, 'graduation-cap': GraduationCap,
-  footprints: Footprints, dumbbell: Dumbbell, move: Move, droplets: Droplets,
-  apple: Apple, target: Target, 'check-square': CheckSquare,
-  'clipboard-check': ClipboardCheck, calendar: Calendar, home: Home,
-  focus: Target, brain: Brain, smile: Smile, shield: Shield,
-  'smartphone-off': Smartphone, users: Users, 'hand-helping': Heart,
-  'hand-heart': Heart, 'message-circle': MessageCircle, 'heart-handshake': Heart,
-  receipt: Receipt, 'piggy-bank': Coins, coins: Coins, ban: Ban,
-  'chart-bar': BarChart3, flame: Flame,
+// Group habits by category
+const groupByCategory = (habits: DefaultHabit[]): Record<HabitCategory, DefaultHabit[]> => {
+  const grouped: Record<HabitCategory, DefaultHabit[]> = {
+    spiritual: [],
+    belajar: [],
+    kesehatan: [],
+    produktivitas: [],
+    mental: [],
+    sosial: [],
+    finansial: [],
+  };
+  
+  habits.forEach(habit => {
+    if (grouped[habit.category]) {
+      grouped[habit.category].push(habit);
+    }
+  });
+  
+  return grouped;
 };
 
 interface TodayHabitsListProps {
   habits: DefaultHabit[];
   isRamadhanMode?: boolean;
+  stats: {
+    completedToday: number;
+    totalHabits: number;
+    todayProgress: number;
+    weeklyRate: number;
+    currentStreak: number;
+    longestStreak: number;
+  };
+  weeklyProgress: Array<{
+    date: string;
+    dayName: string;
+    completedCount: number;
+    isToday: boolean;
+  }>;
+  onAddHabit: (habit: DefaultHabit) => void;
+  onRemoveHabit: (habitId: string) => void;
+  onShowLibrary: () => void;
 }
 
-export const TodayHabitsList = ({ habits, isRamadhanMode = false }: TodayHabitsListProps) => {
-  const { getTodayLog, toggleHabit, getAllTodayLogs } = useLocalHabitLogs();
-  const todayLogs = getAllTodayLogs();
+export const TodayHabitsList = ({ 
+  habits, 
+  isRamadhanMode = false,
+  stats,
+  weeklyProgress,
+  onAddHabit,
+  onRemoveHabit,
+  onShowLibrary,
+}: TodayHabitsListProps) => {
+  const [viewMode, setViewMode] = useState<'priority' | 'category'>('priority');
+  const { getTodayLog, toggleHabit } = useLocalHabitLogs();
+
+  // Get habits grouped by completion status
+  const completedHabits = habits.filter(h => getTodayLog(h.id)?.isCompleted);
+  const incompleteHabits = habits.filter(h => !getTodayLog(h.id)?.isCompleted);
+  
+  // Get priority habits (first 5-7 incomplete, then completed)
+  const priorityHabits = [...incompleteHabits.slice(0, 5), ...completedHabits.slice(0, 3)];
+  
+  // Group by category for category view
+  const habitsByCategory = groupByCategory(habits);
+  const categoryOrder: HabitCategory[] = ['spiritual', 'belajar', 'kesehatan', 'produktivitas', 'mental', 'sosial', 'finansial'];
 
   const handleToggle = (habit: DefaultHabit) => {
     toggleHabit(habit.id, habit.target_count || 1);
   };
 
-  // Separate completed and incomplete habits
-  const completedHabits = habits.filter(h => {
-    const log = getTodayLog(h.id);
-    return log?.isCompleted;
-  });
-  const incompleteHabits = habits.filter(h => {
-    const log = getTodayLog(h.id);
-    return !log?.isCompleted;
-  });
-
-  if (habits.length === 0) {
-    return (
-      <Card className="border-dashed">
-        <CardContent className="py-8 text-center text-muted-foreground">
-          <p className="text-sm">Belum ada habit yang dipilih</p>
-          <p className="text-xs mt-1">Ketuk "Lihat Semua Habit" untuk menambah</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Calculate completion stats
-  const completedCount = completedHabits.length;
-  const totalCount = habits.length;
-  const completionPercentage = Math.round((completedCount / totalCount) * 100);
-
   return (
-    <div className="space-y-3">
-      {/* Completion Summary */}
-      {completedCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">Progres Hari Ini</p>
-                    <span className="text-sm font-bold text-primary">{completionPercentage}%</span>
-                  </div>
-                  <Progress value={completionPercentage} className="h-2" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      {/* Incomplete Habits - Priority Display */}
-      {incompleteHabits.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-medium text-muted-foreground px-1">
-            Belum Selesai ({incompleteHabits.length})
-          </h4>
-          {incompleteHabits.map((habit, index) => (
-            <HabitCard 
-              key={habit.id} 
-              habit={habit} 
-              index={index}
-              getTodayLog={getTodayLog}
-              onToggle={handleToggle}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Completed Habits - Collapsed with Details */}
-      {completedHabits.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-xs font-medium text-muted-foreground px-1 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-            Selesai ({completedHabits.length})
-          </h4>
-          <div className="space-y-1.5">
-            {completedHabits.map((habit, index) => (
-              <CompletedHabitCard 
-                key={habit.id} 
-                habit={habit} 
-                index={index}
-                getTodayLog={getTodayLog}
-                onToggle={handleToggle}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Incomplete habit card - full display
-interface HabitCardProps {
-  habit: DefaultHabit;
-  index: number;
-  getTodayLog: (id: string) => any;
-  onToggle: (habit: DefaultHabit) => void;
-}
-
-const HabitCard = ({ habit, index, getTodayLog, onToggle }: HabitCardProps) => {
-  const Icon = iconMap[habit.icon] || Circle;
-  const todayLog = getTodayLog(habit.id);
-  const currentCount = todayLog?.completedCount || 0;
-  const targetCount = habit.target_count || 1;
-  const progress = targetCount > 1 ? (currentCount / targetCount) * 100 : 0;
-  const info = categoryInfo[habit.category];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03 }}
-    >
-      <Card 
-        className="transition-all duration-200 cursor-pointer active:scale-[0.98] hover:border-primary/20 hover:shadow-sm"
-        onClick={() => onToggle(habit)}
+    <div className="space-y-4">
+      {/* Mood Check-in Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
       >
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            {/* Icon */}
-            <motion.div 
-              className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${info.bgColor}`}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Icon className={`w-5 h-5 ${info.color}`} />
-            </motion.div>
-            
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h4 className="font-medium text-sm truncate">
-                  {habit.name}
-                </h4>
-                {habit.is_ramadan_specific && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20 flex-shrink-0">
-                    Ramadan
-                  </Badge>
+        <MoodCheckIn />
+      </motion.div>
+
+      {/* Daily Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <DailyStats
+          completedToday={stats.completedToday}
+          totalHabits={stats.totalHabits}
+          currentStreak={stats.currentStreak}
+          longestStreak={stats.longestStreak}
+          weeklyRate={stats.weeklyRate}
+          weeklyProgress={weeklyProgress}
+        />
+      </motion.div>
+
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm">Habit Hari Ini</h3>
+        <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
+          <Button
+            variant={viewMode === 'priority' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-7 text-xs px-2.5"
+            onClick={() => setViewMode('priority')}
+          >
+            Prioritas
+          </Button>
+          <Button
+            variant={viewMode === 'category' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-7 text-xs px-2.5"
+            onClick={() => setViewMode('category')}
+          >
+            Kategori
+          </Button>
+        </div>
+      </div>
+
+      {/* Habits List */}
+      <AnimatePresence mode="wait">
+        {viewMode === 'priority' ? (
+          <motion.div
+            key="priority"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+          >
+            {/* Incomplete Habits - Priority Display */}
+            {incompleteHabits.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Belum Selesai ({incompleteHabits.length})
+                  </span>
+                </div>
+                {incompleteHabits.slice(0, 7).map((habit) => {
+                  const todayLog = getTodayLog(habit.id);
+                  return (
+                    <HabitProgressCard
+                      key={habit.id}
+                      habit={habit}
+                      currentCount={todayLog?.completedCount || 0}
+                      isCompleted={false}
+                      onToggle={() => handleToggle(habit)}
+                    />
+                  );
+                })}
+                {incompleteHabits.length > 7 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground"
+                    onClick={() => setViewMode('category')}
+                  >
+                    +{incompleteHabits.length - 7} habit lainnya
+                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
                 )}
               </div>
-              
-              {targetCount > 1 ? (
-                <div className="mt-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span className="font-medium">{currentCount} / {targetCount}</span>
-                    <span className="text-[10px]">{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-1.5" />
+            )}
+
+            {/* Completed Habits - Compact Display */}
+            {completedHabits.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Selesai ({completedHabits.length})
+                  </span>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Ketuk untuk selesaikan</p>
-              )}
-            </div>
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-2.5 flex flex-wrap gap-1.5">
+                    {completedHabits.map((habit) => (
+                      <Badge 
+                        key={habit.id}
+                        variant="secondary"
+                        className="text-xs bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
+                        onClick={() => handleToggle(habit)}
+                      >
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        {habit.name}
+                      </Badge>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-            {/* Checkbox */}
-            <motion.div
-              className="flex-shrink-0 text-muted-foreground/40"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Circle className="w-6 h-6" />
-            </motion.div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+            {habits.length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-8 text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Belum ada habit</p>
+                  <p className="text-xs text-muted-foreground mt-1">Tambah habit untuk mulai tracking</p>
+                  <Button
+                    size="sm"
+                    className="mt-4"
+                    onClick={onShowLibrary}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tambah Habit
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="category"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+          >
+            {categoryOrder.map((category) => {
+              const categoryHabits = habitsByCategory[category];
+              if (categoryHabits.length === 0) return null;
+              
+              return (
+                <CategoryHabitCard
+                  key={category}
+                  category={category}
+                  activeHabits={categoryHabits}
+                  isRamadhanMode={isRamadhanMode}
+                  onAddHabit={onAddHabit}
+                  onRemoveHabit={onRemoveHabit}
+                />
+              );
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-// Completed habit card - compact with details
-const CompletedHabitCard = ({ habit, index, getTodayLog, onToggle }: HabitCardProps) => {
-  const Icon = iconMap[habit.icon] || Circle;
-  const todayLog = getTodayLog(habit.id);
-  const info = categoryInfo[habit.category];
-  const targetCount = habit.target_count || 1;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: index * 0.02 }}
-    >
-      <Card 
-        className="bg-primary/5 border-primary/20 cursor-pointer active:scale-[0.99]"
-        onClick={() => onToggle(habit)}
+      {/* Quick Add Button */}
+      <Button
+        variant="outline"
+        className="w-full h-11 justify-between text-sm"
+        onClick={onShowLibrary}
       >
-        <CardContent className="p-2.5">
-          <div className="flex items-center gap-2.5">
-            {/* Completed Icon */}
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
-            </div>
-            
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-primary/80 line-through truncate">
-                {habit.name}
-              </p>
-            </div>
-
-            {/* Details Badge */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {targetCount > 1 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0">
-                  {targetCount}x
-                </Badge>
-              )}
-              {habit.is_ramadan_specific && (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-600 border-amber-500/20">
-                  🌙
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        <span className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Kelola Habit
+        </span>
+        <Badge variant="secondary" className="text-xs">
+          {habits.length} aktif
+        </Badge>
+      </Button>
+    </div>
   );
 };
 
