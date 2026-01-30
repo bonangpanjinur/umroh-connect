@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -24,6 +24,7 @@ import { ChatManagement } from '@/components/agent/ChatManagement';
 import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCenter';
 import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
+import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -177,8 +178,11 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-9 gap-0.5">
+                <TabsList className="grid w-full grid-cols-10 gap-0.5">
                   <TabsTrigger value="overview" className="text-[10px] px-1">Overview</TabsTrigger>
+                  <TabsTrigger value="membership" className="text-[10px] px-1">
+                    <Crown className="w-3 h-3" />
+                  </TabsTrigger>
                   <TabsTrigger value="analytics" className="text-[10px] px-1">
                     <TrendingUp className="w-3 h-3" />
                   </TabsTrigger>
@@ -224,8 +228,20 @@ const AgentDashboard = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4 space-y-4">
+                  {/* Membership Status Quick View */}
+                  <AgentMembershipCard travelId={travel.id} />
                   <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
                   <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+                </TabsContent>
+
+                <TabsContent value="membership" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-amber-500" />
+                      Keanggotaan & Langganan
+                    </h3>
+                  </div>
+                  <AgentMembershipCard travelId={travel.id} />
                 </TabsContent>
 
                 <TabsContent value="analytics" className="mt-4">
