@@ -1,9 +1,12 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book, Flame, Sparkles } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book, Flame, Sparkles, Heart, Activity, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 const menuItems = [
-  { id: 'habit', label: 'Habit Ibadah', icon: Flame, color: 'text-primary', audioLabel: 'Habit Ibadah Harian', isHighlight: true },
+  { id: 'ramadhan', label: 'Ramadhan', icon: Moon, color: 'text-purple-600', audioLabel: 'Dashboard Ramadhan', isHighlight: true, highlightColor: 'purple' },
+  { id: 'habit', label: 'Ibadah', icon: Flame, color: 'text-primary', audioLabel: 'Habit Ibadah Harian', isHighlight: true, highlightColor: 'primary' },
+  { id: 'sedekah', label: 'Sedekah', icon: Heart, color: 'text-emerald-500', audioLabel: 'Habit Sedekah', isHighlight: true, highlightColor: 'emerald' },
+  { id: 'olahraga', label: 'Olahraga', icon: Activity, color: 'text-blue-500', audioLabel: 'Habit Olahraga Ramadhan', isHighlight: true, highlightColor: 'blue' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
@@ -80,8 +83,18 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
                   className="absolute -top-1 -right-1 z-10"
                 >
                   <span className="flex h-5 w-5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex items-center justify-center rounded-full h-5 w-5 bg-primary text-[8px] text-primary-foreground font-bold">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                      item.highlightColor === 'emerald' ? 'bg-emerald-500' :
+                      item.highlightColor === 'blue' ? 'bg-blue-500' :
+                      item.highlightColor === 'purple' ? 'bg-purple-500' :
+                      'bg-primary'
+                    }`}></span>
+                    <span className={`relative inline-flex items-center justify-center rounded-full h-5 w-5 text-[8px] text-white font-bold ${
+                      item.highlightColor === 'emerald' ? 'bg-emerald-500' :
+                      item.highlightColor === 'blue' ? 'bg-blue-500' :
+                      item.highlightColor === 'purple' ? 'bg-purple-500' :
+                      'bg-primary'
+                    }`}>
                       <Sparkles className="w-3 h-3" />
                     </span>
                   </span>
@@ -90,7 +103,10 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
               
               <div className={`rounded-2xl flex items-center justify-center transition-all duration-300 ${
                 isHighlight 
-                  ? 'bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30 border-0' 
+                  ? item.highlightColor === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 border-0' 
+                    : item.highlightColor === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 border-0'
+                    : item.highlightColor === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-0'
+                    : 'bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30 border-0' 
                   : 'bg-card border border-border shadow-card group-hover:shadow-float'
               } ${
                 isElderlyMode 
@@ -98,7 +114,7 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
                   : 'w-14 h-14'
               }`}>
                 <Icon 
-                  className={isHighlight ? 'text-primary-foreground' : item.color}
+                  className={isHighlight ? 'text-white' : item.color}
                   style={{ 
                     width: isElderlyMode ? iconSize.lg : 24, 
                     height: isElderlyMode ? iconSize.lg : 24 
@@ -106,7 +122,12 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
                 />
               </div>
               <span className={`font-medium text-center ${
-                isHighlight ? 'text-primary font-semibold' : 'text-muted-foreground'
+                isHighlight 
+                  ? item.highlightColor === 'emerald' ? 'text-emerald-600 font-semibold' 
+                    : item.highlightColor === 'blue' ? 'text-blue-600 font-semibold'
+                    : item.highlightColor === 'purple' ? 'text-purple-600 font-semibold'
+                    : 'text-primary font-semibold' 
+                  : 'text-muted-foreground'
               } ${
                 isElderlyMode ? fontSize.sm : 'text-[10px]'
               }`}>

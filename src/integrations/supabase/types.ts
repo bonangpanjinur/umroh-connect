@@ -558,6 +558,51 @@ export type Database = {
           },
         ]
       }
+      exercise_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          icon: string | null
+          id: string
+          intensity: string
+          is_active: boolean | null
+          is_ramadan_friendly: boolean | null
+          name: string
+          priority: number | null
+          recommended_time: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          icon?: string | null
+          id?: string
+          intensity?: string
+          is_active?: boolean | null
+          is_ramadan_friendly?: boolean | null
+          name: string
+          priority?: number | null
+          recommended_time?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          icon?: string | null
+          id?: string
+          intensity?: string
+          is_active?: boolean | null
+          is_ramadan_friendly?: boolean | null
+          name?: string
+          priority?: number | null
+          recommended_time?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       featured_packages: {
         Row: {
           created_at: string
@@ -1889,6 +1934,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sedekah_types: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_arabic: string | null
+          priority: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_arabic?: string | null
+          priority?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_arabic?: string | null
+          priority?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tracking_groups: {
         Row: {
           code: string
@@ -2128,6 +2212,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_exercise_logs: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          exercise_type_id: string | null
+          id: string
+          intensity: string | null
+          log_date: string
+          notes: string | null
+          time_of_day: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number
+          exercise_type_id?: string | null
+          id?: string
+          intensity?: string | null
+          log_date?: string
+          notes?: string | null
+          time_of_day?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          exercise_type_id?: string | null
+          id?: string
+          intensity?: string | null
+          log_date?: string
+          notes?: string | null
+          time_of_day?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_exercise_logs_exercise_type_id_fkey"
+            columns: ["exercise_type_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_ibadah_logs: {
         Row: {
           completed_count: number | null
@@ -2223,6 +2351,45 @@ export type Database = {
           },
         ]
       }
+      user_ramadan_settings: {
+        Row: {
+          created_at: string
+          enable_exercise_reminder: boolean | null
+          enable_lailatul_qadar_mode: boolean | null
+          enable_sedekah_reminder: boolean | null
+          id: string
+          ramadan_year: number
+          sedekah_target: number | null
+          tilawah_target_pages: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enable_exercise_reminder?: boolean | null
+          enable_lailatul_qadar_mode?: boolean | null
+          enable_sedekah_reminder?: boolean | null
+          id?: string
+          ramadan_year?: number
+          sedekah_target?: number | null
+          tilawah_target_pages?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enable_exercise_reminder?: boolean | null
+          enable_lailatul_qadar_mode?: boolean | null
+          enable_sedekah_reminder?: boolean | null
+          id?: string
+          ramadan_year?: number
+          sedekah_target?: number | null
+          tilawah_target_pages?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -2240,6 +2407,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_sedekah_logs: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string | null
+          id: string
+          is_subuh_mode: boolean | null
+          log_date: string
+          sedekah_type_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_subuh_mode?: boolean | null
+          log_date?: string
+          sedekah_type_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_subuh_mode?: boolean | null
+          log_date?: string
+          sedekah_type_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sedekah_logs_sedekah_type_id_fkey"
+            columns: ["sedekah_type_id"]
+            isOneToOne: false
+            referencedRelation: "sedekah_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
