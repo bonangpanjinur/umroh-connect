@@ -6,23 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { 
   Smile, Meh, Frown, Heart, Sparkles, Cloud, CloudRain, Sun,
-  Zap, Coffee, Moon, Check, ChevronDown, ChevronUp
+  Zap, Coffee, Moon, Check, ChevronDown, ChevronUp, RefreshCw,
+  Lightbulb, ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-
-const MOOD_STORAGE_KEY = 'habit_mood_logs';
-
-interface MoodLog {
-  id: string;
-  date: string;
-  mood: string;
-  moodLevel: number;
-  energyLevel: number;
-  gratitude: string[];
-  notes: string;
-  timestamp: number;
-}
+import { useMoodTracking, moodConfig, MoodType, MoodLog } from '@/hooks/useMoodTracking';
 
 const moodOptions = [
   { id: 'excellent', label: 'Luar Biasa', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10', level: 5 },
@@ -44,102 +33,104 @@ const gratitudePrompts = [
 ];
 
 interface MoodCheckInProps {
-  onComplete?: () => void;
+  onComplete?: (mood: MoodLog) => void;
+  onMoodChange?: (mood: string, moodLevel: number, energyLevel: number) => void;
   compact?: boolean;
 }
 
-export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) => {
-  const [todayMood, setTodayMood] = useState<MoodLog | null>(null);
+export const MoodCheckIn = ({ onComplete, onMoodChange, compact = false }: MoodCheckInProps) => {
+  const { todayMood, saveMood, getMoodConfig } = useMoodTracking();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [selectedEnergy, setSelectedEnergy] = useState<string | null>(null);
   const [selectedGratitude, setSelectedGratitude] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [step, setStep] = useState(1);
+  const [isEditing, setIsEditing] = useState(false);
 
+  // Notify parent when mood changes during selection
   useEffect(() => {
-    loadTodayMood();
-  }, []);
-
-  const loadTodayMood = () => {
-    const stored = localStorage.getItem(MOOD_STORAGE_KEY);
-    if (stored) {
-      const logs: MoodLog[] = JSON.parse(stored);
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const todayLog = logs.find(l => l.date === today);
-      if (todayLog) {
-        setTodayMood(todayLog);
-      }
+    if (selectedMood && selectedEnergy && onMoodChange) {
+      const moodOption = moodOptions.find(m => m.id === selectedMood);
+      const energyOption = energyOptions.find(e => e.id === selectedEnergy);
+      onMoodChange(selectedMood, moodOption?.level || 3, energyOption?.level || 2);
     }
-  };
+  }, [selectedMood, selectedEnergy, onMoodChange]);
 
-  const saveMood = () => {
+  const handleSaveMood = () => {
     if (!selectedMood || !selectedEnergy) return;
 
-    const today = format(new Date(), 'yyyy-MM-dd');
     const moodOption = moodOptions.find(m => m.id === selectedMood);
     const energyOption = energyOptions.find(e => e.id === selectedEnergy);
 
-    const newLog: MoodLog = {
-      id: crypto.randomUUID(),
-      date: today,
+    const savedMood = saveMood({
       mood: selectedMood,
       moodLevel: moodOption?.level || 3,
       energyLevel: energyOption?.level || 2,
       gratitude: selectedGratitude,
       notes,
-      timestamp: Date.now(),
-    };
+    });
 
-    const stored = localStorage.getItem(MOOD_STORAGE_KEY);
-    let logs: MoodLog[] = stored ? JSON.parse(stored) : [];
-    
-    // Remove existing today entry if any
-    logs = logs.filter(l => l.date !== today);
-    logs.unshift(newLog);
-    
-    localStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(logs));
-    setTodayMood(newLog);
-    onComplete?.();
+    setIsEditing(false);
+    onComplete?.(savedMood);
   };
 
   const toggleGratitude = (item: string) => {
     setSelectedGratitude(prev => 
       prev.includes(item) 
         ? prev.filter(g => g !== item)
-        : [...prev, item].slice(0, 5) // Max 5
+        : [...prev, item].slice(0, 5)
     );
   };
 
+  const startEditing = () => {
+    if (todayMood) {
+      setSelectedMood(todayMood.mood);
+      setSelectedEnergy(energyOptions.find(e => e.level === todayMood.energyLevel)?.id || 'medium');
+      setSelectedGratitude(todayMood.gratitude);
+      setNotes(todayMood.notes);
+    }
+    setStep(1);
+    setIsEditing(true);
+  };
+
   // Compact view - already checked in
-  if (todayMood && compact) {
+  if (todayMood && compact && !isEditing) {
     const moodOption = moodOptions.find(m => m.id === todayMood.mood);
+    const config = getMoodConfig(todayMood.mood);
     const Icon = moodOption?.icon || Smile;
     
     return (
-      <Card className={`${moodOption?.bg} border-0`}>
-        <CardContent className="p-3 flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl ${moodOption?.bg} flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 ${moodOption?.color}`} />
+      <Card className={`${moodOption?.bg} border-0 overflow-hidden`}>
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl ${moodOption?.bg} flex items-center justify-center`}>
+              <Icon className={`w-5 h-5 ${moodOption?.color}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Mood: {moodOption?.label}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {config.message}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={startEditing}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </Button>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium">Mood hari ini: {moodOption?.label}</p>
-            <p className="text-xs text-muted-foreground">
-              {todayMood.gratitude.length > 0 && `Syukuri: ${todayMood.gratitude.slice(0, 3).join(', ')}`}
-            </p>
-          </div>
-          <Badge variant="secondary" className="text-[10px]">
-            <Check className="w-3 h-3 mr-1" />
-            Tercatat
-          </Badge>
         </CardContent>
       </Card>
     );
   }
 
-  // Already checked in - full view
-  if (todayMood) {
+  // Already checked in - full view with tips
+  if (todayMood && !isEditing) {
     const moodOption = moodOptions.find(m => m.id === todayMood.mood);
+    const config = getMoodConfig(todayMood.mood);
     const Icon = moodOption?.icon || Smile;
     
     return (
@@ -151,18 +142,44 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl bg-white/50 flex items-center justify-center`}>
-                  <Icon className={`w-6 h-6 ${moodOption?.color}`} />
-                </div>
+                <motion.div 
+                  className={`w-14 h-14 rounded-2xl bg-white/60 dark:bg-black/20 flex items-center justify-center`}
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Icon className={`w-7 h-7 ${moodOption?.color}`} />
+                </motion.div>
                 <div>
-                  <p className="font-semibold text-sm">Mood Hari Ini</p>
-                  <p className={`text-lg font-bold ${moodOption?.color}`}>{moodOption?.label}</p>
+                  <p className="font-semibold">Mood Hari Ini</p>
+                  <p className={`text-xl font-bold ${moodOption?.color}`}>{moodOption?.label}</p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing();
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
+
+            {/* Mood Message */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-3 p-3 rounded-xl bg-white/50 dark:bg-black/20"
+            >
+              <p className="text-sm font-medium">{config.message}</p>
+            </motion.div>
           </div>
 
           <AnimatePresence>
@@ -173,13 +190,35 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="p-4 space-y-3 border-t">
+                <div className="p-4 space-y-4 border-t">
+                  {/* Tips Based on Mood */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb className="w-4 h-4 text-amber-500" />
+                      <p className="text-sm font-medium">Tips untuk hari ini</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {config.tips.map((tip, i) => (
+                        <motion.div
+                          key={tip}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50 text-xs"
+                        >
+                          <ArrowRight className="w-3 h-3 text-primary flex-shrink-0" />
+                          <span>{tip}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Energy Level */}
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Energi:</span>
-                    <span className="font-medium">
+                    <span className="text-muted-foreground">Level Energi:</span>
+                    <Badge variant="secondary">
                       {energyOptions.find(e => e.level === todayMood.energyLevel)?.label}
-                    </span>
+                    </Badge>
                   </div>
 
                   {/* Gratitude */}
@@ -188,8 +227,8 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                       <p className="text-xs text-muted-foreground mb-2">Yang disyukuri:</p>
                       <div className="flex flex-wrap gap-1.5">
                         {todayMood.gratitude.map(g => (
-                          <Badge key={g} variant="secondary" className="text-xs">
-                            {g}
+                          <Badge key={g} variant="outline" className="text-xs bg-primary/5">
+                            ✨ {g}
                           </Badge>
                         ))}
                       </div>
@@ -198,7 +237,7 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
 
                   {/* Notes */}
                   {todayMood.notes && (
-                    <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    <div className="p-3 bg-muted/50 rounded-lg text-sm italic">
                       "{todayMood.notes}"
                     </div>
                   )}
@@ -213,7 +252,7 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
 
   // Check-in flow
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-2 border-primary/20">
       <CardContent className="p-4">
         <AnimatePresence mode="wait">
           {step === 1 && (
@@ -255,12 +294,19 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                 })}
               </div>
 
+              {/* Dynamic mood message preview */}
               {selectedMood && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-3"
                 >
+                  <div className={`p-3 rounded-xl ${moodConfig[selectedMood as MoodType]?.bg}`}>
+                    <p className={`text-sm font-medium ${moodConfig[selectedMood as MoodType]?.color}`}>
+                      {moodConfig[selectedMood as MoodType]?.message}
+                    </p>
+                  </div>
+
                   <div>
                     <p className="text-sm font-medium mb-2">Level energimu?</p>
                     <div className="flex gap-2">
@@ -290,6 +336,7 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                       onClick={() => setStep(2)}
                     >
                       Lanjut
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   )}
                 </motion.div>
@@ -323,7 +370,7 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                       }`}
                       onClick={() => toggleGratitude(item)}
                     >
-                      {item}
+                      {isSelected && '✓ '}{item}
                     </Badge>
                   );
                 })}
@@ -349,7 +396,7 @@ export const MoodCheckIn = ({ onComplete, compact = false }: MoodCheckInProps) =
                   Kembali
                 </Button>
                 <Button
-                  onClick={saveMood}
+                  onClick={handleSaveMood}
                   className="flex-1"
                 >
                   <Check className="w-4 h-4 mr-2" />
