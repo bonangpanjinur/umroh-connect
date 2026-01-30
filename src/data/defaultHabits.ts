@@ -83,11 +83,12 @@ export const categoryInfo: Record<HabitCategory, {
 };
 
 // Starter Pack: 12 default habits for new users
+// Note: Dzikir with high counts (istighfar 100x, sholawat 100x) should link to Tasbih Digital
 export const starterPackHabits: DefaultHabit[] = [
   // Spiritual (3)
   { id: 'sholat-waktu', name: 'Sholat Tepat Waktu', name_arabic: 'الصلاة في وقتها', category: 'spiritual', icon: 'clock', target_count: 5, is_default: true, time_of_day: 'anytime' },
   { id: 'tilawah', name: 'Tilawah Al-Quran', name_arabic: 'تلاوة القرآن', category: 'spiritual', icon: 'book', target_count: 1, is_default: true, time_of_day: 'morning' },
-  { id: 'dzikir-pagi-petang', name: 'Dzikir Pagi & Petang', name_arabic: 'أذكار الصباح والمساء', category: 'spiritual', icon: 'sunrise', target_count: 2, is_default: true },
+  { id: 'dzikir-pagi-petang', name: 'Dzikir Pagi & Petang', name_arabic: 'أذكار الصباح والمساء', category: 'spiritual', icon: 'sunrise', target_count: 1, is_default: true, description: 'Buka Tasbih Digital' },
   
   // Belajar (2)
   { id: 'baca-buku', name: 'Baca Buku 15 Menit', category: 'belajar', icon: 'book-open', target_count: 1, is_default: true, duration_minutes: 15 },
@@ -120,9 +121,10 @@ export const allHabitsByCategory: Record<HabitCategory, DefaultHabit[]> = {
     { id: 'sholat-tahajud', name: 'Sholat Tahajud', name_arabic: 'صلاة التهجد', category: 'spiritual', icon: 'moon', target_count: 1, is_default: false, time_of_day: 'morning' },
     { id: 'tilawah', name: 'Tilawah Al-Quran', name_arabic: 'تلاوة القرآن', category: 'spiritual', icon: 'book', target_count: 1, is_default: true },
     { id: 'tilawah-1-juz', name: 'Khatam 1 Juz', name_arabic: 'ختم جزء واحد', category: 'spiritual', icon: 'book', target_count: 1, is_default: false },
-    { id: 'dzikir-pagi-petang', name: 'Dzikir Pagi & Petang', name_arabic: 'أذكار الصباح والمساء', category: 'spiritual', icon: 'sunrise', target_count: 2, is_default: true },
-    { id: 'istighfar', name: 'Istighfar 100x', name_arabic: 'الاستغفار', category: 'spiritual', icon: 'sparkles', target_count: 100, is_default: false },
-    { id: 'sholawat', name: 'Sholawat 100x', name_arabic: 'الصلوات على النبي', category: 'spiritual', icon: 'sparkles', target_count: 100, is_default: false },
+    { id: 'dzikir-pagi-petang', name: 'Dzikir Pagi & Petang', name_arabic: 'أذكار الصباح والمساء', category: 'spiritual', icon: 'sunrise', target_count: 1, is_default: true, description: 'Buka Tasbih Digital' },
+    { id: 'istighfar', name: 'Istighfar 100x', name_arabic: 'الاستغفار', category: 'spiritual', icon: 'sparkles', target_count: 1, is_default: false, description: 'Gunakan Tasbih Digital untuk menghitung' },
+    { id: 'sholawat', name: 'Sholawat 100x', name_arabic: 'الصلوات على النبي', category: 'spiritual', icon: 'sparkles', target_count: 1, is_default: false, description: 'Gunakan Tasbih Digital untuk menghitung' },
+    { id: 'tasbih-33', name: 'Tasbih, Tahmid, Takbir 33x', name_arabic: 'التسبيح والتحميد والتكبير', category: 'spiritual', icon: 'sparkles', target_count: 1, is_default: false, description: 'Gunakan Tasbih Digital untuk menghitung' },
     { id: 'puasa-sunnah', name: 'Puasa Sunnah', name_arabic: 'صيام التطوع', category: 'spiritual', icon: 'moon', target_count: 1, is_default: false },
     { id: 'kajian', name: 'Kajian Ilmu Agama', category: 'spiritual', icon: 'book-open', target_count: 1, is_default: false, duration_minutes: 30 },
     { id: 'muhasabah', name: 'Muhasabah Diri', category: 'spiritual', icon: 'brain', target_count: 1, is_default: false, time_of_day: 'evening' },
