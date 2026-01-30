@@ -25,6 +25,9 @@ import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import HabitView from '@/components/habit/HabitView';
+import SedekahView from '@/components/habit/SedekahView';
+import OlahragaView from '@/components/habit/OlahragaView';
+import RamadhanDashboard from '@/components/habit/RamadhanDashboard';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import { FeatureLock } from '@/components/common/FeatureLock';
@@ -50,6 +53,9 @@ const Index = () => {
   const [showReviews, setShowReviews] = useState(false);
   const [showQuran, setShowQuran] = useState(false);
   const [showHabit, setShowHabit] = useState(false);
+  const [showSedekah, setShowSedekah] = useState(false);
+  const [showOlahraga, setShowOlahraga] = useState(false);
+  const [showRamadhanDashboard, setShowRamadhanDashboard] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -121,12 +127,75 @@ const Index = () => {
       case 'habit':
         setShowHabit(true);
         break;
+      case 'sedekah':
+        setShowSedekah(true);
+        break;
+      case 'olahraga':
+        setShowOlahraga(true);
+        break;
+      case 'ramadhan':
+        setShowRamadhanDashboard(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Ramadhan Dashboard
+    if (showRamadhanDashboard) {
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowRamadhanDashboard(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-lg">Dashboard Ramadhan</h2>
+          </div>
+          <RamadhanDashboard />
+        </div>
+      );
+    }
+
+    // Show Olahraga View
+    if (showOlahraga) {
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowOlahraga(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-lg">Habit Olahraga Ramadhan</h2>
+          </div>
+          <OlahragaView />
+        </div>
+      );
+    }
+
+    // Show Sedekah View
+    if (showSedekah) {
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowSedekah(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-lg">Habit Sedekah</h2>
+          </div>
+          <SedekahView />
+        </div>
+      );
+    }
+
     // Show Habit Ibadah
     if (showHabit) {
       return (
@@ -303,7 +372,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showHabit && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showHabit && !showSedekah && !showOlahraga && !showRamadhanDashboard && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
