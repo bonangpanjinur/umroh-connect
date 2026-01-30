@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ import { BookingsManagement } from '@/components/agent/BookingsManagement';
 import { ChatManagement } from '@/components/agent/ChatManagement';
 import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCenter';
+import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -176,10 +177,13 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-8 gap-0.5">
+                <TabsList className="grid w-full grid-cols-9 gap-0.5">
                   <TabsTrigger value="overview" className="text-[10px] px-1">Overview</TabsTrigger>
                   <TabsTrigger value="analytics" className="text-[10px] px-1">
                     <TrendingUp className="w-3 h-3" />
+                  </TabsTrigger>
+                  <TabsTrigger value="credits" className="text-[10px] px-1">
+                    <Zap className="w-3 h-3" />
                   </TabsTrigger>
                   <TabsTrigger value="packages" className="text-[10px] px-1">Paket</TabsTrigger>
                   <TabsTrigger value="bookings" className="relative text-[10px] px-1">
@@ -226,6 +230,16 @@ const AgentDashboard = () => {
 
                 <TabsContent value="analytics" className="mt-4">
                   <AnalyticsDashboard travelId={travel?.id} />
+                </TabsContent>
+
+                <TabsContent value="credits" className="mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-foreground flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      Kredit & Pembelian
+                    </h3>
+                  </div>
+                  <AgentCreditsManager travelId={travel.id} />
                 </TabsContent>
 
                 <TabsContent value="packages" className="mt-4">
