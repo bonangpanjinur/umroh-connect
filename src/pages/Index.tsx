@@ -24,10 +24,7 @@ import CurrencyConverter from '@/components/currency/CurrencyConverter';
 import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
-import HabitView from '@/components/habit/HabitView';
-import SedekahView from '@/components/habit/SedekahView';
-import OlahragaView from '@/components/habit/OlahragaView';
-import RamadhanDashboard from '@/components/habit/RamadhanDashboard';
+import IbadahHubView from '@/components/habit/IbadahHubView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import { FeatureLock } from '@/components/common/FeatureLock';
@@ -52,10 +49,7 @@ const Index = () => {
   const [showTracking, setShowTracking] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showQuran, setShowQuran] = useState(false);
-  const [showHabit, setShowHabit] = useState(false);
-  const [showSedekah, setShowSedekah] = useState(false);
-  const [showOlahraga, setShowOlahraga] = useState(false);
-  const [showRamadhanDashboard, setShowRamadhanDashboard] = useState(false);
+  const [showIbadahHub, setShowIbadahHub] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -124,17 +118,8 @@ const Index = () => {
       case 'quran':
         setShowQuran(true);
         break;
-      case 'habit':
-        setShowHabit(true);
-        break;
-      case 'sedekah':
-        setShowSedekah(true);
-        break;
-      case 'olahraga':
-        setShowOlahraga(true);
-        break;
-      case 'ramadhan':
-        setShowRamadhanDashboard(true);
+      case 'ibadah':
+        setShowIbadahHub(true);
         break;
       default:
         break;
@@ -142,80 +127,27 @@ const Index = () => {
   };
 
   const renderView = () => {
-    // Show Ramadhan Dashboard
-    if (showRamadhanDashboard) {
+    // Show Ibadah Hub (combined Ibadah, Sedekah, Olahraga, Ramadhan)
+    if (showIbadahHub) {
       return (
         <div className="min-h-screen bg-background">
           <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
             <button 
-              onClick={() => setShowRamadhanDashboard(false)}
+              onClick={() => setShowIbadahHub(false)}
               className="p-2 rounded-full hover:bg-muted"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <h2 className="font-bold text-lg">Dashboard Ramadhan</h2>
+            <h2 className="font-bold text-lg">Ibadah & Tracking</h2>
           </div>
-          <RamadhanDashboard />
-        </div>
-      );
-    }
-
-    // Show Olahraga View
-    if (showOlahraga) {
-      return (
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowOlahraga(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="font-bold text-lg">Habit Olahraga Ramadhan</h2>
-          </div>
-          <OlahragaView />
-        </div>
-      );
-    }
-
-    // Show Sedekah View
-    if (showSedekah) {
-      return (
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowSedekah(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="font-bold text-lg">Habit Sedekah</h2>
-          </div>
-          <SedekahView />
-        </div>
-      );
-    }
-
-    // Show Habit Ibadah
-    if (showHabit) {
-      return (
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowHabit(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="font-bold text-lg">Habit Ibadah</h2>
-          </div>
-          <HabitView onOpenTasbih={() => {
-            setShowHabit(false);
+          <IbadahHubView onOpenTasbih={() => {
+            setShowIbadahHub(false);
             setIsTasbihOpen(true);
           }} />
         </div>
       );
     }
+
     // Show Al-Quran Reader
     if (showQuran) {
       return <QuranView onBack={() => setShowQuran(false)} />;
@@ -375,7 +307,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showHabit && !showSedekah && !showOlahraga && !showRamadhanDashboard && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showIbadahHub && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
