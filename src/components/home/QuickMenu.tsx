@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 const menuItems = [
-  { id: 'ibadah', label: 'Ibadah', icon: Flame, color: 'text-primary', audioLabel: 'Habit Ibadah & Tracking', isHighlight: true, highlightColor: 'primary' },
+  { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
