@@ -558,6 +558,48 @@ export type Database = {
           },
         ]
       }
+      dzikir_types: {
+        Row: {
+          category: string | null
+          created_at: string
+          default_target: number | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          name_arabic: string | null
+          priority: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          default_target?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          name_arabic?: string | null
+          priority?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          default_target?: number | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          name_arabic?: string | null
+          priority?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercise_types: {
         Row: {
           created_at: string
@@ -1934,6 +1976,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quran_surahs: {
+        Row: {
+          created_at: string
+          id: number
+          juz_start: number | null
+          name: string
+          name_arabic: string
+          number: number
+          total_verses: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          juz_start?: number | null
+          name: string
+          name_arabic: string
+          number: number
+          total_verses: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          juz_start?: number | null
+          name?: string
+          name_arabic?: string
+          number?: number
+          total_verses?: number
+        }
+        Relationships: []
+      }
       sedekah_types: {
         Row: {
           category: string
@@ -2212,6 +2284,53 @@ export type Database = {
         }
         Relationships: []
       }
+      user_dzikir_logs: {
+        Row: {
+          completed_at: string | null
+          count: number
+          created_at: string
+          dzikir_type_id: string | null
+          id: string
+          log_date: string
+          session_id: string | null
+          target_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          count?: number
+          created_at?: string
+          dzikir_type_id?: string | null
+          id?: string
+          log_date?: string
+          session_id?: string | null
+          target_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          count?: number
+          created_at?: string
+          dzikir_type_id?: string | null
+          id?: string
+          log_date?: string
+          session_id?: string | null
+          target_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dzikir_logs_dzikir_type_id_fkey"
+            columns: ["dzikir_type_id"]
+            isOneToOne: false
+            referencedRelation: "dzikir_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_exercise_logs: {
         Row: {
           created_at: string
@@ -2350,6 +2469,99 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_meal_logs: {
+        Row: {
+          carb_source: string | null
+          created_at: string
+          fruits: string | null
+          id: string
+          is_healthy: boolean | null
+          is_skipped: boolean | null
+          log_date: string
+          meal_type: string
+          notes: string | null
+          protein_source: string | null
+          updated_at: string
+          user_id: string
+          vegetables: string | null
+          water_glasses: number | null
+        }
+        Insert: {
+          carb_source?: string | null
+          created_at?: string
+          fruits?: string | null
+          id?: string
+          is_healthy?: boolean | null
+          is_skipped?: boolean | null
+          log_date?: string
+          meal_type: string
+          notes?: string | null
+          protein_source?: string | null
+          updated_at?: string
+          user_id: string
+          vegetables?: string | null
+          water_glasses?: number | null
+        }
+        Update: {
+          carb_source?: string | null
+          created_at?: string
+          fruits?: string | null
+          id?: string
+          is_healthy?: boolean | null
+          is_skipped?: boolean | null
+          log_date?: string
+          meal_type?: string
+          notes?: string | null
+          protein_source?: string | null
+          updated_at?: string
+          user_id?: string
+          vegetables?: string | null
+          water_glasses?: number | null
+        }
+        Relationships: []
+      }
+      user_quran_logs: {
+        Row: {
+          created_at: string
+          end_verse: number
+          id: string
+          juz_number: number | null
+          log_date: string
+          notes: string | null
+          pages_read: number | null
+          start_verse: number
+          surah_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_verse: number
+          id?: string
+          juz_number?: number | null
+          log_date?: string
+          notes?: string | null
+          pages_read?: number | null
+          start_verse?: number
+          surah_number: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_verse?: number
+          id?: string
+          juz_number?: number | null
+          log_date?: string
+          notes?: string | null
+          pages_read?: number | null
+          start_verse?: number
+          surah_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_ramadan_settings: {
         Row: {

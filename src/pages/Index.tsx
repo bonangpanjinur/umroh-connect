@@ -209,7 +209,10 @@ const Index = () => {
             </button>
             <h2 className="font-bold text-lg">Habit Ibadah</h2>
           </div>
-          <HabitView />
+          <HabitView onOpenTasbih={() => {
+            setShowHabit(false);
+            setIsTasbihOpen(true);
+          }} />
         </div>
       );
     }
