@@ -99,11 +99,21 @@ export const PaymentGatewaySettings = () => {
 
   const handleSaveQris = async () => {
     try {
+      // IMPORTANT: Toggle QRIS ada di payment_gateway.paymentMethods.
+      // Jika user menekan "Simpan QRIS", kita harus menyimpan:
+      // 1) URL QRIS (qris_image_url)
+      // 2) Konfigurasi metode pembayaran (payment_gateway) agar toggle tidak balik lagi.
+      await updateSetting.mutateAsync({
+        key: 'payment_gateway',
+        value: config,
+      });
+
       await updateSetting.mutateAsync({
         key: 'qris_image_url',
-        value: { url: qrisImageUrl }
+        value: { url: qrisImageUrl },
       });
-      toast.success('QRIS berhasil disimpan');
+
+      toast.success('QRIS & metode pembayaran berhasil disimpan');
     } catch (error) {
       toast.error('Gagal menyimpan QRIS');
     }
