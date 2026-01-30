@@ -147,6 +147,59 @@ export const useLocalHabitLogs = () => {
     updateStreak(habitId, today);
   }, []);
 
+  const incrementHabit = useCallback((habitId: string, targetCount: number = 1) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const allLogs = getLogs();
+    const existingIndex = allLogs.findIndex(l => l.habitId === habitId && l.date === today);
+    
+    let updatedLogs: HabitLog[];
+    
+    if (existingIndex >= 0) {
+      const existing = allLogs[existingIndex];
+      const newCount = Math.min(existing.completedCount + 1, targetCount);
+      updatedLogs = [...allLogs];
+      updatedLogs[existingIndex] = {
+        ...existing,
+        completedCount: newCount,
+        isCompleted: newCount >= targetCount,
+        timestamp: Date.now(),
+      };
+    } else {
+      updatedLogs = [...allLogs, {
+        habitId,
+        date: today,
+        completedCount: 1,
+        isCompleted: targetCount === 1,
+        timestamp: Date.now(),
+      }];
+    }
+    
+    localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(updatedLogs));
+    setLogs(updatedLogs);
+    updateStreak(habitId, today);
+  }, []);
+
+  const decrementHabit = useCallback((habitId: string) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const allLogs = getLogs();
+    const existingIndex = allLogs.findIndex(l => l.habitId === habitId && l.date === today);
+    
+    if (existingIndex >= 0) {
+      const existing = allLogs[existingIndex];
+      const newCount = Math.max(existing.completedCount - 1, 0);
+      const updatedLogs = [...allLogs];
+      updatedLogs[existingIndex] = {
+        ...existing,
+        completedCount: newCount,
+        isCompleted: false,
+        timestamp: Date.now(),
+      };
+      
+      localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(updatedLogs));
+      setLogs(updatedLogs);
+    }
+  }, []);
+
   const resetHabit = useCallback((habitId: string) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const allLogs = getLogs();
@@ -155,7 +208,7 @@ export const useLocalHabitLogs = () => {
     setLogs(updatedLogs);
   }, []);
 
-  return { logs, getTodayLog, getAllTodayLogs, toggleHabit, resetHabit };
+  return { logs, getTodayLog, getAllTodayLogs, toggleHabit, incrementHabit, decrementHabit, resetHabit };
 };
 
 const updateStreak = (habitId: string, completedDate: string) => {

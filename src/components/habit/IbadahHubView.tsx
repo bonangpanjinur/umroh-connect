@@ -374,6 +374,7 @@ const IbadahSubTabs = ({
               onAddHabit={onAddHabit}
               onRemoveHabit={onRemoveHabit}
               onShowLibrary={onShowLibrary}
+              onOpenTasbih={onOpenTasbih}
             />
           </motion.div>
         )}
