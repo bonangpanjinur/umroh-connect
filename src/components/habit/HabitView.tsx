@@ -47,13 +47,14 @@ const categoryLabels: Record<string, string> = {
 
 interface HabitViewProps {
   onOpenTasbih?: () => void;
+  isRamadhanMode?: boolean;
 }
 
-export const HabitView = ({ onOpenTasbih }: HabitViewProps) => {
+export const HabitView = ({ onOpenTasbih, isRamadhanMode = true }: HabitViewProps) => {
   const { user } = useAuthContext();
   const [mainTab, setMainTab] = useState('ibadah');
   const [activeTab, setActiveTab] = useState('semua');
-  const [showRamadan, setShowRamadan] = useState(true);
+  const [showRamadan, setShowRamadan] = useState(isRamadhanMode);
   
   const { data: habits, isLoading } = useHabitsWithProgress(user?.id, showRamadan);
   const { data: stats } = useIbadahStats(user?.id);

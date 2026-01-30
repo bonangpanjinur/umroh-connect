@@ -1,12 +1,9 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book, Flame, Sparkles, Heart, Activity, Moon } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book, Flame, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 const menuItems = [
-  { id: 'ramadhan', label: 'Ramadhan', icon: Moon, color: 'text-purple-600', audioLabel: 'Dashboard Ramadhan', isHighlight: true, highlightColor: 'purple' },
-  { id: 'habit', label: 'Ibadah', icon: Flame, color: 'text-primary', audioLabel: 'Habit Ibadah Harian', isHighlight: true, highlightColor: 'primary' },
-  { id: 'sedekah', label: 'Sedekah', icon: Heart, color: 'text-emerald-500', audioLabel: 'Habit Sedekah', isHighlight: true, highlightColor: 'emerald' },
-  { id: 'olahraga', label: 'Olahraga', icon: Activity, color: 'text-blue-500', audioLabel: 'Habit Olahraga Ramadhan', isHighlight: true, highlightColor: 'blue' },
+  { id: 'ibadah', label: 'Ibadah', icon: Flame, color: 'text-primary', audioLabel: 'Habit Ibadah & Tracking', isHighlight: true, highlightColor: 'primary' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
