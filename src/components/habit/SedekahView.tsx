@@ -335,14 +335,24 @@ export const SedekahView = () => {
         </div>
       </div>
 
-      {/* Add Modal */}
+      {/* Add Modal - Improved UX */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Catat Sedekah</DialogTitle>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="p-4 pb-2 border-b sticky top-0 bg-background z-10">
+            <div className="flex items-center justify-between">
+              <DialogTitle>Catat Sedekah</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAddModal(false)}
+                className="h-8 w-8 rounded-full"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Jenis Sedekah</label>
               <div className="grid grid-cols-2 gap-2">
@@ -353,11 +363,11 @@ export const SedekahView = () => {
                     <Button
                       key={type.id}
                       variant={isSelected ? "default" : "outline"}
-                      className={`justify-start h-auto py-2 ${isSelected ? 'bg-emerald-500' : ''}`}
+                      className={`justify-start h-auto py-2.5 ${isSelected ? 'bg-emerald-500' : ''}`}
                       onClick={() => setSelectedType(type.id)}
                     >
-                      <Icon className="w-4 h-4 mr-2" />
-                      <span className="text-sm">{type.name}</span>
+                      <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                      <span className="text-sm truncate">{type.name}</span>
                     </Button>
                   );
                 })}
@@ -397,7 +407,10 @@ export const SedekahView = () => {
                 Sedekah Subuh
               </label>
             </div>
-            
+          </div>
+          
+          {/* Sticky Footer */}
+          <div className="p-4 border-t bg-background sticky bottom-0">
             <Button 
               className="w-full bg-emerald-500 hover:bg-emerald-600"
               onClick={handleAdd}
