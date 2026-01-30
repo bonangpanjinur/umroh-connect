@@ -3,12 +3,11 @@ import { motion } from 'framer-motion';
 import {
   Crown, Building2, Smartphone, QrCode, Upload,
   CheckCircle2, Star, Zap, Shield, Cloud,
-  Clock, Check
+  Clock, Check, ExternalLink, Loader2, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Dialog,
@@ -21,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateSubscription, useSubscriptionPlans } from '@/hooks/usePremiumSubscription';
 import { usePlatformSettings } from '@/hooks/useAdminData';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface PremiumPaymentModalProps {
   open: boolean;
@@ -34,12 +34,29 @@ const premiumFeatures = [
   { icon: Shield, label: 'Backup Otomatis', description: 'Data aman tersimpan' },
 ];
 
+// Declare Midtrans Snap type
+declare global {
+  interface Window {
+    snap?: {
+      pay: (token: string, options: {
+        onSuccess?: (result: any) => void;
+        onPending?: (result: any) => void;
+        onError?: (result: any) => void;
+        onClose?: () => void;
+      }) => void;
+    };
+  }
+}
+
 export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) => {
   const { toast } = useToast();
-  const [step, setStep] = useState<'info' | 'payment'>('info');
+  const { user, profile } = useAuthContext();
+  const [step, setStep] = useState<'info' | 'payment' | 'processing' | 'gateway'>('info');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
 
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
   const { data: platformSettings, isLoading: settingsLoading } = usePlatformSettings();
@@ -50,14 +67,32 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
   const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
 
+  const provider = paymentGateway?.provider || 'manual';
+  const isGatewayEnabled = provider !== 'manual';
   const enabledPaymentMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
-  
-  // Auto-select first payment method if none selected
+
+  // Load Midtrans Snap script if provider is midtrans
   useEffect(() => {
-    if (enabledPaymentMethods.length > 0 && !selectedPaymentMethod) {
+    if (provider === 'midtrans' && paymentGateway?.isTestMode !== undefined) {
+      const existingScript = document.getElementById('midtrans-snap');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'midtrans-snap';
+        script.src = paymentGateway.isTestMode 
+          ? 'https://app.sandbox.midtrans.com/snap/snap.js'
+          : 'https://app.midtrans.com/snap/snap.js';
+        script.setAttribute('data-client-key', paymentGateway.apiKey || '');
+        document.head.appendChild(script);
+      }
+    }
+  }, [provider, paymentGateway]);
+
+  // Auto-select first payment method if none selected (for manual mode)
+  useEffect(() => {
+    if (!isGatewayEnabled && enabledPaymentMethods.length > 0 && !selectedPaymentMethod) {
       setSelectedPaymentMethod(enabledPaymentMethods[0].id);
     }
-  }, [enabledPaymentMethods, selectedPaymentMethod]);
+  }, [enabledPaymentMethods, selectedPaymentMethod, isGatewayEnabled]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -97,7 +132,90 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
     }
   };
 
-  const handleSubmit = async () => {
+  // Handle gateway payment (Midtrans/Xendit)
+  const handleGatewayPayment = async () => {
+    if (!activePlan || !user) return;
+
+    setIsProcessing(true);
+    setStep('processing');
+
+    try {
+      const orderId = `PREMIUM-${Date.now()}-${user.id.substring(0, 8)}`;
+      
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: activePlan.price_yearly,
+          order_id: orderId,
+          customer_name: profile?.full_name || user.email?.split('@')[0] || 'User',
+          customer_email: user.email || '',
+          customer_phone: profile?.phone || '',
+          item_name: `Premium Tracker - ${activePlan.name}`,
+          payment_type: 'premium_subscription'
+        }
+      });
+
+      if (error) throw error;
+
+      console.log('Payment response:', data);
+
+      if (data.provider === 'midtrans' && data.token) {
+        // Use Midtrans Snap popup
+        if (window.snap) {
+          window.snap.pay(data.token, {
+            onSuccess: async (result) => {
+              console.log('Payment success:', result);
+              // Create subscription with auto-verified status
+              await createSubscription.mutateAsync({
+                planId: activePlan.id,
+                paymentProofUrl: `midtrans:${result.order_id}`,
+                paymentAmount: activePlan.price_yearly,
+              });
+              toast({ title: 'Pembayaran berhasil!', description: 'Premium aktif sekarang' });
+              onOpenChange(false);
+            },
+            onPending: (result) => {
+              console.log('Payment pending:', result);
+              toast({ title: 'Menunggu pembayaran', description: 'Silakan selesaikan pembayaran Anda' });
+              setStep('info');
+            },
+            onError: (result) => {
+              console.error('Payment error:', result);
+              toast({ title: 'Pembayaran gagal', variant: 'destructive' });
+              setStep('info');
+            },
+            onClose: () => {
+              setStep('info');
+            }
+          });
+        } else {
+          // Fallback to redirect URL
+          if (data.redirect_url) {
+            setPaymentUrl(data.redirect_url);
+            setStep('gateway');
+          }
+        }
+      } else if (data.provider === 'xendit' && data.invoice_url) {
+        // Redirect to Xendit invoice
+        setPaymentUrl(data.invoice_url);
+        setStep('gateway');
+      } else {
+        throw new Error('Invalid payment response');
+      }
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: 'Gagal membuat pembayaran',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setStep('info');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle manual payment submission
+  const handleManualSubmit = async () => {
     if (!paymentProofUrl || !activePlan) {
       toast({
         title: 'Bukti transfer diperlukan',
@@ -130,17 +248,21 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-amber-500" />
-            {step === 'info' ? 'Upgrade ke Premium' : 'Pembayaran'}
+            {step === 'info' && 'Upgrade ke Premium'}
+            {step === 'payment' && 'Pembayaran Manual'}
+            {step === 'processing' && 'Memproses...'}
+            {step === 'gateway' && 'Pembayaran Online'}
           </DialogTitle>
           <DialogDescription>
-            {step === 'info' 
-              ? 'Nikmati fitur lengkap untuk tracking ibadah Anda'
-              : 'Selesaikan pembayaran untuk mengaktifkan Premium'
-            }
+            {step === 'info' && 'Nikmati fitur lengkap untuk tracking ibadah Anda'}
+            {step === 'payment' && 'Transfer manual dan upload bukti pembayaran'}
+            {step === 'processing' && 'Sedang menyiapkan pembayaran...'}
+            {step === 'gateway' && 'Lanjutkan pembayaran di halaman berikut'}
           </DialogDescription>
         </DialogHeader>
 
-        {step === 'info' ? (
+        {/* Info Step */}
+        {step === 'info' && (
           <div className="space-y-4">
             {/* Premium Card */}
             <motion.div
@@ -187,26 +309,101 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
               ))}
             </div>
 
-            <Button
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-              size="lg"
-              onClick={() => setStep('payment')}
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              Lanjut ke Pembayaran
-            </Button>
+            {/* Payment Buttons */}
+            <div className="space-y-2">
+              {isGatewayEnabled && (
+                <Button
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  size="lg"
+                  onClick={handleGatewayPayment}
+                  disabled={isProcessing}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
+                </Button>
+              )}
+              
+              {!isGatewayEnabled ? (
+                <Button
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  size="lg"
+                  onClick={() => setStep('payment')}
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Lanjut ke Pembayaran
+                </Button>
+              ) : enabledPaymentMethods.length > 0 && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setStep('payment')}
+                >
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Transfer Manual
+                </Button>
+              )}
+            </div>
           </div>
-        ) : (
+        )}
+
+        {/* Processing Step */}
+        {step === 'processing' && (
+          <div className="py-12 text-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto text-amber-500" />
+            <p className="text-muted-foreground">Menyiapkan halaman pembayaran...</p>
+          </div>
+        )}
+
+        {/* Gateway Redirect Step */}
+        {step === 'gateway' && paymentUrl && (
+          <div className="space-y-4 py-4">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center">
+                <ExternalLink className="w-8 h-8 text-amber-500" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Klik tombol di bawah untuk melanjutkan pembayaran
+              </p>
+            </div>
+            
+            <Button
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500"
+              size="lg"
+              onClick={() => window.open(paymentUrl, '_blank')}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Buka Halaman Pembayaran
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setStep('info');
+                setPaymentUrl('');
+              }}
+            >
+              Kembali
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Setelah pembayaran berhasil, status akan diperbarui otomatis
+            </p>
+          </div>
+        )}
+
+        {/* Manual Payment Step */}
+        {step === 'payment' && (
           <div className="space-y-4">
             {/* Amount */}
-            <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+            <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-amber-700">Total Bayar</span>
-                <span className="text-2xl font-bold text-amber-700">
+                <span className="text-sm text-amber-700 dark:text-amber-300">Total Bayar</span>
+                <span className="text-2xl font-bold text-amber-700 dark:text-amber-300">
                   {formatCurrency(activePlan?.price_yearly || 99000)}
                 </span>
               </div>
-              <p className="text-xs text-amber-600 mt-1">Berlaku 1 tahun</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Berlaku 1 tahun</p>
             </div>
 
             {/* Payment Methods */}
@@ -289,15 +486,15 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                 <Label
                   htmlFor="premium-proof-upload"
                   className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                    paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary'
+                    paymentProofUrl ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-border hover:border-primary'
                   }`}
                 >
                   {isUploading ? (
-                    <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : paymentProofUrl ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      <span className="text-green-700">Bukti terupload</span>
+                      <span className="text-green-700 dark:text-green-300">Bukti terupload</span>
                     </>
                   ) : (
                     <>
@@ -327,11 +524,11 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
               </Button>
               <Button
                 className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500"
-                onClick={handleSubmit}
+                onClick={handleManualSubmit}
                 disabled={!paymentProofUrl || createSubscription.isPending}
               >
                 {createSubscription.isPending ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
                   <CheckCircle2 className="w-4 h-4 mr-2" />
                 )}
