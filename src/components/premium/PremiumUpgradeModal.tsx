@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useSubscriptionPlans, useCreateSubscription, useIsPremium } from '@/hooks/usePremiumSubscription';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 interface PremiumUpgradeModalProps {
@@ -35,10 +36,16 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   const { isPremium, subscription } = useIsPremium();
   const createSubscription = useCreateSubscription();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [step, setStep] = useState<'info' | 'payment' | 'upload'>('info');
   const [uploading, setUploading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<typeof plans extends (infer T)[] ? T : never>();
+
+  const handleLoginClick = () => {
+    onOpenChange(false);
+    navigate('/auth');
+  };
 
   const plan = plans?.[0]; // Get the first active plan
 
@@ -247,10 +254,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
               <div className="space-y-2">
                 <Button 
                   className="w-full" 
-                  onClick={() => {
-                    onOpenChange(false);
-                    onLoginRequired?.();
-                  }}
+                  onClick={handleLoginClick}
                 >
                   Masuk untuk Upgrade
                 </Button>
