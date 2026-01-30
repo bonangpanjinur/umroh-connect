@@ -10,7 +10,6 @@ import {
 import { DefaultHabit, HabitCategory, categoryInfo } from '@/data/defaultHabits';
 import { useLocalHabitLogs } from '@/hooks/useLocalHabitTracking';
 import { useMoodTracking, MoodLog } from '@/hooks/useMoodTracking';
-import HabitProgressCard from './HabitProgressCard';
 import MoodCheckIn from './MoodCheckIn';
 import MoodAwareHabitList from './MoodAwareHabitList';
 import DailyStats from './DailyStats';
@@ -57,6 +56,7 @@ interface TodayHabitsListProps {
   onAddHabit: (habit: DefaultHabit) => void;
   onRemoveHabit: (habitId: string) => void;
   onShowLibrary: () => void;
+  onOpenTasbih?: () => void;
 }
 
 export const TodayHabitsList = ({ 
@@ -67,6 +67,7 @@ export const TodayHabitsList = ({
   onAddHabit,
   onRemoveHabit,
   onShowLibrary,
+  onOpenTasbih,
 }: TodayHabitsListProps) => {
   const [viewMode, setViewMode] = useState<'smart' | 'category'>('smart');
   const { todayMood } = useMoodTracking();
@@ -182,6 +183,7 @@ export const TodayHabitsList = ({
               energyLevel={currentMood.energyLevel}
               currentMood={currentMood.mood}
               onShowLibrary={onShowLibrary}
+              onOpenTasbih={onOpenTasbih}
             />
           </motion.div>
         ) : (
