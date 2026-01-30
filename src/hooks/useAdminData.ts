@@ -336,21 +336,40 @@ export const usePlatformSettings = () => {
   });
 };
 
-// Update platform setting
+// Update platform setting (upsert if not exists)
 export const useUpdatePlatformSetting = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: Record<string, any> }) => {
-      const { data, error } = await supabase
+      // Try update first
+      const { data: existing } = await supabase
         .from('platform_settings')
-        .update({ value })
+        .select('*')
         .eq('key', key)
-        .select()
         .single();
-      
-      if (error) throw error;
-      return data;
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from('platform_settings')
+          .update({ value })
+          .eq('key', key)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert new setting
+        const { data, error } = await supabase
+          .from('platform_settings')
+          .insert({ key, value, description: `Setting for ${key}` })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
