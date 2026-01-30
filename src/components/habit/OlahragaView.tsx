@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { 
   Activity, Footprints, Dumbbell, Bike, Waves, Moon, Sunset,
-  Plus, TrendingUp, Trash2, Clock, Flame, AlertTriangle
+  Plus, TrendingUp, Trash2, Clock, Flame, AlertTriangle, X
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { 
@@ -53,7 +52,11 @@ const timeLabels: Record<string, string> = {
   kapan_saja: '⏰ Kapan Saja',
 };
 
-export const OlahragaView = () => {
+interface OlahragaViewProps {
+  isRamadhanMode?: boolean;
+}
+
+export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
   const { user } = useAuthContext();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
@@ -347,14 +350,24 @@ export const OlahragaView = () => {
         </div>
       </div>
 
-      {/* Add Modal */}
+      {/* Add Modal - Improved UX */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Catat Olahraga</DialogTitle>
+        <DialogContent className="max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="p-4 pb-2 border-b sticky top-0 bg-background z-10">
+            <div className="flex items-center justify-between">
+              <DialogTitle>Catat Olahraga</DialogTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAddModal(false)}
+                className="h-8 w-8 rounded-full"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Jenis Olahraga</label>
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
@@ -365,14 +378,14 @@ export const OlahragaView = () => {
                     <Button
                       key={type.id}
                       variant={isSelected ? "default" : "outline"}
-                      className={`justify-start h-auto py-2 ${isSelected ? 'bg-blue-500' : ''}`}
+                      className={`justify-start h-auto py-2.5 ${isSelected ? 'bg-blue-500' : ''}`}
                       onClick={() => {
                         setSelectedType(type.id);
                         setDuration(type.duration_minutes);
                         setIntensity(type.intensity);
                       }}
                     >
-                      <Icon className="w-4 h-4 mr-2" />
+                      <Icon className="w-4 h-4 mr-2 flex-shrink-0" />
                       <span className="text-sm truncate">{type.name}</span>
                     </Button>
                   );
@@ -408,23 +421,28 @@ export const OlahragaView = () => {
               </div>
             </div>
             
-            <div>
-              <label className="text-sm font-medium mb-2 block">Waktu</label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(timeLabels).map(([key, label]) => (
-                  <Button
-                    key={key}
-                    variant={timeOfDay === key ? "default" : "outline"}
-                    size="sm"
-                    className={`text-xs ${timeOfDay === key ? 'bg-blue-500' : ''}`}
-                    onClick={() => setTimeOfDay(key)}
-                  >
-                    {label}
-                  </Button>
-                ))}
+            {isRamadhanMode && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Waktu</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(timeLabels).map(([key, label]) => (
+                    <Button
+                      key={key}
+                      variant={timeOfDay === key ? "default" : "outline"}
+                      size="sm"
+                      className={`text-xs ${timeOfDay === key ? 'bg-blue-500' : ''}`}
+                      onClick={() => setTimeOfDay(key)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
-            
+            )}
+          </div>
+          
+          {/* Sticky Footer */}
+          <div className="p-4 border-t bg-background sticky bottom-0">
             <Button 
               className="w-full bg-blue-500 hover:bg-blue-600"
               onClick={handleAdd}
