@@ -24,6 +24,7 @@ import CurrencyConverter from '@/components/currency/CurrencyConverter';
 import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
+import HabitView from '@/components/habit/HabitView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackButton from '@/components/feedback/FeedbackButton';
 import { FeatureLock } from '@/components/common/FeatureLock';
@@ -48,6 +49,7 @@ const Index = () => {
   const [showTracking, setShowTracking] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
   const [showQuran, setShowQuran] = useState(false);
+  const [showHabit, setShowHabit] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -116,12 +118,32 @@ const Index = () => {
       case 'quran':
         setShowQuran(true);
         break;
+      case 'habit':
+        setShowHabit(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Habit Ibadah
+    if (showHabit) {
+      return (
+        <div className="min-h-screen bg-background">
+          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+            <button 
+              onClick={() => setShowHabit(false)}
+              className="p-2 rounded-full hover:bg-muted"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="font-bold text-lg">Habit Ibadah</h2>
+          </div>
+          <HabitView />
+        </div>
+      );
+    }
     // Show Al-Quran Reader
     if (showQuran) {
       return <QuranView onBack={() => setShowQuran(false)} />;
@@ -281,7 +303,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showHabit && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         

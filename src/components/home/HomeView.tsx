@@ -35,15 +35,6 @@ const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
         </div>
       )}
       
-      {/* Countdown Timer - only show for users with active booking */}
-      {user && hasActiveBooking && (
-        <div className="px-4">
-          <DepartureCountdown 
-            onNotificationClick={() => onMenuClick?.('notifikasi')} 
-          />
-        </div>
-      )}
-      
       <PromoBanner />
       <FeaturedPackages onPackageClick={onPackageClick} />
       <QuickMenu onMenuClick={onMenuClick} />
