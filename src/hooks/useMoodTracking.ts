@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { DefaultHabit, allHabitsByCategory, HabitCategory } from '@/data/defaultHabits';
 
 const MOOD_STORAGE_KEY = 'habit_mood_logs';
+const MOOD_UPDATED_EVENT = 'mood_updated';
 
 export interface MoodLog {
   id: string;
@@ -90,11 +91,7 @@ export const useMoodTracking = () => {
   const [moodHistory, setMoodHistory] = useState<MoodLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadMoodData();
-  }, []);
-
-  const loadMoodData = () => {
+  const loadMoodData = useCallback(() => {
     const stored = localStorage.getItem(MOOD_STORAGE_KEY);
     if (stored) {
       const logs: MoodLog[] = JSON.parse(stored);
@@ -104,10 +101,40 @@ export const useMoodTracking = () => {
       const todayLog = logs.find(l => l.date === today);
       if (todayLog) {
         setTodayMood(todayLog);
+      } else {
+        setTodayMood(null);
       }
+    } else {
+      setMoodHistory([]);
+      setTodayMood(null);
     }
     setIsLoading(false);
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    loadMoodData();
+  }, [loadMoodData]);
+
+  // Keep multiple hook instances in sync (same page/tab)
+  // NOTE: "storage" event does NOT fire in the same tab that writes to localStorage,
+  // so we dispatch a custom event too.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === MOOD_STORAGE_KEY) loadMoodData();
+    };
+
+    const onMoodUpdated = () => {
+      loadMoodData();
+    };
+
+    window.addEventListener('storage', onStorage);
+    window.addEventListener(MOOD_UPDATED_EVENT, onMoodUpdated as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(MOOD_UPDATED_EVENT, onMoodUpdated as EventListener);
+    };
+  }, [loadMoodData]);
 
   const saveMood = useCallback((moodData: Omit<MoodLog, 'id' | 'date' | 'timestamp'>) => {
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -132,6 +159,13 @@ export const useMoodTracking = () => {
     localStorage.setItem(MOOD_STORAGE_KEY, JSON.stringify(logs));
     setTodayMood(newLog);
     setMoodHistory(logs);
+
+    // Notify other components using the hook within the same tab
+    try {
+      window.dispatchEvent(new Event(MOOD_UPDATED_EVENT));
+    } catch {
+      // ignore
+    }
     
     return newLog;
   }, []);
