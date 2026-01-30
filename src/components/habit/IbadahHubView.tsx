@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Flame, Moon, Sparkles, Crown, Zap, ChevronRight, Plus,
-  BookOpen, Utensils, Heart
+  BookOpen, Utensils, Heart, BarChart3
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -16,6 +16,7 @@ import { id } from 'date-fns/locale';
 import { PremiumUpgradeModal, StorageIndicator } from '@/components/premium/PremiumUpgradeModal';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
 import { useLocalHabits, useLocalHabitStats, useLocalWeeklyProgress } from '@/hooks/useLocalHabitTracking';
+import { useMoodTracking, moodConfig, MoodType } from '@/hooks/useMoodTracking';
 import TodayHabitsList from './TodayHabitsList';
 import HabitLibrarySheet from './HabitLibrarySheet';
 import TadarusView from './TadarusView';
@@ -43,20 +44,28 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
   const { habits, addHabit, removeHabit } = useLocalHabits(isRamadhanMode);
   const stats = useLocalHabitStats();
   const weeklyProgress = useLocalWeeklyProgress();
+  const { todayMood, getMoodConfig } = useMoodTracking();
 
   // Save Ramadhan mode to localStorage
   useEffect(() => {
     localStorage.setItem('ramadhan_mode', isRamadhanMode.toString());
   }, [isRamadhanMode]);
 
+  // Get current mood config for styling
+  const currentMoodConfig = todayMood ? getMoodConfig(todayMood.mood) : null;
+
   return (
     <div className="pb-24">
-      {/* Header Stats Card */}
+      {/* Header Stats Card - Now mood-aware */}
       <div className="px-4 pt-3">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-4 text-primary-foreground"
+          className={`relative overflow-hidden rounded-2xl p-4 text-primary-foreground ${
+            currentMoodConfig 
+              ? `bg-gradient-to-br ${currentMoodConfig.bg.replace('/10', '')} from-primary via-primary/90 to-primary/70`
+              : 'bg-gradient-to-br from-primary via-primary/90 to-primary/70'
+          }`}
         >
           {/* Decorative */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -69,6 +78,11 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
                 {format(new Date(), 'EEEE, d MMM', { locale: id })}
               </span>
               <div className="flex items-center gap-2">
+                {todayMood && (
+                  <Badge className="bg-white/20 text-white text-[10px] gap-1">
+                    {currentMoodConfig?.label}
+                  </Badge>
+                )}
                 {isRamadhanMode && (
                   <Badge className="bg-amber-500/80 text-white text-[10px] gap-1">
                     <Moon className="h-3 w-3" />
@@ -92,7 +106,10 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
               </div>
             </div>
             
-            <h2 className="text-xl font-bold mb-3">Hari Ini</h2>
+            <h2 className="text-xl font-bold mb-1">Hari Ini</h2>
+            {todayMood && currentMoodConfig && (
+              <p className="text-xs opacity-80 mb-2">{currentMoodConfig.message}</p>
+            )}
             
             {/* Stats */}
             <div className="flex items-end justify-between mb-3">
