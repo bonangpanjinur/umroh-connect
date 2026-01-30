@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   ChevronRight, ChevronDown, Trophy, Clock, Flame,
-  CheckCircle2, Circle, Plus, Zap
+  CheckCircle2, Circle, Plus, Zap, Sparkles, Heart
 } from 'lucide-react';
 import { DefaultHabit, HabitCategory, categoryInfo } from '@/data/defaultHabits';
 import { useLocalHabitLogs } from '@/hooks/useLocalHabitTracking';
+import { useMoodTracking, MoodLog } from '@/hooks/useMoodTracking';
 import HabitProgressCard from './HabitProgressCard';
 import MoodCheckIn from './MoodCheckIn';
+import MoodAwareHabitList from './MoodAwareHabitList';
 import DailyStats from './DailyStats';
 import CategoryHabitCard from './CategoryHabitCard';
 
@@ -67,165 +68,121 @@ export const TodayHabitsList = ({
   onRemoveHabit,
   onShowLibrary,
 }: TodayHabitsListProps) => {
-  const [viewMode, setViewMode] = useState<'priority' | 'category'>('priority');
-  const { getTodayLog, toggleHabit } = useLocalHabitLogs();
+  const [viewMode, setViewMode] = useState<'smart' | 'category'>('smart');
+  const { todayMood } = useMoodTracking();
+  const [currentMood, setCurrentMood] = useState({
+    mood: 'neutral',
+    moodLevel: 3,
+    energyLevel: 2,
+  });
 
-  // Get habits grouped by completion status
-  const completedHabits = habits.filter(h => getTodayLog(h.id)?.isCompleted);
-  const incompleteHabits = habits.filter(h => !getTodayLog(h.id)?.isCompleted);
-  
-  // Get priority habits (first 5-7 incomplete, then completed)
-  const priorityHabits = [...incompleteHabits.slice(0, 5), ...completedHabits.slice(0, 3)];
-  
+  // Update mood state when todayMood changes
+  useEffect(() => {
+    if (todayMood) {
+      setCurrentMood({
+        mood: todayMood.mood,
+        moodLevel: todayMood.moodLevel,
+        energyLevel: todayMood.energyLevel,
+      });
+    }
+  }, [todayMood]);
+
+  const handleMoodChange = (mood: string, moodLevel: number, energyLevel: number) => {
+    setCurrentMood({ mood, moodLevel, energyLevel });
+  };
+
+  const handleMoodComplete = (moodLog: MoodLog) => {
+    setCurrentMood({
+      mood: moodLog.mood,
+      moodLevel: moodLog.moodLevel,
+      energyLevel: moodLog.energyLevel,
+    });
+  };
+
   // Group by category for category view
   const habitsByCategory = groupByCategory(habits);
   const categoryOrder: HabitCategory[] = ['spiritual', 'belajar', 'kesehatan', 'produktivitas', 'mental', 'sosial', 'finansial'];
 
-  const handleToggle = (habit: DefaultHabit) => {
-    toggleHabit(habit.id, habit.target_count || 1);
-  };
-
   return (
     <div className="space-y-4">
-      {/* Mood Check-in Card */}
+      {/* Mood Check-in Card - This is the key interactive element */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <MoodCheckIn />
-      </motion.div>
-
-      {/* Daily Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <DailyStats
-          completedToday={stats.completedToday}
-          totalHabits={stats.totalHabits}
-          currentStreak={stats.currentStreak}
-          longestStreak={stats.longestStreak}
-          weeklyRate={stats.weeklyRate}
-          weeklyProgress={weeklyProgress}
+        <MoodCheckIn 
+          onComplete={handleMoodComplete}
+          onMoodChange={handleMoodChange}
         />
       </motion.div>
 
-      {/* View Mode Toggle */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Habit Hari Ini</h3>
-        <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
-          <Button
-            variant={viewMode === 'priority' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 text-xs px-2.5"
-            onClick={() => setViewMode('priority')}
-          >
-            Prioritas
-          </Button>
-          <Button
-            variant={viewMode === 'category' ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 text-xs px-2.5"
-            onClick={() => setViewMode('category')}
-          >
-            Kategori
-          </Button>
-        </div>
-      </div>
+      {/* View Mode Toggle - Only show if mood is set */}
+      {todayMood && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center justify-between"
+        >
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Habit Hari Ini
+          </h3>
+          <div className="flex gap-1 bg-muted/50 rounded-lg p-0.5">
+            <Button
+              variant={viewMode === 'smart' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => setViewMode('smart')}
+            >
+              Smart
+            </Button>
+            <Button
+              variant={viewMode === 'category' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => setViewMode('category')}
+            >
+              Kategori
+            </Button>
+          </div>
+        </motion.div>
+      )}
 
-      {/* Habits List */}
+      {/* Habits List - Mood Aware or Category View */}
       <AnimatePresence mode="wait">
-        {viewMode === 'priority' ? (
+        {!todayMood ? (
+          // Show simple list when no mood is set
           <motion.div
-            key="priority"
+            key="simple"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="space-y-3"
           >
-            {/* Incomplete Habits - Priority Display */}
-            {incompleteHabits.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Belum Selesai ({incompleteHabits.length})
-                  </span>
-                </div>
-                {incompleteHabits.slice(0, 7).map((habit) => {
-                  const todayLog = getTodayLog(habit.id);
-                  return (
-                    <HabitProgressCard
-                      key={habit.id}
-                      habit={habit}
-                      currentCount={todayLog?.completedCount || 0}
-                      isCompleted={false}
-                      onToggle={() => handleToggle(habit)}
-                    />
-                  );
-                })}
-                {incompleteHabits.length > 7 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-xs text-muted-foreground"
-                    onClick={() => setViewMode('category')}
-                  >
-                    +{incompleteHabits.length - 7} habit lainnya
-                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {/* Completed Habits - Compact Display */}
-            {completedHabits.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Selesai ({completedHabits.length})
-                  </span>
-                </div>
-                <Card className="bg-primary/5 border-primary/20">
-                  <CardContent className="p-2.5 flex flex-wrap gap-1.5">
-                    {completedHabits.map((habit) => (
-                      <Badge 
-                        key={habit.id}
-                        variant="secondary"
-                        className="text-xs bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer"
-                        onClick={() => handleToggle(habit)}
-                      >
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        {habit.name}
-                      </Badge>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {habits.length === 0 && (
-              <Card className="border-dashed">
-                <CardContent className="py-8 text-center">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
-                    <Plus className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">Belum ada habit</p>
-                  <p className="text-xs text-muted-foreground mt-1">Tambah habit untuk mulai tracking</p>
-                  <Button
-                    size="sm"
-                    className="mt-4"
-                    onClick={onShowLibrary}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Habit
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <Card className="border-dashed border-muted-foreground/30">
+              <CardContent className="p-4 text-center">
+                <Heart className="w-8 h-8 mx-auto mb-2 text-rose-400" />
+                <p className="text-sm font-medium">Isi mood dulu yuk!</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Habit akan disesuaikan dengan perasaanmu
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : viewMode === 'smart' ? (
+          <motion.div
+            key="smart"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <MoodAwareHabitList
+              habits={habits}
+              moodLevel={currentMood.moodLevel}
+              energyLevel={currentMood.energyLevel}
+              currentMood={currentMood.mood}
+              onShowLibrary={onShowLibrary}
+            />
           </motion.div>
         ) : (
           <motion.div
@@ -250,24 +207,42 @@ export const TodayHabitsList = ({
                 />
               );
             })}
+            
+            {/* Manage Habits Button for category view */}
+            <Button
+              variant="outline"
+              className="w-full h-11 justify-between text-sm"
+              onClick={onShowLibrary}
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Kelola Habit
+              </span>
+              <Badge variant="secondary" className="text-xs">
+                {habits.length} aktif
+              </Badge>
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Quick Add Button */}
-      <Button
-        variant="outline"
-        className="w-full h-11 justify-between text-sm"
-        onClick={onShowLibrary}
-      >
-        <span className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Kelola Habit
-        </span>
-        <Badge variant="secondary" className="text-xs">
-          {habits.length} aktif
-        </Badge>
-      </Button>
+      {/* Daily Stats - Only show when mood is set */}
+      {todayMood && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <DailyStats
+            completedToday={stats.completedToday}
+            totalHabits={stats.totalHabits}
+            currentStreak={stats.currentStreak}
+            longestStreak={stats.longestStreak}
+            weeklyRate={stats.weeklyRate}
+            weeklyProgress={weeklyProgress}
+          />
+        </motion.div>
+      )}
     </div>
   );
 };
