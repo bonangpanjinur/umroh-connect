@@ -994,6 +994,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ibadah_habits: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_ramadan_specific: boolean | null
+          name: string
+          name_arabic: string | null
+          priority: number | null
+          target_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_ramadan_specific?: boolean | null
+          name: string
+          name_arabic?: string | null
+          priority?: number | null
+          target_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_ramadan_specific?: boolean | null
+          name?: string
+          name_arabic?: string | null
+          priority?: number | null
+          target_count?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       important_locations: {
         Row: {
           address: string | null
@@ -2040,6 +2085,140 @@ export type Database = {
             columns: ["checklist_id"]
             isOneToOne: false
             referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_custom_habits: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          target_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          target_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          target_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_ibadah_logs: {
+        Row: {
+          completed_count: number | null
+          created_at: string
+          habit_id: string
+          id: string
+          is_completed: boolean | null
+          log_date: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_count?: number | null
+          created_at?: string
+          habit_id: string
+          id?: string
+          is_completed?: boolean | null
+          log_date?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_count?: number | null
+          created_at?: string
+          habit_id?: string
+          id?: string
+          is_completed?: boolean | null
+          log_date?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ibadah_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "ibadah_habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_ibadah_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          custom_habit_id: string | null
+          habit_id: string | null
+          id: string
+          last_completed_date: string | null
+          longest_streak: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          custom_habit_id?: string | null
+          habit_id?: string | null
+          id?: string
+          last_completed_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          custom_habit_id?: string | null
+          habit_id?: string | null
+          id?: string
+          last_completed_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ibadah_streaks_custom_habit_id_fkey"
+            columns: ["custom_habit_id"]
+            isOneToOne: false
+            referencedRelation: "user_custom_habits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ibadah_streaks_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "ibadah_habits"
             referencedColumns: ["id"]
           },
         ]
