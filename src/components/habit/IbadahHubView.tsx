@@ -6,21 +6,26 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Flame, Heart, Activity, Moon, Sparkles, ArrowRight, Settings
+  Flame, Heart, Activity, Moon, Sparkles, ArrowRight, Crown, Smartphone, Cloud
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import HabitView from './HabitView';
 import SedekahView from './SedekahView';
 import OlahragaView from './OlahragaView';
 import RamadhanDashboard from './RamadhanDashboard';
+import { PremiumUpgradeModal, StorageIndicator } from '@/components/premium/PremiumUpgradeModal';
+import { useIsPremium } from '@/hooks/usePremiumSubscription';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
+  onNavigateToAuth?: () => void;
 }
 
-export const IbadahHubView = ({ onOpenTasbih }: IbadahHubViewProps) => {
+export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewProps) => {
   const { user } = useAuthContext();
+  const { isPremium } = useIsPremium();
   const [activeTab, setActiveTab] = useState('ibadah');
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [isRamadhanMode, setIsRamadhanMode] = useState(() => {
     // Load from localStorage
     const saved = localStorage.getItem('ramadhan_mode');
@@ -32,26 +37,35 @@ export const IbadahHubView = ({ onOpenTasbih }: IbadahHubViewProps) => {
     localStorage.setItem('ramadhan_mode', isRamadhanMode.toString());
   }, [isRamadhanMode]);
 
-  if (!user) {
-    return (
-      <div className="p-4 text-center">
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <Sparkles className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Masuk untuk Melacak Ibadah</h3>
-            <p className="text-muted-foreground text-sm">
-              Login untuk mulai tracking ibadah, sedekah, dan olahraga Anda
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // No login required - anyone can use the features
 
   return (
     <div className="pb-24">
+      {/* Storage Status & Premium Upgrade */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center justify-between">
+          <StorageIndicator onUpgrade={() => setShowPremiumModal(true)} />
+          {isPremium ? (
+            <Badge className="bg-gradient-to-r from-yellow-400 to-amber-500 text-white gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs gap-1 text-primary"
+              onClick={() => setShowPremiumModal(true)}
+            >
+              <Sparkles className="h-3 w-3" />
+              Upgrade
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Ramadhan Mode Toggle */}
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 pt-2 pb-2">
         <Card className={`transition-all duration-300 ${
           isRamadhanMode 
             ? 'bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-300 dark:border-purple-700' 
@@ -90,6 +104,13 @@ export const IbadahHubView = ({ onOpenTasbih }: IbadahHubViewProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Premium Upgrade Modal */}
+      <PremiumUpgradeModal 
+        open={showPremiumModal} 
+        onOpenChange={setShowPremiumModal}
+        onLoginRequired={onNavigateToAuth}
+      />
 
       {/* Ramadhan Dashboard (only when mode is active) */}
       {isRamadhanMode && (
