@@ -19,7 +19,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateSubscription, useSubscriptionPlans } from '@/hooks/usePremiumSubscription';
-import { usePlatformSettings } from '@/hooks/useAdminData';
+import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 interface PremiumPaymentModalProps {
@@ -59,33 +59,34 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
   const [paymentUrl, setPaymentUrl] = useState('');
 
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
-  const { data: platformSettings, isLoading: settingsLoading } = usePlatformSettings();
+  const { data: paymentConfig, isLoading: paymentConfigLoading } = usePublicPaymentConfig();
   const createSubscription = useCreateSubscription();
 
   const activePlan = plans?.[0];
-  const paymentGateway = platformSettings?.find(s => s.key === 'payment_gateway')?.value as any;
-  const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
-  const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
+  const provider = paymentConfig?.provider || 'manual';
+  const isTestMode = paymentConfig?.isTestMode ?? true;
+  const midtransClientKey = paymentConfig?.apiKey || '';
+  const qrisImageUrl = paymentConfig?.qrisImageUrl || '';
 
-  const provider = paymentGateway?.provider || 'manual';
   const isGatewayEnabled = provider !== 'manual';
-  const enabledPaymentMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+  const enabledPaymentMethods = paymentConfig?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
 
   // Load Midtrans Snap script if provider is midtrans
   useEffect(() => {
-    if (provider === 'midtrans' && paymentGateway?.isTestMode !== undefined) {
+    if (provider === 'midtrans') {
       const existingScript = document.getElementById('midtrans-snap');
       if (!existingScript) {
+        if (!midtransClientKey) return;
         const script = document.createElement('script');
         script.id = 'midtrans-snap';
-        script.src = paymentGateway.isTestMode 
+        script.src = isTestMode 
           ? 'https://app.sandbox.midtrans.com/snap/snap.js'
           : 'https://app.midtrans.com/snap/snap.js';
-        script.setAttribute('data-client-key', paymentGateway.apiKey || '');
+        script.setAttribute('data-client-key', midtransClientKey);
         document.head.appendChild(script);
       }
     }
-  }, [provider, paymentGateway]);
+  }, [provider, isTestMode, midtransClientKey]);
 
   // Auto-select first payment method if none selected (for manual mode)
   useEffect(() => {
@@ -316,7 +317,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                   size="lg"
                   onClick={handleGatewayPayment}
-                  disabled={isProcessing}
+                  disabled={isProcessing || paymentConfigLoading}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
                   Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
@@ -328,6 +329,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                   size="lg"
                   onClick={() => setStep('payment')}
+                  disabled={paymentConfigLoading}
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Lanjut ke Pembayaran
@@ -337,6 +339,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                   variant="outline"
                   className="w-full"
                   onClick={() => setStep('payment')}
+                  disabled={paymentConfigLoading}
                 >
                   <Building2 className="w-4 h-4 mr-2" />
                   Transfer Manual
