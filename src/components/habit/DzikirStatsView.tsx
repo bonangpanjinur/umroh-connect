@@ -7,7 +7,7 @@ import { useDzikirStats, useDzikirTypes, useTodayDzikirLogs } from '@/hooks/useD
 import { Circle, TrendingUp, Zap, ExternalLink } from 'lucide-react';
 
 interface DzikirStatsViewProps {
-  onOpenTasbih: () => void;
+  onOpenTasbih?: () => void;
 }
 
 const DzikirStatsView = ({ onOpenTasbih }: DzikirStatsViewProps) => {
@@ -54,21 +54,23 @@ const DzikirStatsView = ({ onOpenTasbih }: DzikirStatsViewProps) => {
       </div>
 
       {/* Open Tasbih Digital CTA */}
-      <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">Tasbih Digital</h3>
-              <p className="text-sm text-muted-foreground">Buka untuk dzikir & otomatis tercatat</p>
+      {onOpenTasbih && (
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Tasbih Digital</h3>
+                <p className="text-sm text-muted-foreground">Buka untuk dzikir & otomatis tercatat</p>
+              </div>
+              <Button onClick={onOpenTasbih} className="gap-2">
+                <Zap className="w-4 h-4" />
+                Buka
+                <ExternalLink className="w-3 h-3" />
+              </Button>
             </div>
-            <Button onClick={onOpenTasbih} className="gap-2">
-              <Zap className="w-4 h-4" />
-              Buka
-              <ExternalLink className="w-3 h-3" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dzikir Types Stats */}
       <Card>
