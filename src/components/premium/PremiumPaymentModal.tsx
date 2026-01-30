@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Crown, Building2, Smartphone, QrCode, Upload,
@@ -37,12 +37,12 @@ const premiumFeatures = [
 export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) => {
   const { toast } = useToast();
   const [step, setStep] = useState<'info' | 'payment'>('info');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('bca');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: plans } = useSubscriptionPlans();
-  const { data: platformSettings } = usePlatformSettings();
+  const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
+  const { data: platformSettings, isLoading: settingsLoading } = usePlatformSettings();
   const createSubscription = useCreateSubscription();
 
   const activePlan = plans?.[0];
@@ -51,6 +51,13 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
 
   const enabledPaymentMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+  
+  // Auto-select first payment method if none selected
+  useEffect(() => {
+    if (enabledPaymentMethods.length > 0 && !selectedPaymentMethod) {
+      setSelectedPaymentMethod(enabledPaymentMethods[0].id);
+    }
+  }, [enabledPaymentMethods, selectedPaymentMethod]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
