@@ -6,21 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Flame, Heart, Activity, Moon, Sparkles, ArrowRight, Crown, 
-  TrendingUp, Calendar, Zap
+  Flame, Moon, Sparkles, Crown, Zap, ChevronRight, Plus,
+  BookOpen, Utensils, Heart
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PremiumUpgradeModal, StorageIndicator } from '@/components/premium/PremiumUpgradeModal';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
-import HabitTrackerView from './HabitTrackerView';
+import { useLocalHabits, useLocalHabitStats, useLocalWeeklyProgress } from '@/hooks/useLocalHabitTracking';
+import TodayHabitsList from './TodayHabitsList';
+import HabitLibrarySheet from './HabitLibrarySheet';
+import TadarusView from './TadarusView';
+import MealTrackingView from './MealTrackingView';
+import DzikirStatsView from './DzikirStatsView';
 import SedekahView from './SedekahView';
-import OlahragaView from './OlahragaView';
 import RamadhanDashboard from './RamadhanDashboard';
-import { useLocalHabitStats, useLocalWeeklyProgress } from '@/hooks/useLocalHabitTracking';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
@@ -32,11 +34,13 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
   const { isPremium } = useIsPremium();
   const [activeTab, setActiveTab] = useState('ibadah');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [showHabitLibrary, setShowHabitLibrary] = useState(false);
   const [isRamadhanMode, setIsRamadhanMode] = useState(() => {
     const saved = localStorage.getItem('ramadhan_mode');
     return saved === 'true';
   });
 
+  const { habits, addHabit, removeHabit } = useLocalHabits(isRamadhanMode);
   const stats = useLocalHabitStats();
   const weeklyProgress = useLocalWeeklyProgress();
 
@@ -47,24 +51,23 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
 
   return (
     <div className="pb-24">
-      {/* Header with Stats Card */}
+      {/* Header Stats Card */}
       <div className="px-4 pt-3">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-4 text-primary-foreground"
         >
-          {/* Decorative circles */}
+          {/* Decorative */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
           
           <div className="relative z-10">
-            {/* Date & Mode */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5" />
-                <span className="text-sm font-medium opacity-90">Habit Tracker</span>
-              </div>
+            {/* Top Row */}
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm opacity-90">
+                {format(new Date(), 'EEEE, d MMM', { locale: id })}
+              </span>
               <div className="flex items-center gap-2">
                 {isRamadhanMode && (
                   <Badge className="bg-amber-500/80 text-white text-[10px] gap-1">
@@ -75,64 +78,58 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
                 {isPremium ? (
                   <Badge className="bg-white/20 text-white gap-1 text-[10px]">
                     <Crown className="h-3 w-3" />
-                    Premium
                   </Badge>
                 ) : (
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-[10px] h-6 px-2 text-white/80 hover:text-white hover:bg-white/10"
+                    className="text-[10px] h-5 px-2 text-white/80 hover:text-white hover:bg-white/10"
                     onClick={() => setShowPremiumModal(true)}
                   >
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Upgrade
+                    <Sparkles className="h-3 w-3" />
                   </Button>
                 )}
               </div>
             </div>
             
-            <h2 className="text-xl font-bold mb-1">
-              {format(new Date(), 'EEEE, d MMMM', { locale: id })}
-            </h2>
+            <h2 className="text-xl font-bold mb-3">Hari Ini</h2>
             
-            {/* Stats Row */}
-            <div className="mt-3 flex items-end justify-between">
+            {/* Stats */}
+            <div className="flex items-end justify-between mb-3">
               <div>
-                <p className="text-xs opacity-80">Progress Hari Ini</p>
-                <p className="text-2xl font-bold">
-                  {stats.completedToday}/{stats.totalHabits}
+                <p className="text-3xl font-bold">
+                  {stats.completedToday}
+                  <span className="text-lg opacity-70">/{stats.totalHabits}</span>
                 </p>
+                <p className="text-xs opacity-80">habit selesai</p>
               </div>
-              <div className="text-center">
-                <p className="text-xs opacity-80">Streak</p>
-                <div className="flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-amber-300" />
-                  <span className="text-lg font-semibold">{stats.currentStreak}</span>
+              <div className="flex gap-4">
+                <div className="text-center">
+                  <div className="flex items-center gap-1">
+                    <Zap className="w-4 h-4 text-amber-300" />
+                    <span className="font-bold">{stats.currentStreak}</span>
+                  </div>
+                  <p className="text-[10px] opacity-70">streak</p>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs opacity-80">Mingguan</p>
-                <p className="text-lg font-semibold">{stats.weeklyRate}%</p>
+                <div className="text-center">
+                  <span className="font-bold">{stats.weeklyRate}%</span>
+                  <p className="text-[10px] opacity-70">minggu ini</p>
+                </div>
               </div>
             </div>
             
-            <Progress 
-              value={stats.todayProgress} 
-              className="mt-3 h-2 bg-white/20"
-            />
+            <Progress value={stats.todayProgress} className="h-2 bg-white/20" />
 
             {/* Mini Weekly Chart */}
-            <div className="mt-3 flex justify-between items-end h-8 gap-0.5">
+            <div className="mt-3 flex justify-between items-end h-6 gap-0.5">
               {weeklyProgress.map((day, i) => (
                 <motion.div
                   key={day.date}
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(15, (day.completedCount / Math.max(stats.totalHabits, 1)) * 100)}%` }}
+                  animate={{ height: `${Math.max(20, (day.completedCount / Math.max(stats.totalHabits, 1)) * 100)}%` }}
                   transition={{ delay: i * 0.05 }}
                   className={`flex-1 rounded-t ${
-                    day.isToday 
-                      ? 'bg-white' 
-                      : day.completedCount > 0 ? 'bg-white/50' : 'bg-white/20'
+                    day.isToday ? 'bg-white' : day.completedCount > 0 ? 'bg-white/50' : 'bg-white/20'
                   }`}
                 />
               ))}
@@ -141,9 +138,7 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
               {weeklyProgress.map((day) => (
                 <span 
                   key={day.date} 
-                  className={`text-[9px] flex-1 text-center ${
-                    day.isToday ? 'text-white font-bold' : 'text-white/60'
-                  }`}
+                  className={`text-[8px] flex-1 text-center ${day.isToday ? 'text-white font-bold' : 'text-white/50'}`}
                 >
                   {day.dayName}
                 </span>
@@ -158,30 +153,19 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
         <Card className={`transition-all duration-300 ${
           isRamadhanMode 
             ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-300 dark:border-amber-700' 
-            : 'bg-muted/50'
+            : 'bg-muted/30'
         }`}>
-          <CardContent className="py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                isRamadhanMode 
-                  ? 'bg-amber-500 text-white' 
-                  : 'bg-muted'
+          <CardContent className="py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                isRamadhanMode ? 'bg-amber-500 text-white' : 'bg-muted'
               }`}>
                 <Moon className="w-4 h-4" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm">Mode Ramadan</p>
-                  {isRamadhanMode && (
-                    <Badge className="bg-amber-500 text-white text-[9px] h-4">
-                      Aktif
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {isRamadhanMode 
-                    ? 'Tarawih, Sahur, Puasa aktif' 
-                    : 'Aktifkan untuk fitur Ramadan'}
+                <p className="font-medium text-sm">Mode Ramadan</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isRamadhanMode ? 'Tarawih, Sahur, Puasa' : 'Aktifkan untuk Ramadan'}
                 </p>
               </div>
             </div>
@@ -194,51 +178,29 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
         </Card>
       </div>
 
-      {/* Ramadhan Dashboard Button (only when active) */}
-      {isRamadhanMode && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="px-4 pt-2"
-        >
-          <Button 
-            variant="outline" 
-            className="w-full justify-between bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800 hover:border-amber-400"
-            onClick={() => setActiveTab('ramadhan')}
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span className="font-medium text-sm">Dashboard Ramadan</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-amber-500" />
-          </Button>
-        </motion.div>
-      )}
-
       {/* Storage Indicator */}
       <div className="px-4 pt-2">
         <StorageIndicator onUpgrade={() => setShowPremiumModal(true)} />
       </div>
 
-      {/* Main Category Tabs - BELOW the green card */}
-      <div className="px-4 pt-3 sticky top-0 bg-background z-20 pb-2">
+      {/* Main Tabs */}
+      <div className="px-4 pt-3">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4 h-auto">
-            <TabsTrigger value="ibadah" className="text-xs py-2 gap-1">
+          <TabsList className="w-full grid grid-cols-4 h-auto bg-muted/50">
+            <TabsTrigger value="ibadah" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Flame className="w-3.5 h-3.5" />
               Ibadah
             </TabsTrigger>
-            <TabsTrigger value="sedekah" className="text-xs py-2 gap-1">
+            <TabsTrigger value="makan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
+              <Utensils className="w-3.5 h-3.5" />
+              Makan
+            </TabsTrigger>
+            <TabsTrigger value="sedekah" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Heart className="w-3.5 h-3.5" />
               Sedekah
             </TabsTrigger>
-            <TabsTrigger value="olahraga" className="text-xs py-2 gap-1">
-              <Activity className="w-3.5 h-3.5" />
-              Olahraga
-            </TabsTrigger>
             {isRamadhanMode && (
-              <TabsTrigger value="ramadhan" className="text-xs py-2 gap-1">
+              <TabsTrigger value="ramadhan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
                 <Moon className="w-3.5 h-3.5" />
                 Ramadan
               </TabsTrigger>
@@ -248,61 +210,169 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
       </div>
 
       {/* Tab Contents */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'ibadah' && (
-          <motion.div
-            key="ibadah"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-          >
-            <HabitTrackerView 
-              onOpenTasbih={onOpenTasbih} 
-              isRamadhanMode={isRamadhanMode} 
-            />
-          </motion.div>
-        )}
+      <div className="px-4 pt-4">
+        <AnimatePresence mode="wait">
+          {activeTab === 'ibadah' && (
+            <motion.div
+              key="ibadah"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              {/* Sub-tabs for Ibadah */}
+              <IbadahSubTabs
+                habits={habits}
+                isRamadhanMode={isRamadhanMode}
+                onOpenTasbih={onOpenTasbih}
+                onShowLibrary={() => setShowHabitLibrary(true)}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'sedekah' && (
-          <motion.div
-            key="sedekah"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-          >
-            <SedekahView />
-          </motion.div>
-        )}
+          {activeTab === 'makan' && (
+            <motion.div
+              key="makan"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <MealTrackingView isRamadhanMode={isRamadhanMode} />
+            </motion.div>
+          )}
 
-        {activeTab === 'olahraga' && (
-          <motion.div
-            key="olahraga"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-          >
-            <OlahragaView isRamadhanMode={isRamadhanMode} />
-          </motion.div>
-        )}
+          {activeTab === 'sedekah' && (
+            <motion.div
+              key="sedekah"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <SedekahView />
+            </motion.div>
+          )}
 
-        {activeTab === 'ramadhan' && isRamadhanMode && (
-          <motion.div
-            key="ramadhan"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-          >
-            <RamadhanDashboard />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {activeTab === 'ramadhan' && isRamadhanMode && (
+            <motion.div
+              key="ramadhan"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <RamadhanDashboard />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Premium Upgrade Modal */}
+      {/* Habit Library Sheet */}
+      <HabitLibrarySheet
+        open={showHabitLibrary}
+        onOpenChange={setShowHabitLibrary}
+        habits={habits}
+        isRamadhanMode={isRamadhanMode}
+        onAddHabit={addHabit}
+        onRemoveHabit={removeHabit}
+      />
+
+      {/* Premium Modal */}
       <PremiumUpgradeModal 
         open={showPremiumModal} 
         onOpenChange={setShowPremiumModal}
         onLoginRequired={onNavigateToAuth}
       />
+    </div>
+  );
+};
+
+// Sub-tabs component for Ibadah section
+interface IbadahSubTabsProps {
+  habits: any[];
+  isRamadhanMode: boolean;
+  onOpenTasbih?: () => void;
+  onShowLibrary: () => void;
+}
+
+const IbadahSubTabs = ({ habits, isRamadhanMode, onOpenTasbih, onShowLibrary }: IbadahSubTabsProps) => {
+  const [subTab, setSubTab] = useState('today');
+
+  return (
+    <div className="space-y-4">
+      {/* Sub-nav pills */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {[
+          { id: 'today', label: 'Hari Ini', icon: Flame },
+          { id: 'tadarus', label: 'Tadarus', icon: BookOpen },
+          { id: 'dzikir', label: 'Dzikir', icon: Sparkles },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = subTab === tab.id;
+          return (
+            <Button
+              key={tab.id}
+              variant={isActive ? "default" : "ghost"}
+              size="sm"
+              className={`flex-shrink-0 h-8 text-xs gap-1.5 ${
+                isActive ? '' : 'text-muted-foreground'
+              }`}
+              onClick={() => setSubTab(tab.id)}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </Button>
+          );
+        })}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {subTab === 'today' && (
+          <motion.div
+            key="today"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-3"
+          >
+            {/* Today's Habits */}
+            <TodayHabitsList habits={habits.slice(0, 7)} isRamadhanMode={isRamadhanMode} />
+            
+            {/* View All Button */}
+            <Button
+              variant="outline"
+              className="w-full justify-between text-sm h-11"
+              onClick={onShowLibrary}
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Lihat Semua Habit
+              </span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </motion.div>
+        )}
+
+        {subTab === 'tadarus' && (
+          <motion.div
+            key="tadarus"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <TadarusView />
+          </motion.div>
+        )}
+
+        {subTab === 'dzikir' && (
+          <motion.div
+            key="dzikir"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <DzikirStatsView onOpenTasbih={onOpenTasbih} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
