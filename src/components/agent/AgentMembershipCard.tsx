@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Crown, CheckCircle2, Clock, AlertCircle, Upload,
-  Sparkles, Shield, Star, Building2, Smartphone, QrCode
+  Sparkles, Shield, Star, Building2, Smartphone, QrCode, CreditCard, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import {
   getMembershipDaysRemaining,
 } from '@/hooks/useAgentMembership';
 import { usePlatformSettings } from '@/hooks/useAdminData';
+import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig'; // New Hook
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -41,17 +42,21 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
   const { data: membership, isLoading } = useAgentMembership(travelId);
   const { planType, isPro, isPremium, isActive } = useIsAgentPro(travelId);
   const requestMembership = useRequestMembership();
 
-  // Fetch platform settings for payment methods
+  // Fetch platform settings for manual payment methods
   const { data: platformSettings } = usePlatformSettings();
   const paymentGateway = platformSettings?.find(s => s.key === 'payment_gateway')?.value as any;
   const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
-  const enabledPaymentMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+  const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+
+  // Fetch automatic payment gateway config
+  const { config: paymentConfig } = usePublicPaymentConfig();
 
   const currentPlan = MEMBERSHIP_PLANS.find(p => p.id === planType) || MEMBERSHIP_PLANS[0];
   const daysRemaining = getMembershipDaysRemaining(membership?.end_date || null);
@@ -87,6 +92,13 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   };
 
   const handleSubmitUpgrade = () => {
+    // If using Gateway
+    if (selectedPaymentMethod === 'gateway') {
+      handlePaymentGateway();
+      return;
+    }
+
+    // If using Manual Transfer
     if (!paymentProofUrl) {
       toast({
         title: 'Bukti pembayaran diperlukan',
@@ -110,6 +122,43 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
         setPaymentProofUrl('');
       }
     });
+  };
+
+  const handlePaymentGateway = async () => {
+    try {
+      setIsProcessingGateway(true);
+      const plan = MEMBERSHIP_PLANS.find(p => p.id === selectedPlan);
+      if (!plan) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Anda harus login");
+
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: plan.price,
+          description: `Upgrade Membership Agen ${plan.name}`,
+          type: "agent_membership",
+          metadata: {
+            user_id: user.id,
+            plan: selectedPlan,
+            travel_id: travelId
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data?.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Gagal memproses pembayaran otomatis",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingGateway(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -168,7 +217,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
     }
   };
 
-  const selectedPaymentData = enabledPaymentMethods.find((pm: any) => pm.id === selectedPaymentMethod);
+  const selectedPaymentData = enabledManualMethods.find((pm: any) => pm.id === selectedPaymentMethod);
 
   if (isLoading) {
     return (
@@ -380,41 +429,71 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
               </div>
 
               {/* Payment Methods */}
-              {enabledPaymentMethods.length > 0 ? (
-                <div>
-                  <Label className="text-sm font-medium mb-3 block">Metode Pembayaran</Label>
-                  <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                    <div className="grid gap-2">
-                      {enabledPaymentMethods.map((method: any) => (
-                        <div key={method.id}>
-                          <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
-                          <Label
-                            htmlFor={`pay-${method.id}`}
-                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                              selectedPaymentMethod === method.id
-                                ? 'bg-primary/10 border-2 border-primary'
-                                : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                            }`}
-                          >
+              <div>
+                <Label className="text-sm font-medium mb-3 block">Metode Pembayaran</Label>
+                <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                  <div className="grid gap-2">
+                    
+                    {/* Automatic Gateway Option */}
+                    {paymentConfig?.is_enabled && (
+                      <div>
+                        <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
+                        <Label
+                          htmlFor="pay-gateway"
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                            selectedPaymentMethod === 'gateway'
+                              ? 'bg-primary/10 border-2 border-primary'
+                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <CreditCard className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="font-medium block">Bayar Otomatis (Instan)</span>
+                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans/Xendit)</span>
+                          </div>
+                        </Label>
+                      </div>
+                    )}
+
+                    {/* Manual Methods */}
+                    {enabledManualMethods.map((method: any) => (
+                      <div key={method.id}>
+                        <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
+                        <Label
+                          htmlFor={`pay-${method.id}`}
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                            selectedPaymentMethod === method.id
+                              ? 'bg-primary/10 border-2 border-primary'
+                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
                             {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
                             {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
                             {method.type === 'qris' && <QrCode className="w-5 h-5" />}
-                            <span className="font-medium">{method.name}</span>
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </RadioGroup>
-                </div>
-              ) : (
-                <div className="text-center py-4 text-muted-foreground">
-                  <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Belum ada metode pembayaran aktif</p>
+                          </div>
+                          <div>
+                            <span className="font-medium block">{method.name}</span>
+                            <span className="text-xs text-muted-foreground">Transfer Manual & Upload Bukti</span>
+                          </div>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {/* Automatic Payment Info */}
+              {selectedPaymentMethod === 'gateway' && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300">
+                  <p>Anda akan diarahkan ke halaman pembayaran aman. Status keanggotaan akan aktif otomatis setelah pembayaran berhasil.</p>
                 </div>
               )}
 
-              {/* Payment Details */}
-              {selectedPaymentData && (
+              {/* Manual Payment Details */}
+              {selectedPaymentMethod !== 'gateway' && selectedPaymentData && (
                 <div className="bg-secondary rounded-xl p-4">
                   {selectedPaymentData.type === 'bank_transfer' && (
                     <div className="space-y-2">
@@ -451,8 +530,8 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
                 </div>
               )}
 
-              {/* Upload Proof */}
-              {selectedPaymentMethod && (
+              {/* Manual Upload Proof */}
+              {selectedPaymentMethod !== 'gateway' && selectedPaymentMethod && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Upload Bukti Pembayaran</Label>
                   <div className="border-2 border-dashed border-border rounded-xl p-4 text-center">
@@ -499,10 +578,20 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
               {/* Submit Button */}
               <Button
                 className="w-full"
-                disabled={!paymentProofUrl || requestMembership.isPending}
+                disabled={
+                  (selectedPaymentMethod === 'gateway' ? isProcessingGateway : (!paymentProofUrl || requestMembership.isPending)) || !selectedPaymentMethod
+                }
                 onClick={handleSubmitUpgrade}
               >
-                {requestMembership.isPending ? 'Memproses...' : 'Kirim Pengajuan'}
+                {selectedPaymentMethod === 'gateway' ? (
+                  isProcessingGateway ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses Payment...
+                    </>
+                  ) : 'Lanjut ke Pembayaran'
+                ) : (
+                  requestMembership.isPending ? 'Memproses...' : 'Kirim Pengajuan Manual'
+                )}
               </Button>
             </TabsContent>
           </Tabs>
