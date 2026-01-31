@@ -12,8 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { usePushNotifications, NotificationType } from '@/hooks/usePushNotifications';
 import { toast } from 'sonner';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const PushNotificationSettings = () => {
+  const { user } = useAuthContext();
   const {
     isSupported,
     permission,
@@ -21,6 +23,7 @@ const PushNotificationSettings = () => {
     scheduledNotifications,
     departureDate,
     requestPermission,
+    subscribeToPush,
     updatePreferences,
     getDepartureCountdown,
     clearAllScheduled,
@@ -34,6 +37,10 @@ const PushNotificationSettings = () => {
     try {
       const result = await requestPermission();
       if (result) {
+        // If user is logged in, subscribe to push notifications
+        if (user) {
+          await subscribeToPush(user.id);
+        }
         toast.success('Notifikasi diaktifkan!');
         updatePreferences({ enabled: true });
       } else {

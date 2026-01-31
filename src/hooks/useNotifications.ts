@@ -35,8 +35,6 @@ export const useNotifications = () => {
     checkSupport();
   }, []);
 
-
-
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!state.isSupported) {
       console.log('Notifications not supported');
@@ -113,20 +111,50 @@ export const useNotifications = () => {
     window.clearTimeout(timeoutId);
   }, []);
 
-  const subscribeToPush = useCallback(async (publicKey: string) => {
-    if (!registration) return null;
-    
+  const subscribeToPush = useCallback(async (userId: string): Promise<boolean> => {
+    if (!state.isSupported || state.permission !== 'granted') {
+      return false;
+    }
+
     try {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // VAPID public key from environment or constant
+      const vapidPublicKey = 'BMYnnHrzSXdRMBTVXxKfrf3_8uyCutC6ZgR3HWVdyia5DoPAncRcbazKYjHLceyQ7HwaWWx-IEltdCJsxkAiDM8';
+      
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: publicKey
+        applicationServerKey: vapidPublicKey
       });
-      return subscription;
+
+      // Send subscription to backend (Supabase)
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const subJson = subscription.toJSON();
+      if (!subJson.endpoint || !subJson.keys?.p256dh || !subJson.keys?.auth) {
+        throw new Error('Invalid subscription object');
+      }
+
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: userId,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'endpoint'
+        });
+
+      if (error) throw error;
+      
+      return true;
     } catch (error) {
-      console.error('Push subscription error:', error);
-      return null;
+      console.error('Error subscribing to push notifications:', error);
+      return false;
     }
-  }, [registration]);
+  }, [state.isSupported, state.permission]);
 
   const registerBackgroundSync = useCallback(async (tag: string) => {
     if (!registration || !('sync' in registration)) return false;

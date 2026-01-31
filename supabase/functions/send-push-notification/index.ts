@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import webpush from "https://esm.sh/web-push";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +29,15 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // VAPID keys from environment variables
+    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+    const vapidEmail = Deno.env.get("VAPID_EMAIL") || "mailto:admin@arahumroh.id";
+
+    if (vapidPublicKey && vapidPrivateKey) {
+      webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+    }
 
     // Get subscriptions for user(s)
     let query = supabase.from("push_subscriptions").select("*");
@@ -66,41 +76,60 @@ serve(async (req) => {
     });
 
     let successCount = 0;
-    let failedEndpoints: string[] = [];
+    let failedCount = 0;
 
-    // Note: In production, you would use web-push library with VAPID keys
-    // For now, we'll store notifications in the database for the PWA to poll
-    for (const subscription of subscriptions) {
-      try {
-        // Store notification in payment_notification_logs for the user to see
-        const { error: logError } = await supabase
-          .from("payment_notification_logs")
-          .insert({
-            user_id: subscription.user_id,
-            notification_type: data?.type || "push",
-            title,
-            body,
-            booking_id: data?.bookingId || null,
-            payment_schedule_id: data?.scheduleId || null,
-          });
+    const results = await Promise.all(
+      subscriptions.map(async (sub) => {
+        try {
+          // Log to database first (legacy behavior kept for history)
+          await supabase
+            .from("payment_notification_logs")
+            .insert({
+              user_id: sub.user_id,
+              notification_type: data?.type || "push",
+              title,
+              body,
+              booking_id: data?.bookingId || null,
+              payment_schedule_id: data?.scheduleId || null,
+            });
 
-        if (!logError) {
-          successCount++;
-        } else {
-          console.error("Error logging notification:", logError);
+          // Send real push notification if VAPID keys are present
+          if (vapidPublicKey && vapidPrivateKey) {
+            const pushSubscription = {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            };
+
+            await webpush.sendNotification(pushSubscription, notificationPayload);
+            return { success: true };
+          }
+          
+          return { success: true, note: "VAPID keys missing, only logged to DB" };
+        } catch (e) {
+          console.error(`Error sending to endpoint ${sub.endpoint}:`, e);
+          
+          // If subscription is expired or invalid, remove it
+          if (e.statusCode === 410 || e.statusCode === 404) {
+            await supabase.from("push_subscriptions").delete().eq("id", sub.id);
+          }
+          
+          return { success: false, error: e.message };
         }
-      } catch (e) {
-        console.error("Error processing subscription:", e);
-        failedEndpoints.push(subscription.endpoint);
-      }
-    }
+      })
+    );
+
+    successCount = results.filter(r => r.success).length;
+    failedCount = results.length - successCount;
 
     return new Response(
       JSON.stringify({
         success: true,
         sent: successCount,
-        failed: failedEndpoints.length,
-        message: `Sent ${successCount} notifications`,
+        failed: failedCount,
+        message: `Processed ${results.length} subscriptions. ${successCount} succeeded, ${failedCount} failed.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
