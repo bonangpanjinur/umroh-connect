@@ -25,7 +25,6 @@ export default defineConfig(({ mode }) => ({
       },
       registerType: "autoUpdate",
       injectRegister: "auto",
-      strategies: "generateSW", // We use generateSW but with extended options
       includeAssets: ["favicon.ico", "robots.txt", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         id: "/",
@@ -108,55 +107,6 @@ export default defineConfig(({ mode }) => ({
         ],
         related_applications: [],
         prefer_related_applications: false,
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff,woff2}"],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
-        cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-stylesheets",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/api\.aladhan\.com\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "prayer-times-cache",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 10,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-        ],
-        // Important for Push Notifications and Sync
-        importScripts: [], // Can add custom scripts here if needed
       },
       devOptions: {
         enabled: true,
