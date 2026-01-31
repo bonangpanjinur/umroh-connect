@@ -13,6 +13,25 @@ declare module 'virtual:pwa-register' {
   export function registerSW(options?: RegisterSWOptions): (reloadPage?: boolean) => Promise<void>;
 }
 
+interface PeriodicSyncManager {
+  register(tag: string, options?: { minInterval: number }): Promise<void>;
+  getTags(): Promise<string[]>;
+  unregister(tag: string): Promise<void>;
+}
+
+interface ServiceWorkerRegistration {
+  readonly periodicSync: PeriodicSyncManager;
+}
+
+interface SyncManager {
+  register(tag: string): Promise<void>;
+  getTags(): Promise<string[]>;
+}
+
+interface ServiceWorkerRegistration {
+  readonly sync: SyncManager;
+}
+
 declare module 'virtual:pwa-register/react' {
   import type { Dispatch, SetStateAction } from 'react';
 

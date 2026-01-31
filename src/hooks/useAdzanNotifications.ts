@@ -46,7 +46,13 @@ const PRAYER_NAMES: Record<PrayerId, { name: string; arabic: string; emoji: stri
 };
 
 export const useAdzanNotifications = () => {
-  const { isSupported, permission, requestPermission, showNotification } = useNotifications();
+  const { 
+    isSupported, 
+    permission, 
+    requestPermission, 
+    showNotification,
+    registerBackgroundSync 
+  } = useNotifications();
   const { times, location, loading: timesLoading } = usePrayerTimes();
   
   const [preferences, setPreferences] = useState<AdzanPreferences>(() => {
@@ -194,8 +200,13 @@ export const useAdzanNotifications = () => {
   useEffect(() => {
     if (times && !timesLoading && permission === 'granted') {
       scheduleAllAdzans(times);
+      
+      // Register background sync to keep times updated
+      if (preferences.enabled) {
+        registerBackgroundSync('update-prayer-times');
+      }
     }
-  }, [times, timesLoading, permission, scheduleAllAdzans]);
+  }, [times, timesLoading, permission, scheduleAllAdzans, preferences.enabled, registerBackgroundSync]);
 
   // Update preferences
   const updatePreferences = useCallback((updates: Partial<AdzanPreferences>) => {

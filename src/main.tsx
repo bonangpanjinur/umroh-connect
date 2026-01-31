@@ -15,6 +15,27 @@ registerSW({
   onOfflineReady() {
     console.log("Aplikasi siap digunakan secara offline.");
   },
+  async onRegistered(registration) {
+    console.log("Service Worker terdaftar:", registration);
+    
+    // Request Periodic Sync for prayer times
+    if (registration && 'periodicSync' in registration) {
+      try {
+        const status = await (navigator as any).permissions.query({
+          name: 'periodic-background-sync',
+        });
+        
+        if (status.state === 'granted') {
+          await (registration as any).periodicSync.register('update-prayer-times', {
+            minInterval: 24 * 60 * 60 * 1000, // 24 hours
+          });
+          console.log('Periodic sync registered');
+        }
+      } catch (error) {
+        console.error('Periodic sync registration failed:', error);
+      }
+    }
+  }
 });
 
 const Root = () => {
