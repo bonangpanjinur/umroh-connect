@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGroupTracking } from '@/hooks/useGroupTracking';
 import { useGeofencing } from '@/hooks/useGeofencing';
-import { useAuthContext } from '@/contexts/AuthContext'; // FIXED: Changed from useAuth to useAuthContext
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { GeofenceManager } from './GeofenceManager';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
@@ -56,7 +56,7 @@ const MapCenter = ({ center }: { center: [number, number] }) => {
 };
 
 const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
-  const { user, profile } = useAuthContext(); // FIXED
+  const { user, profile } = useAuthContext();
   const { toast } = useToast();
   const {
     groups,

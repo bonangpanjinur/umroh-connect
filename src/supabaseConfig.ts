@@ -1,13 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+// Menggunakan single instance dari integrations untuk menghindari duplikasi session
+// dan memastikan token Auth terbaca dengan benar di seluruh fitur (termasuk Tracker & Payment)
+import { supabase } from "@/integrations/supabase/client";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("Missing Supabase configuration in environment variables.");
-}
-
-export const supabase = createClient(
-  supabaseUrl || "",
-  supabaseKey || ""
-);
+export { supabase };
