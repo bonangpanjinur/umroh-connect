@@ -4,10 +4,10 @@ import {
   Zap, Plus, History, CreditCard, Building2, 
   Smartphone, QrCode, Upload, CheckCircle2, 
   Clock, ArrowUpCircle, ArrowDownCircle, Gift,
-  ShoppingCart, Sparkles, AlertCircle
+  ShoppingCart, Sparkles, AlertCircle, Loader2, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -24,11 +24,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformSettings } from '@/hooks/useAdminData';
+import { usePublicPaymentConfig } from "@/hooks/usePublicPaymentConfig";
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
 interface AgentCreditsManagerProps {
-  travelId: string;
+  travelId?: string; // Made optional as sometimes it might be derived from context
 }
 
 const creditPackages = [
@@ -38,19 +39,34 @@ const creditPackages = [
   { id: '25', credits: 25, label: '25 Kredit', popular: false },
 ];
 
-export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
+export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsManagerProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('10');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('bca');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingGateway, setIsProcessingGateway] = useState(false);
+
+  // Fallback to get user ID if travelId not provided (though in dashboard it usually is)
+  // For now assuming travelId is passed or handled via auth context in parent, 
+  // but let's try to get current user if prop is missing to be safe
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      return data.user;
+    }
+  });
+
+  const travelId = propTravelId || user?.id || ''; // Fallback logic
 
   // Fetch agent credits
   const { data: credits, isLoading: creditsLoading } = useQuery({
     queryKey: ['agent-credits', travelId],
     queryFn: async () => {
+      if (!travelId) return { credits_remaining: 0, credits_used: 0 };
       const { data, error } = await supabase
         .from('package_credits')
         .select('*')
@@ -60,12 +76,14 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       if (error && error.code !== 'PGRST116') throw error;
       return data || { credits_remaining: 0, credits_used: 0 };
     },
+    enabled: !!travelId
   });
 
   // Fetch credit transactions
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ['agent-credit-transactions', travelId],
     queryFn: async () => {
+      if (!travelId) return [];
       const { data, error } = await supabase
         .from('credit_transactions')
         .select('*')
@@ -76,9 +94,10 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!travelId
   });
 
-  // Fetch platform settings for prices
+  // Fetch platform settings for prices and manual payment methods
   const { data: platformSettings } = usePlatformSettings();
   
   const creditPrices = platformSettings?.find(s => s.key === 'credit_prices')?.value as Record<string, number> || {
@@ -92,9 +111,12 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
   const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
 
-  const enabledPaymentMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+  const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
 
-  // Purchase credits mutation
+  // Fetch automatic payment gateway config
+  const { config: paymentConfig } = usePublicPaymentConfig();
+
+  // Purchase credits mutation (Manual)
   const purchaseCredits = useMutation({
     mutationFn: async (params: { credits: number; price: number; proofUrl: string }) => {
       // Create pending transaction
@@ -159,6 +181,12 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
   };
 
   const handlePurchase = () => {
+    // If using Gateway
+    if (selectedPaymentMethod === 'gateway') {
+      handlePaymentGateway();
+      return;
+    }
+
     if (!paymentProofUrl) {
       toast({
         title: 'Bukti transfer diperlukan',
@@ -176,6 +204,45 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       price: creditPrices[selectedPackage],
       proofUrl: paymentProofUrl,
     });
+  };
+
+  const handlePaymentGateway = async () => {
+    try {
+      setIsProcessingGateway(true);
+      const pkg = creditPackages.find(p => p.id === selectedPackage);
+      if (!pkg) return;
+      const price = creditPrices[selectedPackage];
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Anda harus login");
+
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: {
+          amount: price,
+          description: `Pembelian ${pkg.credits} Kredit Agen`,
+          type: "agent_credit",
+          metadata: {
+            user_id: user.id,
+            credit_amount: price, // Note: backend usually expects amount in IDR
+            credits_value: pkg.credits, // Custom field for number of credits
+            travel_id: travelId
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data?.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Gagal memproses pembayaran otomatis",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingGateway(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -199,7 +266,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
     }
   };
 
-  const selectedPaymentData = enabledPaymentMethods.find((pm: any) => pm.id === selectedPaymentMethod);
+  const selectedPaymentData = enabledManualMethods.find((pm: any) => pm.id === selectedPaymentMethod);
 
   return (
     <div className="space-y-4">
@@ -239,7 +306,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
           variant="outline"
           className="h-auto py-4 flex flex-col items-center gap-2"
           onClick={() => {
-            // Scroll to history
+            // Scroll to history logic if needed
           }}
         >
           <History className="w-5 h-5" />
@@ -398,7 +465,32 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
                 <Label className="text-sm font-medium mb-3 block">Metode Pembayaran</Label>
                 <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                   <div className="grid gap-2">
-                    {enabledPaymentMethods.map((method: any) => (
+                    
+                    {/* Automatic Gateway Option */}
+                    {paymentConfig?.is_enabled && (
+                      <div>
+                        <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
+                        <Label
+                          htmlFor="pay-gateway"
+                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                            selectedPaymentMethod === 'gateway'
+                              ? 'bg-primary/10 border-2 border-primary'
+                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
+                          }`}
+                        >
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <CreditCard className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="font-medium block">Bayar Otomatis (Instan)</span>
+                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans/Xendit)</span>
+                          </div>
+                        </Label>
+                      </div>
+                    )}
+
+                    {/* Manual Methods */}
+                    {enabledManualMethods.map((method: any) => (
                       <div key={method.id}>
                         <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
                         <Label
@@ -409,10 +501,15 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
                               : 'bg-secondary border-2 border-transparent hover:border-primary/30'
                           }`}
                         >
-                          {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
-                          {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
-                          {method.type === 'qris' && <QrCode className="w-5 h-5" />}
-                          <span className="font-medium">{method.name}</span>
+                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                            {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
+                            {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
+                            {method.type === 'qris' && <QrCode className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <span className="font-medium block">{method.name}</span>
+                            <span className="text-xs text-muted-foreground">Transfer Manual & Upload Bukti</span>
+                          </div>
                         </Label>
                       </div>
                     ))}
@@ -420,8 +517,15 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
                 </RadioGroup>
               </div>
 
-              {/* Payment Details */}
-              {selectedPaymentData && (
+              {/* Automatic Payment Info */}
+              {selectedPaymentMethod === 'gateway' && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300">
+                  <p>Anda akan diarahkan ke halaman pembayaran aman. Kredit akan ditambahkan otomatis setelah pembayaran berhasil.</p>
+                </div>
+              )}
+
+              {/* Manual Payment Details */}
+              {selectedPaymentMethod !== 'gateway' && selectedPaymentData && (
                 <div className="bg-secondary rounded-xl p-4">
                   {selectedPaymentData.type === 'bank_transfer' && (
                     <div className="space-y-2">
@@ -469,64 +573,79 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
               </div>
 
               {/* Upload Proof */}
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Upload Bukti Transfer</Label>
-                <div className="relative">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleUploadProof}
-                    className="hidden"
-                    id="proof-upload"
-                    disabled={isUploading}
-                  />
-                  <Label
-                    htmlFor="proof-upload"
-                    className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                      paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary'
-                    }`}
-                  >
-                    {isUploading ? (
-                      <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
-                    ) : paymentProofUrl ? (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        <span className="text-green-700">Bukti terupload</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-muted-foreground">Klik untuk upload</span>
-                      </>
-                    )}
-                  </Label>
+              {selectedPaymentMethod !== 'gateway' && selectedPaymentMethod && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Upload Bukti Transfer</Label>
+                  <div className="relative">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadProof}
+                      className="hidden"
+                      id="proof-upload"
+                      disabled={isUploading}
+                    />
+                    <Label
+                      htmlFor="proof-upload"
+                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+                        paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary'
+                      }`}
+                    >
+                      {isUploading ? (
+                        <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+                      ) : paymentProofUrl ? (
+                        <>
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <span className="text-green-700">Bukti terupload</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                          <span className="text-muted-foreground">Klik untuk upload</span>
+                        </>
+                      )}
+                    </Label>
+                  </div>
+                  {paymentProofUrl && (
+                    <img
+                      src={paymentProofUrl}
+                      alt="Bukti"
+                      className="mt-2 rounded-lg max-h-32 object-cover"
+                    />
+                  )}
                 </div>
-                {paymentProofUrl && (
-                  <img
-                    src={paymentProofUrl}
-                    alt="Bukti"
-                    className="mt-2 rounded-lg max-h-32 object-cover"
-                  />
-                )}
-              </div>
+              )}
 
               {/* Purchase Button */}
               <Button
                 className="w-full"
                 onClick={handlePurchase}
-                disabled={!paymentProofUrl || purchaseCredits.isPending}
+                disabled={
+                  (selectedPaymentMethod === 'gateway' ? isProcessingGateway : (!paymentProofUrl || purchaseCredits.isPending)) || !selectedPaymentMethod
+                }
               >
-                {purchaseCredits.isPending ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2" />
+                {selectedPaymentMethod === 'gateway' ? (
+                  isProcessingGateway ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses Payment...
+                    </>
+                  ) : 'Lanjut ke Pembayaran'
                 ) : (
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  purchaseCredits.isPending ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                  )
                 )}
-                Konfirmasi Pembayaran
+                {selectedPaymentMethod === 'gateway' && !isProcessingGateway ? 'Lanjut ke Pembayaran' : 
+                 purchaseCredits.isPending ? 'Memproses...' : 'Konfirmasi Pembayaran'}
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground">
-                Kredit akan ditambahkan setelah pembayaran diverifikasi (1-24 jam)
-              </p>
+              {selectedPaymentMethod !== 'gateway' && (
+                <p className="text-xs text-center text-muted-foreground">
+                  Kredit akan ditambahkan setelah pembayaran diverifikasi (1-24 jam)
+                </p>
+              )}
             </TabsContent>
           </Tabs>
         </DialogContent>
