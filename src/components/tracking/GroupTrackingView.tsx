@@ -581,8 +581,7 @@ const GroupTrackingView = ({ onBack }: GroupTrackingViewProps) => {
 
   return (
     <FeatureLock 
-      featureId="group_tracking" 
-      title="Pelacakan Jemaah Real-time"
+      featureName="Pelacakan Jemaah Real-time"
       description="Pantau lokasi anggota keluarga atau rombongan Anda secara real-time saat di Tanah Suci. Fitur ini membutuhkan akses Premium untuk memastikan server pelacakan berjalan optimal."
     >
       {renderContent()}
