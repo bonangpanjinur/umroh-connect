@@ -119,7 +119,8 @@ export const usePushNotifications = () => {
     requestPermission, 
     showNotification,
     scheduleNotification: scheduleSystemNotification,
-    cancelScheduledNotification: cancelSystemNotification
+    cancelScheduledNotification: cancelSystemNotification,
+    subscribeToPush
   } = useNotifications();
   
   const { departureDate } = useReminders();
@@ -373,6 +374,7 @@ export const usePushNotifications = () => {
     
     // Actions
     requestPermission,
+    subscribeToPush,
     updatePreferences,
     scheduleNotification,
     cancelNotification,
