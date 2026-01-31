@@ -2,9 +2,17 @@
 
 import { useEffect, useState } from 'react';
 
+// Single global declaration for Midtrans Snap - do not redeclare elsewhere
 declare global {
   interface Window {
-    snap: any;
+    snap?: {
+      pay: (token: string, options: {
+        onSuccess?: (result: any) => void;
+        onPending?: (result: any) => void;
+        onError?: (result: any) => void;
+        onClose?: () => void;
+      }) => void;
+    };
   }
 }
 
