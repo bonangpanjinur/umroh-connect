@@ -37,13 +37,13 @@ export default defineConfig(({ mode }) => ({
           {
             src: "/pwa-192x192.png",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/jpeg",
             purpose: "any",
           },
           {
             src: "/pwa-512x512.png",
             sizes: "512x512",
-            type: "image/png", // Typo diperbaiki di sini
+            type: "image/jpeg",
             purpose: "any",
           },
           {
@@ -81,21 +81,21 @@ export default defineConfig(({ mode }) => ({
             short_name: "Paket",
             description: "Temukan paket umroh terbaik",
             url: "/?view=paket",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/jpeg" }],
           },
           {
             name: "Panduan Manasik",
             short_name: "Manasik",
             description: "Pelajari tata cara ibadah",
             url: "/?view=manasik",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/jpeg" }],
           },
           {
             name: "Doa & Dzikir",
             short_name: "Doa",
             description: "Kumpulan doa dan dzikir",
             url: "/?view=doa",
-            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: "/pwa-192x192.png", sizes: "192x192", type: "image/jpeg" }],
           },
         ],
         related_applications: [],
