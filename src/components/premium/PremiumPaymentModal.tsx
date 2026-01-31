@@ -34,19 +34,7 @@ const premiumFeatures = [
   { icon: Shield, label: 'Backup Otomatis', description: 'Data aman tersimpan' },
 ];
 
-// Declare Midtrans Snap type
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: {
-        onSuccess?: (result: any) => void;
-        onPending?: (result: any) => void;
-        onError?: (result: any) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
+// Midtrans Snap type is declared in useMidtrans.ts - do not redeclare
 
 export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalProps) => {
   const { toast } = useToast();

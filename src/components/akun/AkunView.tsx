@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell, MessageSquare, Moon, Sun } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell, Moon, Sun, ImageIcon, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import UserBookingsView from '@/components/booking/UserBookingsView';
 import PushNotificationSettings from '@/components/notifications/PushNotificationSettings';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import ThemeToggle from '@/components/settings/ThemeToggle';
+import { useToast } from '@/hooks/use-toast';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -117,11 +118,45 @@ const AkunView = () => {
   const { user, profile, signOut, loading } = useAuthContext();
   const { t } = useLanguage();
   const { resolvedTheme } = useTheme();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [showBookings, setShowBookings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
+  const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+  const [customBackground, setCustomBackground] = useState<string | null>(() => {
+    return localStorage.getItem('prayer-card-background');
+  });
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File terlalu besar',
+        description: 'Maksimal 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      localStorage.setItem('prayer-card-background', result);
+      setCustomBackground(result);
+      toast({ title: 'Background berhasil diubah' });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveBackground = () => {
+    localStorage.removeItem('prayer-card-background');
+    setCustomBackground(null);
+    toast({ title: 'Background dihapus' });
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -345,6 +380,25 @@ const AkunView = () => {
           <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
         </button>
 
+        {/* Background Setting */}
+        <button 
+          onClick={() => setShowBackgroundSettings(true)}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <ImageIcon style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
+            <div>
+              <span className={`font-medium text-foreground ${fontSize.sm}`}>Background Kartu Sholat</span>
+              <span className={`block text-muted-foreground ${fontSize.xs}`}>
+                {customBackground ? 'Kustom' : 'Default'}
+              </span>
+            </div>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </button>
+
         {/* Language Setting */}
         <button 
           onClick={() => setShowLanguage(true)}
@@ -446,6 +500,75 @@ const AkunView = () => {
             </div>
             <div className="p-4">
               <ThemeToggle />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Background Settings Sheet */}
+      {showBackgroundSettings && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full overflow-y-auto">
+            <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowBackgroundSettings(false)}>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              <h2 className={`font-bold ${fontSize.lg}`}>Background Kartu Sholat</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className={`text-muted-foreground ${fontSize.sm}`}>
+                Pilih gambar kustom untuk background kartu jadwal sholat di halaman beranda.
+              </p>
+
+              {/* Preview */}
+              <div className="rounded-2xl overflow-hidden h-40 relative bg-gradient-primary">
+                {customBackground && (
+                  <img 
+                    src={customBackground} 
+                    alt="Background Preview" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-60"
+                  />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-primary-foreground text-center">
+                    <p className="font-bold text-xl">Ashar</p>
+                    <p className="text-lg">15:30</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-3">
+                <label className="w-full">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBackgroundUpload}
+                    className="hidden"
+                  />
+                  <div className={`w-full bg-primary text-primary-foreground rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 transition-opacity ${
+                    isElderlyMode ? 'py-4 text-lg' : 'py-3'
+                  }`}>
+                    <ImageIcon className="w-5 h-5" />
+                    Pilih Gambar
+                  </div>
+                </label>
+
+                {customBackground && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleRemoveBackground}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Hapus Background
+                  </Button>
+                )}
+              </div>
+
+              <p className={`text-muted-foreground ${fontSize.xs}`}>
+                Tips: Gunakan gambar landscape dengan resolusi minimal 800x400px untuk hasil terbaik. Maksimal 5MB.
+              </p>
             </div>
           </div>
         </div>
