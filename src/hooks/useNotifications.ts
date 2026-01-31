@@ -13,15 +13,29 @@ export const useNotifications = () => {
     isLoading: true
   });
 
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
   useEffect(() => {
-    const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
-    
-    setState({
-      isSupported,
-      permission: isSupported ? Notification.permission : 'denied',
-      isLoading: false
-    });
+    const checkSupport = async () => {
+      const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+      
+      let currentRegistration = null;
+      if (isSupported) {
+        currentRegistration = await navigator.serviceWorker.ready;
+        setRegistration(currentRegistration);
+      }
+
+      setState({
+        isSupported,
+        permission: isSupported ? Notification.permission : 'denied',
+        isLoading: false
+      });
+    };
+
+    checkSupport();
   }, []);
+
+
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!state.isSupported) {
@@ -99,11 +113,41 @@ export const useNotifications = () => {
     window.clearTimeout(timeoutId);
   }, []);
 
+  const subscribeToPush = useCallback(async (publicKey: string) => {
+    if (!registration) return null;
+    
+    try {
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey
+      });
+      return subscription;
+    } catch (error) {
+      console.error('Push subscription error:', error);
+      return null;
+    }
+  }, [registration]);
+
+  const registerBackgroundSync = useCallback(async (tag: string) => {
+    if (!registration || !('sync' in registration)) return false;
+    
+    try {
+      await (registration as any).sync.register(tag);
+      return true;
+    } catch (error) {
+      console.error('Background sync registration error:', error);
+      return false;
+    }
+  }, [registration]);
+
   return {
     ...state,
+    registration,
     requestPermission,
     showNotification,
     scheduleNotification,
-    cancelScheduledNotification
+    cancelScheduledNotification,
+    subscribeToPush,
+    registerBackgroundSync
   };
 };
