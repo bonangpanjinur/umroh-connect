@@ -79,6 +79,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ status: "OK" }), { headers: { "Content-Type": "application/json" } });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 });

@@ -108,15 +108,16 @@ serve(async (req) => {
           }
           
           return { success: true, note: "VAPID keys missing, only logged to DB" };
-        } catch (e) {
+        } catch (e: unknown) {
           console.error(`Error sending to endpoint ${sub.endpoint}:`, e);
           
           // If subscription is expired or invalid, remove it
-          if (e.statusCode === 410 || e.statusCode === 404) {
+          const err = e as { statusCode?: number; message?: string };
+          if (err.statusCode === 410 || err.statusCode === 404) {
             await supabase.from("push_subscriptions").delete().eq("id", sub.id);
           }
           
-          return { success: false, error: e.message };
+          return { success: false, error: err.message || 'Unknown error' };
         }
       })
     );

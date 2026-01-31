@@ -31,19 +31,7 @@ const featureIcons: Record<string, React.ReactNode> = {
   'Export data': <Download className="h-4 w-4" />,
 };
 
-// Declare Midtrans Snap type
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: {
-        onSuccess?: (result: any) => void;
-        onPending?: (result: any) => void;
-        onError?: (result: any) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
+// Use existing Midtrans Snap type from useMidtrans.ts - no duplicate declaration needed
 
 export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   open,

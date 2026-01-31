@@ -1,7 +1,8 @@
-import { Compass, Fingerprint, BookOpen, Map, Bell, BookHeart, HandHeart, BellRing, Volume2, CloudDownload, Briefcase, DollarSign, MapPin, MessageSquare, Book, Flame, Sparkles } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, Briefcase, DollarSign, Book, Flame, Sparkles, Users, BookHeart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
+// Consolidated menu items - removed duplicates (tracker/tracking, notifikasi/pengingat)
 const menuItems = [
   { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
@@ -10,14 +11,11 @@ const menuItems = [
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
   { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
-  { id: 'reviews', label: 'Testimoni', icon: MessageSquare, color: 'text-emerald-500', audioLabel: 'Testimoni Jamaah' },
-  { id: 'tracking', label: 'Tracking', icon: MapPin, color: 'text-rose-500', audioLabel: 'Tracking Grup' },
-  { id: 'reminder', label: 'Pengingat', icon: Bell, color: 'text-red-500', audioLabel: 'Pengingat' },
-  { id: 'notifikasi', label: 'Notifikasi', icon: BellRing, color: 'text-amber-500', audioLabel: 'Notifikasi' },
+  { id: 'tracking', label: 'Grup', icon: Users, color: 'text-rose-500', audioLabel: 'Tracking Grup' },
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'packing', label: 'Packing', icon: Briefcase, color: 'text-teal-500', audioLabel: 'Daftar Packing' },
-  { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
+  { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
 ];
 
 interface QuickMenuProps {
@@ -46,7 +44,7 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
     <div className={`mb-4 ${isElderlyMode ? 'px-5' : 'px-4'}`}>
       <div className="flex items-center justify-between mb-3">
         <h3 className={`font-bold text-foreground ${fontSize.sm}`}>
-          {isElderlyMode ? 'Menu Utama' : 'Menu Utama'}
+          Menu Utama
         </h3>
         {isElderlyMode && (
           <div className="flex items-center gap-1.5 text-primary">
