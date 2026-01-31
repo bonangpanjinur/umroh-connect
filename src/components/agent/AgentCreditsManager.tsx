@@ -1,13 +1,15 @@
+// Path: src/components/agent/AgentCreditsManager.tsx
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Zap, Plus, History, CreditCard, Building2, 
   Smartphone, QrCode, Upload, CheckCircle2, 
-  Clock, ArrowUpCircle, ArrowDownCircle, Gift,
-  ShoppingCart, Sparkles, AlertCircle, Loader2, Wallet
+  ArrowUpCircle, ArrowDownCircle, Gift,
+  ShoppingCart, Sparkles, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -21,15 +23,16 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Menggunakan path integrasi Anda
 import { useToast } from '@/hooks/use-toast';
 import { usePlatformSettings } from '@/hooks/useAdminData';
 import { usePublicPaymentConfig } from "@/hooks/usePublicPaymentConfig";
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
+import { useMidtrans } from '@/hooks/useMidtrans'; // Import Hook Midtrans
 
 interface AgentCreditsManagerProps {
-  travelId?: string; // Made optional as sometimes it might be derived from context
+  travelId?: string;
 }
 
 const creditPackages = [
@@ -42,6 +45,8 @@ const creditPackages = [
 export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsManagerProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { pay, isSnapLoaded } = useMidtrans(); // Inisialisasi Midtrans Snap
+
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState('10');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
@@ -49,9 +54,6 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
-  // Fallback to get user ID if travelId not provided (though in dashboard it usually is)
-  // For now assuming travelId is passed or handled via auth context in parent, 
-  // but let's try to get current user if prop is missing to be safe
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: async () => {
@@ -60,7 +62,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     }
   });
 
-  const travelId = propTravelId || user?.id || ''; // Fallback logic
+  const travelId = propTravelId || user?.id || '';
 
   // Fetch agent credits
   const { data: credits, isLoading: creditsLoading } = useQuery({
@@ -97,7 +99,6 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     enabled: !!travelId
   });
 
-  // Fetch platform settings for prices and manual payment methods
   const { data: platformSettings } = usePlatformSettings();
   
   const creditPrices = platformSettings?.find(s => s.key === 'credit_prices')?.value as Record<string, number> || {
@@ -112,14 +113,11 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
 
   const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
-
-  // Fetch automatic payment gateway config
   const { config: paymentConfig } = usePublicPaymentConfig();
 
   // Purchase credits mutation (Manual)
   const purchaseCredits = useMutation({
     mutationFn: async (params: { credits: number; price: number; proofUrl: string }) => {
-      // Create pending transaction
       const { error: txError } = await supabase
         .from('credit_transactions')
         .insert({
@@ -181,7 +179,6 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
   };
 
   const handlePurchase = () => {
-    // If using Gateway
     if (selectedPaymentMethod === 'gateway') {
       handlePaymentGateway();
       return;
@@ -206,35 +203,71 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     });
   };
 
+  // --- LOGIKA BARU: Midtrans Snap ---
   const handlePaymentGateway = async () => {
     try {
       setIsProcessingGateway(true);
       const pkg = creditPackages.find(p => p.id === selectedPackage);
       if (!pkg) return;
+      
       const price = creditPrices[selectedPackage];
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Anda harus login");
 
-      const { data, error } = await supabase.functions.invoke('create-payment', {
+      // 1. Panggil Edge Function untuk dapatkan Token Snap
+      const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
         body: {
           amount: price,
-          description: `Pembelian ${pkg.credits} Kredit Agen`,
-          type: "agent_credit",
-          metadata: {
-            user_id: user.id,
-            credit_amount: price, // Note: backend usually expects amount in IDR
-            credits_value: pkg.credits, // Custom field for number of credits
-            travel_id: travelId
-          }
+          transactionType: 'credit_topup',
+          itemDetails: [{
+            id: `CREDIT-${pkg.id}`,
+            price: price, // Total harga
+            quantity: pkg.credits, // Jumlah kredit
+            name: `${pkg.label} Agent`
+          }]
         }
       });
 
-      if (error) throw error;
-      if (data?.paymentUrl) {
-        window.location.href = data.paymentUrl;
+      if (error || !data?.token) {
+        throw new Error(error?.message || "Gagal inisialisasi pembayaran");
       }
+
+      // 2. Munculkan Pop-up Snap
+      pay(data.token, {
+        onSuccess: (result) => {
+          toast({
+            title: "Pembayaran Berhasil!",
+            description: "Saldo kredit sedang diproses otomatis.",
+          });
+          setShowPurchaseModal(false);
+          // Refresh data setelah jeda singkat
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['agent-credits', travelId] });
+            queryClient.invalidateQueries({ queryKey: ['agent-credit-transactions', travelId] });
+          }, 2000);
+        },
+        onPending: (result) => {
+          toast({
+            title: "Menunggu Pembayaran",
+            description: "Silakan selesaikan pembayaran Anda di pop-up / tab baru.",
+          });
+          // Bisa tutup modal atau biarkan terbuka
+        },
+        onError: (result) => {
+          toast({
+            title: "Pembayaran Gagal",
+            description: "Silakan coba lagi.",
+            variant: "destructive"
+          });
+        },
+        onClose: () => {
+          console.log("Customer closed the popup");
+        }
+      });
+
     } catch (error: any) {
+      console.error(error);
       toast({
         title: "Gagal memproses pembayaran otomatis",
         description: error.message,
@@ -255,14 +288,10 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'purchase':
-        return <ArrowUpCircle className="h-4 w-4 text-green-500" />;
-      case 'usage':
-        return <ArrowDownCircle className="h-4 w-4 text-red-500" />;
-      case 'bonus':
-        return <Gift className="h-4 w-4 text-purple-500" />;
-      default:
-        return <CreditCard className="h-4 w-4" />;
+      case 'purchase': return <ArrowUpCircle className="h-4 w-4 text-green-500" />;
+      case 'usage': return <ArrowDownCircle className="h-4 w-4 text-red-500" />;
+      case 'bonus': return <Gift className="h-4 w-4 text-purple-500" />;
+      default: return <CreditCard className="h-4 w-4" />;
     }
   };
 
@@ -305,9 +334,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
         <Button
           variant="outline"
           className="h-auto py-4 flex flex-col items-center gap-2"
-          onClick={() => {
-            // Scroll to history logic if needed
-          }}
+          onClick={() => { /* Scroll to history logic if needed */ }}
         >
           <History className="w-5 h-5" />
           <span className="text-sm">Riwayat</span>
@@ -466,7 +493,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                 <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                   <div className="grid gap-2">
                     
-                    {/* Automatic Gateway Option */}
+                    {/* Automatic Gateway Option (Midtrans Snap) */}
                     {paymentConfig?.is_enabled && (
                       <div>
                         <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
@@ -483,7 +510,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                           </div>
                           <div>
                             <span className="font-medium block">Bayar Otomatis (Instan)</span>
-                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans/Xendit)</span>
+                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans)</span>
                           </div>
                         </Label>
                       </div>
@@ -520,7 +547,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
               {/* Automatic Payment Info */}
               {selectedPaymentMethod === 'gateway' && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300">
-                  <p>Anda akan diarahkan ke halaman pembayaran aman. Kredit akan ditambahkan otomatis setelah pembayaran berhasil.</p>
+                  <p>Pop-up pembayaran aman akan muncul. Kredit ditambahkan otomatis setelah pembayaran sukses.</p>
                 </div>
               )}
 
@@ -621,7 +648,9 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                 className="w-full"
                 onClick={handlePurchase}
                 disabled={
-                  (selectedPaymentMethod === 'gateway' ? isProcessingGateway : (!paymentProofUrl || purchaseCredits.isPending)) || !selectedPaymentMethod
+                  (selectedPaymentMethod === 'gateway' 
+                    ? (isProcessingGateway || !isSnapLoaded) 
+                    : (!paymentProofUrl || purchaseCredits.isPending)) || !selectedPaymentMethod
                 }
               >
                 {selectedPaymentMethod === 'gateway' ? (
@@ -629,7 +658,11 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses Payment...
                     </>
-                  ) : 'Lanjut ke Pembayaran'
+                  ) : !isSnapLoaded ? (
+                    'Memuat Gateway...'
+                  ) : (
+                    'Bayar Sekarang'
+                  )
                 ) : (
                   purchaseCredits.isPending ? (
                     <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2" />
@@ -637,8 +670,9 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                   )
                 )}
-                {selectedPaymentMethod === 'gateway' && !isProcessingGateway ? 'Lanjut ke Pembayaran' : 
-                 purchaseCredits.isPending ? 'Memproses...' : 'Konfirmasi Pembayaran'}
+                {selectedPaymentMethod === 'gateway' && !isProcessingGateway && isSnapLoaded ? 'Bayar Sekarang' : 
+                 purchaseCredits.isPending ? 'Memproses...' : 
+                 selectedPaymentMethod !== 'gateway' ? 'Konfirmasi Pembayaran' : ''}
               </Button>
 
               {selectedPaymentMethod !== 'gateway' && (
