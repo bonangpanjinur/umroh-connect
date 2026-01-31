@@ -1,35 +1,35 @@
 {
-  "id": "/umroh-connect/",
-  "name": "Umroh Connect",
-  "short_name": "UmrohConnect",
-  "description": "Solusi Digital Terpadu untuk Perjalanan Ibadah Umroh dan Haji Anda.",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#ffffff",
+  "name": "Arah Umroh",
+  "short_name": "Arah Umroh",
+  "description": "Marketplace umroh terpercaya dengan fitur pendamping ibadah lengkap.",
   "theme_color": "#059669",
-  "orientation": "portrait-primary",
-  "categories": ["lifestyle", "productivity", "utilities"],
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "id": "/",
   "icons": [
     {
-      "src": "pwa-192x192.png",
+      "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "pwa-512x512.png",
+      "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "pwa-maskable-192x192.png",
+      "src": "/pwa-maskable-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "pwa-maskable-512x512.png",
+      "src": "/pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -37,34 +37,18 @@
   ],
   "screenshots": [
     {
-      "src": "screenshots/home-narrow.png",
+      "src": "/screenshots/home-narrow.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Tampilan Beranda Mobile"
     },
     {
-      "src": "screenshots/home-wide.png",
+      "src": "/screenshots/home-wide.png",
       "sizes": "1920x1080",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Tampilan Dashboard Desktop"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Doa-doa",
-      "short_name": "Doa",
-      "description": "Buka kumpulan doa manasik",
-      "url": "/doa",
-      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Jadwal Sholat",
-      "short_name": "Sholat",
-      "description": "Lihat waktu sholat saat ini",
-      "url": "/jadwal-sholat",
-      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     }
   ]
 }
