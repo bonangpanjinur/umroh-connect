@@ -3,6 +3,19 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import SplashScreen from "./components/pwa/SplashScreen";
+import { registerSW } from "virtual:pwa-register";
+
+// Register Service Worker
+registerSW({
+  onNeedRefresh() {
+    if (confirm("Ada pembaruan aplikasi. Muat ulang sekarang?")) {
+      window.location.reload();
+    }
+  },
+  onOfflineReady() {
+    console.log("Aplikasi siap digunakan secara offline.");
+  },
+});
 
 const Root = () => {
   const [showSplash, setShowSplash] = useState(() => {
