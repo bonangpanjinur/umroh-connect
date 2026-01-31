@@ -56,7 +56,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
 
   // Fetch automatic payment gateway config
-  const { config: paymentConfig } = usePublicPaymentConfig();
+  const { data: paymentConfig, isLoading: paymentConfigLoading } = usePublicPaymentConfig();
 
   const currentPlan = MEMBERSHIP_PLANS.find(p => p.id === planType) || MEMBERSHIP_PLANS[0];
   const daysRemaining = getMembershipDaysRemaining(membership?.end_date || null);
@@ -435,7 +435,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
                   <div className="grid gap-2">
                     
                     {/* Automatic Gateway Option */}
-                    {paymentConfig?.is_enabled && (
+                    {paymentConfig && paymentConfig.provider !== 'manual' && (
                       <div>
                         <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
                         <Label
@@ -450,8 +450,8 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
                             <CreditCard className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="font-medium block">Bayar Otomatis (Instan)</span>
-                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans/Xendit)</span>
+                            <span className="font-medium block">Bayar via {paymentConfig?.provider === 'midtrans' ? 'Midtrans' : 'Xendit'}</span>
+                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet - Verifikasi Otomatis</span>
                           </div>
                         </Label>
                       </div>

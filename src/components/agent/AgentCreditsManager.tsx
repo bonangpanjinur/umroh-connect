@@ -113,7 +113,13 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
 
   const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+<<<<<<< HEAD
   const { config: paymentConfig } = usePublicPaymentConfig();
+=======
+
+  // Fetch automatic payment gateway config
+  const { data: paymentConfig, isLoading: paymentConfigLoading } = usePublicPaymentConfig();
+>>>>>>> c03e74dcf29ff6a74d7565440da3a16b53d9b0c6
 
   // Purchase credits mutation (Manual)
   const purchaseCredits = useMutation({
@@ -493,8 +499,13 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                 <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                   <div className="grid gap-2">
                     
+<<<<<<< HEAD
                     {/* Automatic Gateway Option (Midtrans Snap) */}
                     {paymentConfig?.is_enabled && (
+=======
+                    {/* Automatic Gateway Option */}
+                    {paymentConfig && paymentConfig.provider !== 'manual' && (
+>>>>>>> c03e74dcf29ff6a74d7565440da3a16b53d9b0c6
                       <div>
                         <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
                         <Label
@@ -509,8 +520,13 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                             <CreditCard className="w-5 h-5" />
                           </div>
                           <div>
+<<<<<<< HEAD
                             <span className="font-medium block">Bayar Otomatis (Instan)</span>
                             <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans)</span>
+=======
+                            <span className="font-medium block">Bayar via {paymentConfig?.provider === 'midtrans' ? 'Midtrans' : 'Xendit'}</span>
+                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet - Verifikasi Otomatis</span>
+>>>>>>> c03e74dcf29ff6a74d7565440da3a16b53d9b0c6
                           </div>
                         </Label>
                       </div>
