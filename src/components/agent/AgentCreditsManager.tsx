@@ -114,8 +114,8 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
 
   const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
   
-  // Cleaned up the conflict here:
-  const { config: paymentConfig } = usePublicPaymentConfig();
+  // Get public payment config
+  const { data: paymentConfig } = usePublicPaymentConfig();
 
   // Purchase credits mutation (Manual)
   const purchaseCredits = useMutation({
@@ -496,7 +496,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                   <div className="grid gap-2">
                     
                     {/* Automatic Gateway Option (Midtrans Snap) */}
-                    {paymentConfig?.is_enabled && (
+                    {paymentConfig?.provider !== 'manual' && (
                       <div>
                         <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
                         <Label
