@@ -19,6 +19,64 @@ interface PackagePreferences {
   flightType?: 'direct' | 'transit' | 'any';
 }
 
+// Simple scoring function for fallback
+const scorePackage = (pkg: any, preferences: PackagePreferences): number => {
+  let score = 50; // Base score
+  
+  // Hotel star match
+  if (pkg.hotel_star) {
+    if (pkg.hotel_star >= preferences.hotelStar) {
+      score += 20;
+    } else {
+      score -= (preferences.hotelStar - pkg.hotel_star) * 10;
+    }
+  }
+  
+  // Flight type match
+  if (preferences.flightType && preferences.flightType !== 'any' && pkg.flight_type === preferences.flightType) {
+    score += 15;
+  }
+  
+  // Travel rating bonus
+  if (pkg.travel?.rating) {
+    score += pkg.travel.rating * 3;
+  }
+  
+  // Verified travel bonus
+  if (pkg.travel?.verified) {
+    score += 10;
+  }
+  
+  return Math.min(100, Math.max(0, score));
+};
+
+// Generate reasoning for fallback
+const generateReasoning = (pkg: any, preferences: PackagePreferences): string => {
+  const reasons: string[] = [];
+  
+  if (pkg.hotel_star >= preferences.hotelStar) {
+    reasons.push(`Hotel ${pkg.hotel_star} bintang sesuai dengan preferensi Anda`);
+  }
+  
+  if (pkg.travel?.verified) {
+    reasons.push(`Travel agent terverifikasi`);
+  }
+  
+  if (pkg.travel?.rating && pkg.travel.rating >= 4) {
+    reasons.push(`Rating tinggi (${pkg.travel.rating}/5)`);
+  }
+  
+  if (pkg.flight_type === 'direct') {
+    reasons.push(`Penerbangan langsung`);
+  }
+  
+  if (reasons.length === 0) {
+    reasons.push(`Paket ini sesuai dengan budget dan durasi yang Anda inginkan`);
+  }
+  
+  return reasons.join('. ') + '.';
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,12 +84,9 @@ serve(async (req) => {
 
   try {
     const { preferences } = await req.json() as { preferences: PackagePreferences };
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
+    
+    console.log('Getting recommendations for preferences:', preferences);
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -50,7 +105,12 @@ serve(async (req) => {
       .eq("package_type", "umroh")
       .order("created_at", { ascending: false });
 
-    if (pkgError) throw pkgError;
+    if (pkgError) {
+      console.error('Error fetching packages:', pkgError);
+      throw pkgError;
+    }
+
+    console.log(`Found ${packages?.length || 0} packages`);
 
     // Filter packages based on preferences
     const filteredPackages = (packages || []).filter((pkg: any) => {
@@ -76,6 +136,57 @@ serve(async (req) => {
       
       return availableDepartures.length > 0;
     });
+
+    console.log(`Filtered to ${filteredPackages.length} packages`);
+
+    if (filteredPackages.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          recommendations: [],
+          summary: "Tidak ada paket yang sesuai dengan preferensi Anda. Coba ubah kriteria pencarian.",
+          totalMatches: 0
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    // If no API key, use fallback scoring
+    if (!LOVABLE_API_KEY) {
+      console.log('No LOVABLE_API_KEY, using fallback scoring');
+      
+      const scoredPackages = filteredPackages
+        .map((pkg: any) => {
+          const score = scorePackage(pkg, preferences);
+          const cheapestDeparture = (pkg.departures || [])
+            .filter((d: any) => d.status !== 'full')
+            .sort((a: any, b: any) => a.price - b.price)[0];
+          
+          return {
+            package: {
+              ...pkg,
+              departures: pkg.departures?.filter((d: any) => d.status !== 'full').slice(0, 3)
+            },
+            matchScore: score,
+            reasoning: generateReasoning(pkg, preferences),
+            lowestPrice: cheapestDeparture?.price
+          };
+        })
+        .sort((a: any, b: any) => b.matchScore - a.matchScore)
+        .slice(0, 3);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          recommendations: scoredPackages,
+          summary: "Berikut adalah paket-paket terbaik berdasarkan preferensi Anda.",
+          totalMatches: filteredPackages.length
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Prepare package summaries for AI
     const packageSummaries = filteredPackages.slice(0, 10).map((pkg: any, index: number) => {
@@ -118,6 +229,8 @@ ${packageSummaries || 'Tidak ada paket yang tersedia sesuai kriteria.'}
 
 Berikan rekomendasi TOP 3 paket terbaik berdasarkan preferensi di atas.`;
 
+    console.log('Calling AI gateway...');
+    
     // Call AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -126,7 +239,7 @@ Berikan rekomendasi TOP 3 paket terbaik berdasarkan preferensi di atas.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -136,42 +249,64 @@ Berikan rekomendasi TOP 3 paket terbaik berdasarkan preferensi di atas.`;
     });
 
     if (!aiResponse.ok) {
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit tercapai, silakan coba lagi nanti." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Kuota AI habis, silakan hubungi admin." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+      console.error('AI gateway error:', aiResponse.status);
+      
+      // Use fallback scoring on any AI error
+      const scoredPackages = filteredPackages
+        .map((pkg: any) => {
+          const score = scorePackage(pkg, preferences);
+          const cheapestDeparture = (pkg.departures || [])
+            .filter((d: any) => d.status !== 'full')
+            .sort((a: any, b: any) => a.price - b.price)[0];
+          
+          return {
+            package: {
+              ...pkg,
+              departures: pkg.departures?.filter((d: any) => d.status !== 'full').slice(0, 3)
+            },
+            matchScore: score,
+            reasoning: generateReasoning(pkg, preferences),
+            lowestPrice: cheapestDeparture?.price
+          };
+        })
+        .sort((a: any, b: any) => b.matchScore - a.matchScore)
+        .slice(0, 3);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          recommendations: scoredPackages,
+          summary: "Berikut adalah paket-paket terbaik berdasarkan preferensi Anda.",
+          totalMatches: filteredPackages.length
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices?.[0]?.message?.content || "";
 
+    console.log('AI response received');
+
     // Parse AI response (extract JSON from response)
     let recommendations;
     try {
       // Try to extract JSON from the response
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/) || aiContent.match(/```\s*([\s\S]*?)\s*```/) || aiContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        recommendations = JSON.parse(jsonMatch[0]);
+        const jsonStr = jsonMatch[1] || jsonMatch[0];
+        recommendations = JSON.parse(jsonStr);
       } else {
         throw new Error("No JSON found in AI response");
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", aiContent);
+      console.error("Failed to parse AI response, using fallback");
       // Fallback: return top packages by rating
       recommendations = {
         recommendations: filteredPackages.slice(0, 3).map((pkg: any, idx: number) => ({
           packageIndex: idx + 1,
-          matchScore: 80 - idx * 10,
-          reasoning: `Paket ini sesuai dengan budget dan durasi yang Anda inginkan.`
+          matchScore: 85 - idx * 5,
+          reasoning: generateReasoning(pkg, preferences)
         })),
         summary: "Berikut adalah paket-paket yang sesuai dengan preferensi Anda."
       };
@@ -210,7 +345,12 @@ Berikan rekomendasi TOP 3 paket terbaik berdasarkan preferensi di atas.`;
   } catch (error) {
     console.error("Recommend packages error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        success: false,
+        recommendations: [],
+        summary: "Terjadi kesalahan. Silakan coba lagi."
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
