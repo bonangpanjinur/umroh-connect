@@ -266,274 +266,260 @@ export const PagesManagement = () => {
               className="pl-8"
             />
             <div className="absolute left-2.5 top-2.5 text-muted-foreground">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="lucide lucide-search"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
+              <Search className="h-4 w-4" />
             </div>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Buat Halaman Baru
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingPage ? 'Edit Halaman' : 'Buat Halaman Baru'}
-              </DialogTitle>
-            </DialogHeader>
+            <DialogTrigger asChild>
+              <Button onClick={() => resetForm()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Buat Halaman Baru
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingPage ? 'Edit Halaman' : 'Buat Halaman Baru'}
+                </DialogTitle>
+              </DialogHeader>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="content">Konten</TabsTrigger>
-                <TabsTrigger value="seo">SEO</TabsTrigger>
-                <TabsTrigger value="image">Gambar</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="content">Konten</TabsTrigger>
+                  <TabsTrigger value="seo">SEO</TabsTrigger>
+                  <TabsTrigger value="image">Gambar</TabsTrigger>
+                  <TabsTrigger value="preview">Preview</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="content" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Judul Halaman *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Masukkan judul halaman"
-                    value={formData.title}
-                    onChange={handleTitleChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="slug">URL Halaman *</Label>
-                  <div className="flex gap-2">
+                <TabsContent value="content" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Judul Halaman *</Label>
                     <Input
-                      id="slug"
-                      placeholder="halaman-url"
-                      value={formData.slug}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        slug: generateSlug(e.target.value),
-                      }))}
-                      disabled={editingPage && isSlugLocked}
+                      id="title"
+                      placeholder="Masukkan judul halaman"
+                      value={formData.title}
+                      onChange={handleTitleChange}
                     />
-                    {editingPage && (
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="slug">URL Halaman *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="slug"
+                        placeholder="halaman-url"
+                        value={formData.slug}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          slug: generateSlug(e.target.value),
+                        }))}
+                        disabled={editingPage && isSlugLocked}
+                      />
+                      {editingPage && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          type="button"
+                          onClick={() => setIsSlugLocked(!isSlugLocked)}
+                          title={isSlugLocked ? "Buka kunci URL" : "Kunci URL"}
+                        >
+                          {isSlugLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="icon"
                         type="button"
-                        onClick={() => setIsSlugLocked(!isSlugLocked)}
-                        title={isSlugLocked ? "Buka kunci URL" : "Kunci URL"}
+                        onClick={() => copySlug(formData.slug)}
+                        title="Salin URL"
                       >
-                        {isSlugLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        <Copy className="h-4 w-4" />
                       </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      type="button"
-                      onClick={() => copySlug(formData.slug)}
-                      title="Salin URL"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      URL halaman akan menjadi: /{formData.slug}
+                      {editingPage && !isSlugLocked && (
+                        <span className="text-destructive block mt-1 font-medium">
+                          Peringatan: Mengubah URL dapat merusak link yang sudah ada!
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    URL halaman akan menjadi: /{formData.slug}
-                    {editingPage && !isSlugLocked && (
-                      <span className="text-destructive block mt-1 font-medium">
-                        Peringatan: Mengubah URL dapat merusak link yang sudah ada!
-                      </span>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Konten Halaman</Label>
+                    <Textarea
+                      id="content"
+                      placeholder="Masukkan konten halaman (mendukung HTML)"
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))}
+                      rows={8}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="is_active">Aktifkan Halaman</Label>
+                    <Switch
+                      id="is_active"
+                      checked={formData.is_active}
+                      onCheckedChange={(checked) => setFormData(prev => ({
+                        ...prev,
+                        is_active: checked,
+                      }))}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="seo" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="meta_title">Meta Title</Label>
+                    <Input
+                      id="meta_title"
+                      placeholder="Judul untuk search engine (50-60 karakter)"
+                      value={formData.meta_title}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        meta_title: e.target.value,
+                      }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.meta_title.length}/60 karakter
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="meta_description">Meta Description</Label>
+                    <Textarea
+                      id="meta_description"
+                      placeholder="Deskripsi untuk search engine (150-160 karakter)"
+                      value={formData.meta_description}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        meta_description: e.target.value,
+                      }))}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {formData.meta_description.length}/160 karakter
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="meta_keywords">Meta Keywords</Label>
+                    <Input
+                      id="meta_keywords"
+                      placeholder="Kata kunci dipisahkan dengan koma"
+                      value={formData.meta_keywords}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        meta_keywords: e.target.value,
+                      }))}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Contoh: umroh, haji, panduan
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="image" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>Gambar Halaman</Label>
+                    {formData.image_url ? (
+                      <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden group">
+                        <img
+                          src={formData.image_url}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Hapus Gambar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg bg-muted/50 text-muted-foreground">
+                        <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                        <p className="text-sm">Belum ada gambar</p>
+                      </div>
                     )}
-                  </p>
-                </div>
+                    <div className="flex gap-2">
+                      <label className="flex-1">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          disabled={isUploading}
+                          className="cursor-pointer"
+                        />
+                      </label>
+                      {isUploading && (
+                        <Button disabled>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Mengunggah...
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="content">Konten Halaman</Label>
-                  <Textarea
-                    id="content"
-                    placeholder="Masukkan konten halaman (mendukung HTML)"
-                    value={formData.content}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      content: e.target.value,
-                    }))}
-                    rows={8}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Aktifkan Halaman</Label>
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData(prev => ({
-                      ...prev,
-                      is_active: checked,
-                    }))}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="seo" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="meta_title">Meta Title</Label>
-                  <Input
-                    id="meta_title"
-                    placeholder="Judul untuk search engine (50-60 karakter)"
-                    value={formData.meta_title}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      meta_title: e.target.value,
-                    }))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.meta_title.length}/60 karakter
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meta_description">Meta Description</Label>
-                  <Textarea
-                    id="meta_description"
-                    placeholder="Deskripsi untuk search engine (150-160 karakter)"
-                    value={formData.meta_description}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      meta_description: e.target.value,
-                    }))}
-                    rows={3}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.meta_description.length}/160 karakter
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="meta_keywords">Meta Keywords</Label>
-                  <Input
-                    id="meta_keywords"
-                    placeholder="Kata kunci dipisahkan dengan koma"
-                    value={formData.meta_keywords}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      meta_keywords: e.target.value,
-                    }))}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Contoh: umroh, haji, panduan
-                  </p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="image" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Gambar Halaman</Label>
-                  {formData.image_url ? (
-                    <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden group">
+                <TabsContent value="preview" className="mt-4">
+                  <div className="border rounded-lg p-6 bg-card min-h-[300px] max-h-[500px] overflow-y-auto">
+                    <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
+                    {formData.image_url && (
                       <img
                         src={formData.image_url}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+                        alt={formData.title}
+                        className="w-full aspect-video object-cover rounded-lg mb-6"
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Hapus Gambar
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg bg-muted/50 text-muted-foreground">
-                      <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
-                      <p className="text-sm">Belum ada gambar</p>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <label className="flex-1">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                        className="cursor-pointer"
-                      />
-                    </label>
-                    {isUploading && (
-                      <Button disabled>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Mengunggah...
-                      </Button>
                     )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="preview" className="mt-4">
-                <div className="border rounded-lg p-6 bg-card min-h-[300px] max-h-[500px] overflow-y-auto">
-                  <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
-                  {formData.image_url && (
-                    <img
-                      src={formData.image_url}
-                      alt={formData.title}
-                      className="w-full aspect-video object-cover rounded-lg mb-6"
+                    <div 
+                      className="prose prose-sm dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }}
                     />
-                  )}
-                  <div 
-                    className="prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+                  </div>
+                </TabsContent>
+              </Tabs>
 
-            <div className="flex gap-2 justify-end mt-6">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Batal
-              </Button>
-              <Button onClick={handleSave}>
-                {editingPage ? 'Perbarui' : 'Buat'} Halaman
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex gap-2 justify-end mt-6">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button onClick={handleSave}>
+                  {editingPage ? 'Perbarui' : 'Buat'} Halaman
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-      ) : pages.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Belum ada halaman. Buat halaman baru untuk memulai.
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Daftar Halaman ({pages.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : pages.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Belum ada halaman. Buat halaman baru untuk memulai.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Halaman ({pages.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
                       <TableHead>Judul</TableHead>
                       <TableHead>URL</TableHead>
@@ -541,81 +527,83 @@ export const PagesManagement = () => {
                       <TableHead>Terakhir Diperbarui</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPages.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        Tidak ada halaman yang ditemukan untuk "{searchQuery}"
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredPages.map((page) => (
-                      <TableRow key={page.id}>
-                      <TableCell className="font-medium">{page.title}</TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          /{page.slug}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={page.is_active}
-                            onCheckedChange={() => toggleActive(page)}
-                          />
-                          <Badge variant={page.is_active ? "default" : "secondary"}>
-                            {page.is_active ? 'Aktif' : 'Draft'}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(page.updated_at).toLocaleDateString('id-ID', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleActive(page)}
-                            title={page.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                          >
-                            {page.is_active ? (
-                              <Eye className="h-4 w-4" />
-                            ) : (
-                              <EyeOff className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(page)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(page.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPages.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          Tidak ada halaman yang ditemukan untuk "{searchQuery}"
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredPages.map((page) => (
+                        <TableRow key={page.id}>
+                          <TableCell className="font-medium">{page.title}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">
+                              /{page.slug}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={page.is_active}
+                                onCheckedChange={() => toggleActive(page)}
+                              />
+                              <Badge variant={page.is_active ? "default" : "secondary"}>
+                                {page.is_active ? 'Aktif' : 'Draft'}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {new Date(page.updated_at).toLocaleDateString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleActive(page)}
+                                title={page.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                              >
+                                {page.is_active ? (
+                                  <Eye className="h-4 w-4" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(page)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(page.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
