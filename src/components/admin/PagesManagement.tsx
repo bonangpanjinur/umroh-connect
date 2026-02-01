@@ -303,7 +303,7 @@ export const PagesManagement = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    URL halaman akan menjadi: /page/{formData.slug}
+                    URL halaman akan menjadi: /{formData.slug}
                   </p>
                 </div>
 
