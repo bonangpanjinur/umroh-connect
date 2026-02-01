@@ -52,14 +52,10 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const { planType, isPro, isPremium, isActive } = useIsAgentPro(travelId);
   const requestMembership = useRequestMembership();
 
-  // Fetch platform settings for manual payment methods
-  const { data: platformSettings } = usePlatformSettings();
-  const paymentGateway = platformSettings?.find(s => s.key === 'payment_gateway')?.value as any;
-  const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
-  const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
-  
   // Fetch automatic payment gateway config
   const { data: paymentConfig } = usePublicPaymentConfig();
+  
+  const qrisImageUrl = paymentConfig?.qrisImageUrl || '';
   
   const provider = paymentConfig?.provider || 'manual';
   const isGatewayEnabled = provider !== 'manual';
@@ -181,6 +177,10 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
       if (error) throw error;
       if (data?.paymentUrl) {
         window.location.href = data.paymentUrl;
+      } else if (data?.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else if (data?.invoice_url) {
+        window.location.href = data.invoice_url;
       }
     } catch (error: any) {
       toast({
