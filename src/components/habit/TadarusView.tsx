@@ -131,7 +131,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
       </Card>
 
       {/* Last Read Info */}
-      {lastRead && (
+      {lastRead && 'surah_number' in lastRead && (
         <Card className="border-none shadow-sm bg-primary/5 overflow-hidden">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
               </div>
               <div>
                 <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Terakhir Baca</p>
-                <p className="text-sm font-bold">Surah {lastRead.surah_number}, Ayat {lastRead.ayah_number}</p>
+                <p className="text-sm font-bold">Surah {(lastRead as any).surah_number}, Ayat {(lastRead as any).ayah_number}</p>
               </div>
             </div>
             <Button size="sm" variant="ghost" className="text-primary font-bold text-xs" onClick={handleAddClick}>

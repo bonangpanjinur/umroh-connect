@@ -113,12 +113,14 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     }
   }, [provider, isTestMode, midtransClientKey]);
 
-  // Auto-select first category and method
+  // Auto-select first category and method - always ensure manual is available
   useEffect(() => {
-    if (step === 'payment' && !selectedCategory) {
-      if (isGatewayEnabled) setSelectedCategory('gateway');
-      else if (hasQris) setSelectedCategory('qris');
-      else if (hasManual) setSelectedCategory('manual');
+    if (step === 'payment') {
+      if (!selectedCategory) {
+        if (isGatewayEnabled) setSelectedCategory('gateway');
+        else if (hasQris) setSelectedCategory('qris');
+        else setSelectedCategory('manual'); // Always fallback to manual
+      }
     }
   }, [step, isGatewayEnabled, hasQris, hasManual, selectedCategory]);
 
@@ -567,26 +569,24 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                   </div>
                 )}
 
-                {/* 3. Manual Transfer */}
-                {hasManual && (
-                  <div 
-                    onClick={() => setSelectedCategory('manual')}
-                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                      selectedCategory === 'manual' 
-                        ? 'bg-primary/5 border-primary shadow-sm' 
-                        : 'bg-card border-border hover:border-primary/30'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg ${selectedCategory === 'manual' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">Transfer Manual</p>
-                      <p className="text-[10px] text-muted-foreground">Konfirmasi manual oleh admin</p>
-                    </div>
-                    {selectedCategory === 'manual' && <Check className="w-4 h-4 text-primary" />}
+                {/* 3. Manual Transfer - Always show this option */}
+                <div 
+                  onClick={() => setSelectedCategory('manual')}
+                  className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                    selectedCategory === 'manual' 
+                      ? 'bg-primary/5 border-primary shadow-sm' 
+                      : 'bg-card border-border hover:border-primary/30'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${selectedCategory === 'manual' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                    <Building2 className="w-5 h-5" />
                   </div>
-                )}
+                  <div className="flex-1">
+                    <p className="font-bold text-sm">Transfer Manual</p>
+                    <p className="text-[10px] text-muted-foreground">Konfirmasi manual oleh admin</p>
+                  </div>
+                  {selectedCategory === 'manual' && <Check className="w-4 h-4 text-primary" />}
+                </div>
               </div>
             </div>
 
@@ -612,8 +612,8 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
 
               {(selectedCategory === 'qris' || selectedCategory === 'manual') && (
                 <div className="space-y-4">
-                  {/* Specific method selection for manual transfer */}
-                  {selectedCategory === 'manual' && (
+                  {/* Bank selection for manual transfer */}
+                  {selectedCategory === 'manual' && enabledPaymentMethods.filter(pm => pm.type === 'bank_transfer').length > 0 && (
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">Pilih Bank</Label>
                       <div className="grid grid-cols-2 gap-2">
@@ -632,7 +632,14 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     </div>
                   )}
 
-                  {/* Payment Details Card */}
+                  {/* Info box for manual transfer */}
+                  {selectedCategory === 'manual' && !selectedPaymentData && (
+                    <div className="p-4 bg-muted/50 rounded-xl border text-center">
+                      <p className="text-sm text-muted-foreground">
+                        Transfer ke rekening yang akan dikonfirmasi oleh admin.
+                      </p>
+                    </div>
+                  )}
                   {selectedPaymentData && (
                     <Card className="border-primary/20 overflow-hidden">
                       <div className="bg-primary/5 px-4 py-2 border-b border-primary/10">

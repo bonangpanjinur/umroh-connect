@@ -21,12 +21,12 @@ export const usePages = () => {
     queryKey: ['pages'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Page[];
+      return (data || []) as unknown as Page[];
     },
   });
 };
@@ -36,13 +36,13 @@ export const usePage = (slug: string) => {
     queryKey: ['page', slug],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .select('*')
         .eq('slug', slug)
         .maybeSingle();
 
       if (error) throw error;
-      return data as Page | null;
+      return data as unknown as Page | null;
     },
     enabled: !!slug,
   });
@@ -53,7 +53,7 @@ export const useCreatePage = () => {
   return useMutation({
     mutationFn: async (newPage: Omit<Page, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .insert([newPage])
         .select()
         .single();
@@ -76,18 +76,18 @@ export const useUpdatePage = () => {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Page> & { id: string }) => {
       const { data, error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .update(updates)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as unknown as Page;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pages'] });
-      queryClient.invalidateQueries({ queryKey: ['page', data.slug] });
+      queryClient.invalidateQueries({ queryKey: ['page', (data as Page).slug] });
       toast.success('Halaman berhasil diperbarui');
     },
     onError: (error: any) => {
@@ -101,7 +101,7 @@ export const useDeletePage = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .delete()
         .eq('id', id);
 
