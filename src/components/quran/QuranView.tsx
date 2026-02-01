@@ -63,9 +63,20 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     // Ensure targetAyah is a number and not an event object
     const targetAyah = typeof ayahOverride === 'number' ? ayahOverride : currentAyah;
 
+    // If this ayah is already the last read, don't re-save to avoid duplicates
+    if (lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === targetAyah) {
+      return;
+    }
+
+    // Determine the actual start point
+    // If we're in the same surah as last read, start from the next ayah
+    const effectiveStartAyah = (lastRead?.surah_number === selectedSurah) 
+      ? Math.min(targetAyah, lastRead.ayah_number + 1)
+      : 1;
+
     // Correctly get juz numbers
     // Note: ayahs array index is 0-based, while ayah numberInSurah is 1-based
-    const startAyahIndex = Math.max(0, startAyah - 1);
+    const startAyahIndex = Math.max(0, effectiveStartAyah - 1);
     const targetAyahIndex = Math.max(0, targetAyah - 1);
     
     const juzStart = surahArabic.ayahs[startAyahIndex]?.juz || 1;
@@ -74,17 +85,17 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     addLog.mutate({
       userId: user.id,
       surahStart: selectedSurah,
-      ayahStart: startAyah,
+      ayahStart: effectiveStartAyah,
       surahEnd: selectedSurah,
       ayahEnd: targetAyah,
-      totalVerses: Math.max(1, targetAyah - startAyah + 1),
+      totalVerses: Math.max(1, targetAyah - effectiveStartAyah + 1),
       juzStart: juzStart,
       juzEnd: juzEnd,
     });
     
-    // Reset start ayah for next session
+    // Update start ayah for next potential session in same view
     setStartAyah(targetAyah + 1 > surahArabic.numberOfAyahs ? 1 : targetAyah + 1);
-    if (typeof ayahOverride === 'number') setCurrentAyah(ayahOverride);
+    if (typeof ayahOverride === 'number') setCurrentAyah(targetAyah);
   };
 
   // Surah List View
@@ -301,8 +312,6 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                     }`}
                     onClick={() => {
                       setCurrentAyah(ayah.numberInSurah);
-                      // Auto-save when clicking an ayah
-                      handleFinishReading(ayah.numberInSurah);
                     }}
                   >
                     {/* Ayah Actions */}
@@ -329,26 +338,18 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 rounded-full ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFinishReading(ayah.numberInSurah);
-                          }}
-                          title="Tandai Terakhir Baca"
-                        >
-                          <Bookmark className={`w-4 h-4 ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'fill-current' : ''}`} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
                           className={`h-8 w-8 rounded-full ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50'}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleFinishReading(ayah.numberInSurah);
                           }}
-                          title="Selesai di ayat ini"
+                          title="Tandai Terakhir Baca & Simpan Tadarus"
                         >
-                          <Check className={`w-4 h-4 ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'stroke-[3px]' : ''}`} />
+                          {lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? (
+                            <CheckCircle2 className="w-4 h-4 fill-emerald-500 text-white" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
