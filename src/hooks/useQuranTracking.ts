@@ -60,18 +60,18 @@ export const useTodayQuranLogs = (userId: string | undefined) => {
 
   return useQuery({
     queryKey: ['quran-logs-today', userId],
-    queryFn: async (): Promise<QuranTadarusLog[]> => {
+    queryFn: async (): Promise<any[]> => {
       if (!userId) return [];
 
       const { data, error } = await supabase
         .from('quran_tadarus_logs')
-        .select('*')
+        .select('*, quran_surahs!quran_tadarus_logs_surah_start_fkey(*)')
         .eq('user_id', userId)
         .eq('read_date', today)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as QuranTadarusLog[];
+      return data;
     },
     enabled: !!userId,
   });
