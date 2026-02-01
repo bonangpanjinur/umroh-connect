@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Crown, Check, Upload, Clock, Sparkles, Cloud, Smartphone, BarChart3, Download,
-  Building2, QrCode, CreditCard, Loader2, ExternalLink
+  Building2, QrCode, CreditCard, Loader2, ExternalLink, ArrowLeft, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +31,7 @@ const featureIcons: Record<string, React.ReactNode> = {
   'Export data': <Download className="h-4 w-4" />,
 };
 
-// Use existing Midtrans Snap type from useMidtrans.ts - no duplicate declaration needed
+type PaymentCategory = 'gateway' | 'qris' | 'manual';
 
 export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   open,
@@ -48,6 +48,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   
   const [step, setStep] = useState<'info' | 'payment' | 'processing' | 'gateway'>('info');
   const [uploading, setUploading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,6 +63,9 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   const qrisImageUrl = paymentConfig?.qrisImageUrl || '';
   const isGatewayEnabled = provider !== 'manual';
   const enabledPaymentMethods = paymentConfig?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+
+  const hasQris = enabledPaymentMethods.some(pm => pm.type === 'qris');
+  const hasManual = enabledPaymentMethods.some(pm => pm.type === 'bank_transfer');
 
   // Load Midtrans Snap script if provider is midtrans
   useEffect(() => {
@@ -79,12 +83,24 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     }
   }, [provider, isTestMode, midtransClientKey]);
 
-  // Auto-select first payment method
+  // Auto-select first category and method
   useEffect(() => {
-    if (!isGatewayEnabled && enabledPaymentMethods.length > 0 && !selectedPaymentMethod) {
-      setSelectedPaymentMethod(enabledPaymentMethods[0].id);
+    if (step === 'payment' && !selectedCategory) {
+      if (isGatewayEnabled) setSelectedCategory('gateway');
+      else if (hasQris) setSelectedCategory('qris');
+      else if (hasManual) setSelectedCategory('manual');
     }
-  }, [enabledPaymentMethods, selectedPaymentMethod, isGatewayEnabled]);
+  }, [step, isGatewayEnabled, hasQris, hasManual, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedCategory === 'qris') {
+      const qrisMethod = enabledPaymentMethods.find(pm => pm.type === 'qris');
+      if (qrisMethod) setSelectedPaymentMethod(qrisMethod.id);
+    } else if (selectedCategory === 'manual') {
+      const manualMethod = enabledPaymentMethods.find(pm => pm.type === 'bank_transfer');
+      if (manualMethod) setSelectedPaymentMethod(manualMethod.id);
+    }
+  }, [selectedCategory, enabledPaymentMethods]);
 
   const handleLoginClick = () => {
     onOpenChange(false);
@@ -282,14 +298,15 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <Clock className="h-10 w-10 text-white" />
-            </motion.div>
-            <h3 className="text-xl font-bold mb-2">Pembayaran Sedang Diverifikasi</h3>
-            <p className="text-muted-foreground mb-4">
-              Admin akan memverifikasi pembayaran Anda dalam 1-24 jam.
+              className="w-20 h-20 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"
+            />
+            <h3 className="text-xl font-bold mb-2">Sedang Diverifikasi</h3>
+            <p className="text-muted-foreground">
+              Bukti pembayaran Anda sedang dicek oleh tim kami. Mohon tunggu maksimal 1x24 jam.
             </p>
+            <Button className="mt-6" variant="outline" onClick={() => onOpenChange(false)}>
+              Tutup
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -303,7 +320,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             {step === 'info' && 'Upgrade ke Premium'}
-            {step === 'payment' && 'Pembayaran'}
+            {step === 'payment' && 'Pilih Pembayaran'}
             {step === 'processing' && 'Memproses...'}
             {step === 'gateway' && 'Pembayaran Online'}
           </DialogTitle>
@@ -389,35 +406,13 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {/* Gateway Payment Button */}
-                {isGatewayEnabled && (
-                  <Button 
-                    className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80" 
-                    onClick={handleGatewayPayment}
-                    disabled={isProcessing}
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
-                  </Button>
-                )}
-                
-                {/* Manual Payment Button - always enabled immediately */}
                 <Button 
-                  className={`w-full gap-2 ${isGatewayEnabled ? '' : ''}`}
-                  variant={isGatewayEnabled ? 'outline' : 'default'}
+                  className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80" 
                   onClick={() => setStep('payment')}
+                  disabled={isProcessing}
                 >
-                  {isGatewayEnabled ? (
-                    <>
-                      <Building2 className="h-4 w-4" />
-                      Transfer Manual
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="h-4 w-4" />
-                      Upgrade Sekarang
-                    </>
-                  )}
+                  <Crown className="h-4 w-4" />
+                  Upgrade Sekarang
                 </Button>
               </div>
             )}
@@ -466,178 +461,257 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
           </div>
         )}
 
-        {/* Manual Payment Step */}
+        {/* Unified Payment Step */}
         {step === 'payment' && plan && (
-          <div className="space-y-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+          <div className="space-y-6">
+            <button 
               onClick={() => setStep('info')}
-              className="mb-2"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              ← Kembali
-            </Button>
+              <ArrowLeft className="w-4 h-4" />
+              Kembali
+            </button>
 
             {/* Amount */}
-            <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+            <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Total Bayar</span>
-                <span className="text-2xl font-bold text-primary">
+                <span className="text-sm text-muted-foreground">Total Bayar</span>
+                <span className="text-xl font-bold text-primary">
                   {formatPrice(plan.price_yearly)}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Berlaku 1 tahun</p>
             </div>
 
-            {/* Payment Methods */}
-            {enabledPaymentMethods.length > 0 ? (
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Pilih Metode Pembayaran</Label>
-                <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <div className="grid gap-2">
-                    {enabledPaymentMethods.map((method: any) => (
-                      <div key={method.id}>
-                        <RadioGroupItem value={method.id} id={`pm-${method.id}`} className="sr-only" />
-                        <Label
-                          htmlFor={`pm-${method.id}`}
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                            selectedPaymentMethod === method.id
-                              ? 'bg-primary/10 border-2 border-primary'
-                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                          }`}
-                        >
-                          {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
-                          {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
-                          {method.type === 'qris' && <QrCode className="w-5 h-5" />}
-                          <span className="font-medium">{method.name}</span>
-                        </Label>
-                      </div>
-                    ))}
+            {/* Category Selection */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Pilih Metode Pembayaran</Label>
+              <div className="grid gap-2">
+                {/* 1. Payment Gateway */}
+                {isGatewayEnabled && (
+                  <div 
+                    onClick={() => setSelectedCategory('gateway')}
+                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                      selectedCategory === 'gateway' 
+                        ? 'bg-primary/5 border-primary shadow-sm' 
+                        : 'bg-card border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${selectedCategory === 'gateway' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">Payment Gateway</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {provider === 'midtrans' ? 'Midtrans (VA, GoPay, CC)' : 'Xendit (VA, E-Wallet)'}
+                      </p>
+                    </div>
+                    {selectedCategory === 'gateway' && <Check className="w-4 h-4 text-primary" />}
                   </div>
-                </RadioGroup>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <p>Tidak ada metode pembayaran manual yang aktif.</p>
-                <p className="text-xs mt-1">Silakan hubungi admin.</p>
-              </div>
-            )}
+                )}
 
-            {/* Payment Details */}
-            {selectedPaymentData && (
-              <div className="bg-secondary rounded-xl p-4">
-                {selectedPaymentData.type === 'bank_transfer' && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">No. Rekening:</span>
-                      <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
+                {/* 2. QRIS */}
+                {hasQris && (
+                  <div 
+                    onClick={() => setSelectedCategory('qris')}
+                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                      selectedCategory === 'qris' 
+                        ? 'bg-primary/5 border-primary shadow-sm' 
+                        : 'bg-card border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${selectedCategory === 'qris' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <QrCode className="w-5 h-5" />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Atas Nama:</span>
-                      <span className="font-medium">{selectedPaymentData.accountName || '-'}</span>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">QRIS</p>
+                      <p className="text-[10px] text-muted-foreground">Scan pakai GoPay, OVO, Dana, dll</p>
                     </div>
+                    {selectedCategory === 'qris' && <Check className="w-4 h-4 text-primary" />}
                   </div>
                 )}
-                {selectedPaymentData.type === 'ewallet' && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Nomor:</span>
-                      <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
+
+                {/* 3. Manual Transfer */}
+                {hasManual && (
+                  <div 
+                    onClick={() => setSelectedCategory('manual')}
+                    className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                      selectedCategory === 'manual' 
+                        ? 'bg-primary/5 border-primary shadow-sm' 
+                        : 'bg-card border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${selectedCategory === 'manual' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                      <Building2 className="w-5 h-5" />
                     </div>
-                  </div>
-                )}
-                {selectedPaymentData.type === 'qris' && qrisImageUrl && (
-                  <div className="text-center">
-                    <p className="text-sm font-medium mb-3">Scan QRIS</p>
-                    <img
-                      src={qrisImageUrl}
-                      alt="QRIS"
-                      className="max-w-[180px] mx-auto rounded-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">Transfer Manual</p>
+                      <p className="text-[10px] text-muted-foreground">Konfirmasi manual oleh admin</p>
+                    </div>
+                    {selectedCategory === 'manual' && <Check className="w-4 h-4 text-primary" />}
                   </div>
                 )}
               </div>
-            )}
+            </div>
 
-            {/* Upload Proof */}
-            {selectedPaymentData && (
-              <div>
-                <Label className="text-sm font-medium mb-2 block">Upload Bukti Transfer</Label>
-                <div className="border-2 border-dashed border-primary/30 rounded-xl p-4 text-center">
-                  {paymentProofUrl ? (
-                    <div className="space-y-2">
-                      <Check className="h-8 w-8 text-green-500 mx-auto" />
-                      <p className="text-sm text-green-600">Bukti berhasil diupload</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPaymentProofUrl('')}
-                      >
-                        Ganti
-                      </Button>
-                    </div>
-                  ) : (
-                    <Label htmlFor="proof-upload" className="cursor-pointer block">
-                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm">Klik untuk upload bukti transfer</p>
-                      <p className="text-xs text-muted-foreground">JPG, PNG (max 5MB)</p>
-                    </Label>
-                  )}
-                  <Input
-                    id="proof-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 5 * 1024 * 1024) {
-                          toast({
-                            title: 'File terlalu besar',
-                            description: 'Maksimal 5MB',
-                            variant: 'destructive',
-                          });
-                          return;
-                        }
-                        handleUploadProof(file);
-                      }
-                    }}
-                    disabled={uploading}
-                  />
+            {/* Category Content */}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {selectedCategory === 'gateway' && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-xl border border-dashed text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Pembayaran akan terverifikasi secara otomatis setelah Anda menyelesaikan transaksi.
+                    </p>
+                  </div>
+                  <Button 
+                    className="w-full py-6 text-base font-bold gap-2"
+                    onClick={handleGatewayPayment}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                    Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
+                  </Button>
                 </div>
-              </div>
-            )}
-
-            {uploading && (
-              <div className="flex items-center justify-center gap-2 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Mengupload...</span>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <Button
-              className="w-full"
-              onClick={handleManualSubmit}
-              disabled={!paymentProofUrl || createSubscription.isPending || !selectedPaymentData}
-            >
-              {createSubscription.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Memproses...
-                </>
-              ) : (
-                <>
-                  <Crown className="h-4 w-4 mr-2" />
-                  Ajukan Upgrade
-                </>
               )}
-            </Button>
+
+              {(selectedCategory === 'qris' || selectedCategory === 'manual') && (
+                <div className="space-y-4">
+                  {/* Specific method selection for manual transfer */}
+                  {selectedCategory === 'manual' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Pilih Bank</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {enabledPaymentMethods.filter(pm => pm.type === 'bank_transfer').map(pm => (
+                          <div 
+                            key={pm.id}
+                            onClick={() => setSelectedPaymentMethod(pm.id)}
+                            className={`p-2 text-center rounded-lg border cursor-pointer transition-all text-xs font-medium ${
+                              selectedPaymentMethod === pm.id ? 'bg-primary text-white border-primary' : 'bg-muted hover:bg-muted/80 border-transparent'
+                            }`}
+                          >
+                            {pm.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Details Card */}
+                  {selectedPaymentData && (
+                    <Card className="border-primary/20 overflow-hidden">
+                      <div className="bg-primary/5 px-4 py-2 border-b border-primary/10">
+                        <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Detail Pembayaran</p>
+                      </div>
+                      <CardContent className="p-4 space-y-3">
+                        {selectedCategory === 'qris' ? (
+                          <div className="text-center space-y-3">
+                            {qrisImageUrl ? (
+                              <div className="bg-white p-2 rounded-lg inline-block border shadow-sm">
+                                <img src={qrisImageUrl} alt="QRIS" className="w-40 h-40 mx-auto" />
+                              </div>
+                            ) : (
+                              <div className="w-40 h-40 mx-auto bg-muted rounded-lg flex items-center justify-center">
+                                <QrCode className="w-10 h-10 text-muted-foreground opacity-20" />
+                              </div>
+                            )}
+                            <p className="text-xs font-medium">Scan kode QR di atas</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Bank</span>
+                              <span className="text-sm font-bold">{selectedPaymentData.name}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">No. Rekening</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono font-bold">{selectedPaymentData.accountNumber}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(selectedPaymentData.accountNumber || '');
+                                    toast({ title: 'Berhasil disalin' });
+                                  }}
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground">Atas Nama</span>
+                              <span className="text-sm font-medium">{selectedPaymentData.accountName}</span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Upload Section */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold">Bukti Pembayaran</Label>
+                    <div 
+                      className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                        paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary/30'
+                      }`}
+                    >
+                      {paymentProofUrl ? (
+                        <div className="space-y-2">
+                          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
+                            <Check className="w-6 h-6 text-white" />
+                          </div>
+                          <p className="text-sm font-bold text-green-700">Bukti Berhasil Diupload</p>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setPaymentProofUrl('')}
+                            className="text-xs"
+                          >
+                            Ganti Foto
+                          </Button>
+                        </div>
+                      ) : (
+                        <Label htmlFor="proof-upload" className="cursor-pointer space-y-2 block">
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto">
+                            <Upload className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">Klik untuk upload bukti</p>
+                            <p className="text-[10px] text-muted-foreground">Format JPG, PNG (Maks 5MB)</p>
+                          </div>
+                        </Label>
+                      )}
+                      <Input
+                        id="proof-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleUploadProof(file);
+                        }}
+                        disabled={uploading}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Submit Manual */}
+                  <Button 
+                    className="w-full py-6 text-base font-bold"
+                    onClick={handleManualSubmit}
+                    disabled={!paymentProofUrl || createSubscription.isPending || uploading}
+                  >
+                    {createSubscription.isPending ? (
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    ) : (
+                      <Crown className="w-5 h-5 mr-2" />
+                    )}
+                    Konfirmasi Pembayaran
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>
