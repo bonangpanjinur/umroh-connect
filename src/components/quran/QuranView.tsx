@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, Search, ChevronRight, ChevronLeft, 
-  Star, Bookmark, Play, Headphones, Volume2, X 
+  Star, Bookmark, Play, Headphones, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import {
   POPULAR_SURAHS,
   Surah
 } from '@/hooks/useQuranAPI';
+import { useAddQuranLog } from '@/hooks/useQuranTracking';
+import { useAuthContext } from '@/contexts/AuthContext';
 import QuranAudioPlayer from './QuranAudioPlayer';
 
 interface QuranViewProps {
@@ -23,15 +25,18 @@ interface QuranViewProps {
 }
 
 const QuranView = ({ onBack }: QuranViewProps) => {
+  const { user } = useAuthContext();
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showTranslation, setShowTranslation] = useState(true);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [currentAyah, setCurrentAyah] = useState(1);
+  const [startAyah, setStartAyah] = useState(1);
   
   const { data: surahList, isLoading: listLoading } = useSurahList();
   const { data: surahArabic, isLoading: arabicLoading } = useSurahArabic(selectedSurah);
   const { data: surahTranslation, isLoading: translationLoading } = useSurahTranslation(selectedSurah);
+  const addLog = useAddQuranLog();
   const ayahRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
 
   const filteredSurahs = surahList?.filter(surah => 
@@ -50,6 +55,24 @@ const QuranView = ({ onBack }: QuranViewProps) => {
       });
     }
   }, [currentAyah, showAudioPlayer]);
+
+  const handleFinishReading = () => {
+    if (!user || !selectedSurah || !surahArabic) return;
+
+    addLog.mutate({
+      userId: user.id,
+      surahStart: selectedSurah,
+      ayahStart: startAyah,
+      surahEnd: selectedSurah,
+      ayahEnd: currentAyah,
+      totalVerses: currentAyah - startAyah + 1,
+      juzStart: surahArabic.ayahs[startAyah - 1]?.juz,
+      juzEnd: surahArabic.ayahs[currentAyah - 1]?.juz,
+    });
+    
+    // Reset start ayah for next session
+    setStartAyah(currentAyah + 1 > surahArabic.numberOfAyahs ? 1 : currentAyah + 1);
+  };
 
   // Surah List View
   if (!selectedSurah) {
@@ -161,6 +184,17 @@ const QuranView = ({ onBack }: QuranViewProps) => {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleFinishReading}
+                className="h-8 w-8 text-emerald-600"
+                title="Selesai Baca"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -219,13 +253,14 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.02 }}
                     className={`pb-4 border-b border-border last:border-0 transition-colors duration-300 ${
-                      currentAyah === ayah.numberInSurah && showAudioPlayer ? 'bg-primary/5 -mx-4 px-4' : ''
+                      currentAyah === ayah.numberInSurah ? 'bg-primary/5 -mx-4 px-4' : ''
                     }`}
+                    onClick={() => setCurrentAyah(ayah.numberInSurah)}
                   >
                     {/* Ayah Actions */}
                     <div className="flex justify-between items-center mb-3">
                       <Badge 
-                        variant={currentAyah === ayah.numberInSurah && showAudioPlayer ? "primary" : "secondary"} 
+                        variant={currentAyah === ayah.numberInSurah ? "primary" : "secondary"} 
                         className="text-xs"
                       >
                         {ayah.numberInSurah}
@@ -235,7 +270,8 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                           variant="ghost"
                           size="icon"
                           className={`h-8 w-8 rounded-full ${currentAyah === ayah.numberInSurah && showAudioPlayer ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setCurrentAyah(ayah.numberInSurah);
                             setShowAudioPlayer(true);
                           }}
@@ -246,6 +282,7 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 rounded-full text-muted-foreground"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <Bookmark className="w-4 h-4" />
                         </Button>

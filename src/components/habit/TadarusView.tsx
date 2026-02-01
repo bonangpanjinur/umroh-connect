@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useQuranSurahs, useTodayQuranLogs, useQuranStats, useDeleteQuranLog } from '@/hooks/useQuranTracking';
+import { 
+  useQuranSurahs, 
+  useTodayQuranLogs, 
+  useQuranStats, 
+  useDeleteQuranLog,
+  useQuranLastRead 
+} from '@/hooks/useQuranTracking';
 import { BookOpen, Plus, Trash2, Calendar, CheckCircle2, ChevronRight, History } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
 
 const TadarusView = () => {
   const { user } = useAuthContext();
@@ -15,34 +19,22 @@ const TadarusView = () => {
   const { data: todayLogs, isLoading: logsLoading } = useTodayQuranLogs(user?.id);
   const stats = useQuranStats(user?.id);
   const deleteLog = useDeleteQuranLog();
-  const [lastRead, setLastRead] = useState<any>(null);
-
-  // Ambil data terakhir baca dari database
-  useEffect(() => {
-    const fetchLastRead = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('quran_last_read')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (data) setLastRead(data);
-    };
-    fetchLastRead();
-  }, [user]);
+  const { data: lastRead } = useQuranLastRead(user?.id);
 
   const targetJuz = 30;
   const progressPercentage = Math.min((stats.estimatedJuz / targetJuz) * 100, 100);
 
   const handleAddClick = () => {
-    // Navigasi ke Al-Quran
-    // Di aplikasi nyata, ini akan menggunakan router.push atau window.location
-    // Untuk demo ini, kita asumsikan ada route /quran
-    if (lastRead) {
-      window.location.href = `/quran?surah=${lastRead.surah_number}&ayah=${lastRead.ayah_number}`;
+    // In this app, we trigger the Quran view from Index.tsx
+    // We can use a custom event or just tell the user to open Al-Quran
+    // For now, we'll assume the user knows to click the Al-Quran menu
+    // But we can also try to trigger a click on the Al-Quran menu if we had access to it
+    const quranMenu = document.querySelector('[data-menu="quran"]') as HTMLElement;
+    if (quranMenu) {
+      quranMenu.click();
     } else {
-      window.location.href = '/quran';
+      // Fallback: just reload with a hint or similar
+      window.location.href = '/?tab=home&open=quran';
     }
   };
 
@@ -136,6 +128,26 @@ const TadarusView = () => {
         </CardContent>
       </Card>
 
+      {/* Last Read Info */}
+      {lastRead && (
+        <Card className="border-none shadow-sm bg-primary/5 overflow-hidden">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <History className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Terakhir Baca</p>
+                <p className="text-sm font-bold">Surah {lastRead.surah_number}, Ayat {lastRead.ayah_number}</p>
+              </div>
+            </div>
+            <Button size="sm" variant="ghost" className="text-primary font-bold text-xs" onClick={handleAddClick}>
+              Lanjut <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Today's Reading Section - Clean & Connect to Quran */}
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="p-5 pb-2 border-b border-muted/50">
@@ -163,7 +175,7 @@ const TadarusView = () => {
           ) : todayLogs && todayLogs.length > 0 ? (
             <div className="divide-y divide-muted/30">
               {todayLogs.map((log, index) => {
-                const surah = surahs?.find(s => s.number === log.surah_number);
+                const surah = surahs?.find(s => s.number === log.surah_start);
                 return (
                   <motion.div 
                     key={log.id} 
@@ -174,17 +186,17 @@ const TadarusView = () => {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                        {log.surah_number}
+                        {log.surah_start}
                       </div>
                       <div>
                         <p className="font-bold text-sm">
-                          {surah?.name} <span className="text-xs font-normal text-muted-foreground ml-1">{surah?.name_arabic}</span>
+                          {surah?.name || `Surah ${log.surah_start}`}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">Ayat {log.start_verse} - {log.end_verse}</span>
+                          <span className="text-xs text-muted-foreground">Ayat {log.ayah_start} - {log.ayah_end}</span>
                           <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                           <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium border-emerald-200 text-emerald-600 bg-emerald-50">
-                            {log.end_verse - log.start_verse + 1} ayat
+                            {log.total_verses} ayat
                           </Badge>
                         </div>
                       </div>
