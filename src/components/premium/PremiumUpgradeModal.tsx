@@ -394,34 +394,31 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                   <Button 
                     className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80" 
                     onClick={handleGatewayPayment}
-                    disabled={plansLoading || paymentConfigLoading || isProcessing}
+                    disabled={isProcessing}
                   >
                     <CreditCard className="h-4 w-4" />
                     Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
                   </Button>
                 )}
                 
-                {/* Manual Payment Button */}
-                {!isGatewayEnabled ? (
-                  <Button 
-                    className="w-full gap-2" 
-                    onClick={() => setStep('payment')}
-                    disabled={plansLoading || paymentConfigLoading}
-                  >
-                    <Crown className="h-4 w-4" />
-                    Upgrade Sekarang
-                  </Button>
-                ) : enabledPaymentMethods.length > 0 && (
-                  <Button 
-                    variant="outline"
-                    className="w-full gap-2" 
-                    onClick={() => setStep('payment')}
-                    disabled={plansLoading || paymentConfigLoading}
-                  >
-                    <Building2 className="h-4 w-4" />
-                    Transfer Manual
-                  </Button>
-                )}
+                {/* Manual Payment Button - always enabled immediately */}
+                <Button 
+                  className={`w-full gap-2 ${isGatewayEnabled ? '' : ''}`}
+                  variant={isGatewayEnabled ? 'outline' : 'default'}
+                  onClick={() => setStep('payment')}
+                >
+                  {isGatewayEnabled ? (
+                    <>
+                      <Building2 className="h-4 w-4" />
+                      Transfer Manual
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="h-4 w-4" />
+                      Upgrade Sekarang
+                    </>
+                  )}
+                </Button>
               </div>
             )}
           </div>
