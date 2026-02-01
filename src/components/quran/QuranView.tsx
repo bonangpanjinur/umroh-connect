@@ -16,7 +16,7 @@ import {
   POPULAR_SURAHS,
   Surah
 } from '@/hooks/useQuranAPI';
-import { useAddQuranLog } from '@/hooks/useQuranTracking';
+import { useAddQuranLog, useQuranLastRead } from '@/hooks/useQuranTracking';
 import { useAuthContext } from '@/contexts/AuthContext';
 import QuranAudioPlayer from './QuranAudioPlayer';
 
@@ -36,6 +36,7 @@ const QuranView = ({ onBack }: QuranViewProps) => {
   const { data: surahList, isLoading: listLoading } = useSurahList();
   const { data: surahArabic, isLoading: arabicLoading } = useSurahArabic(selectedSurah);
   const { data: surahTranslation, isLoading: translationLoading } = useSurahTranslation(selectedSurah);
+  const { data: lastRead } = useQuranLastRead(user?.id);
   const addLog = useAddQuranLog();
   const ayahRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
 
@@ -56,22 +57,25 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     }
   }, [currentAyah, showAudioPlayer]);
 
-  const handleFinishReading = () => {
+  const handleFinishReading = (ayahOverride?: number) => {
     if (!user || !selectedSurah || !surahArabic) return;
+
+    const targetAyah = ayahOverride || currentAyah;
 
     addLog.mutate({
       userId: user.id,
       surahStart: selectedSurah,
       ayahStart: startAyah,
       surahEnd: selectedSurah,
-      ayahEnd: currentAyah,
-      totalVerses: currentAyah - startAyah + 1,
+      ayahEnd: targetAyah,
+      totalVerses: Math.max(1, targetAyah - startAyah + 1),
       juzStart: surahArabic.ayahs[startAyah - 1]?.juz,
-      juzEnd: surahArabic.ayahs[currentAyah - 1]?.juz,
+      juzEnd: surahArabic.ayahs[targetAyah - 1]?.juz,
     });
     
     // Reset start ayah for next session
-    setStartAyah(currentAyah + 1 > surahArabic.numberOfAyahs ? 1 : currentAyah + 1);
+    setStartAyah(targetAyah + 1 > surahArabic.numberOfAyahs ? 1 : targetAyah + 1);
+    if (ayahOverride) setCurrentAyah(ayahOverride);
   };
 
   // Surah List View
@@ -114,6 +118,37 @@ const QuranView = ({ onBack }: QuranViewProps) => {
 
         <ScrollArea className="h-[calc(100vh-140px)]">
           <div className="p-4 space-y-4">
+            {/* Last Read Card */}
+            {lastRead && !searchQuery && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                    <Bookmark className="w-5 h-5 fill-current" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">Terakhir Baca</p>
+                    <p className="text-sm font-bold">
+                      {surahList?.find(s => s.number === lastRead.surah_number)?.englishName || `Surah ${lastRead.surah_number}`}, Ayat {lastRead.ayah_number}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  className="rounded-full bg-primary text-white hover:bg-primary/90"
+                  onClick={() => {
+                    setSelectedSurah(lastRead.surah_number);
+                    setCurrentAyah(lastRead.ayah_number);
+                  }}
+                >
+                  Lanjut
+                </Button>
+              </motion.div>
+            )}
+
             {/* Popular Surahs */}
             {!searchQuery && (
               <div>
@@ -281,10 +316,14 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full text-muted-foreground"
-                          onClick={(e) => e.stopPropagation()}
+                          className={`h-8 w-8 rounded-full ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFinishReading(ayah.numberInSurah);
+                          }}
+                          title="Tandai Terakhir Baca"
                         >
-                          <Bookmark className="w-4 h-4" />
+                          <Bookmark className={`w-4 h-4 ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'fill-current' : ''}`} />
                         </Button>
                       </div>
                     </div>
