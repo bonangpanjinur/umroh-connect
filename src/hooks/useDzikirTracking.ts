@@ -27,19 +27,80 @@ interface DzikirLog {
   created_at: string;
 }
 
-// Fetch all active dzikir types (admin-managed)
-export const useDzikirTypes = () => {
+// Fetch all dzikir types (admin-managed)
+export const useDzikirTypes = (onlyActive = true) => {
   return useQuery({
-    queryKey: ['dzikir-types'],
+    queryKey: ['dzikir-types', onlyActive],
     queryFn: async (): Promise<DzikirType[]> => {
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from('dzikir_types')
         .select('*')
-        .eq('is_active', true)
         .order('priority', { ascending: false });
+
+      if (onlyActive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as DzikirType[];
+    },
+  });
+};
+
+// Admin: Create dzikir type
+export const useCreateDzikirType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dzikirType: Partial<DzikirType>) => {
+      const { data, error } = await (supabase as any)
+        .from('dzikir_types')
+        .insert(dzikirType)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dzikir-types'] });
+    },
+  });
+};
+
+// Admin: Update dzikir type
+export const useUpdateDzikirType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<DzikirType> & { id: string }) => {
+      const { data, error } = await (supabase as any)
+        .from('dzikir_types')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dzikir-types'] });
+    },
+  });
+};
+
+// Admin: Delete dzikir type
+export const useDeleteDzikirType = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from('dzikir_types')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dzikir-types'] });
     },
   });
 };

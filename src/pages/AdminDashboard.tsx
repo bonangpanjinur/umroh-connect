@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper } from 'lucide-react';
+import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper, Fingerprint } from 'lucide-react';
 import { AdminStatsCards } from '@/components/admin/AdminStatsCards';
 import { AdminAnalyticsDashboard } from '@/components/admin/AdminAnalyticsDashboard';
 import { UsersManagement } from '@/components/admin/UsersManagement';
@@ -21,6 +21,7 @@ import { PagesManagement } from '@/components/admin/PagesManagement';
 import FeedbackManagement from '@/components/admin/FeedbackManagement';
 import SubscriptionsManagement from '@/components/admin/SubscriptionsManagement';
 import { PaymentGatewaySettings } from '@/components/admin/PaymentGatewaySettings';
+import { TasbihManagement } from '@/components/admin/TasbihManagement';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -63,7 +64,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-8 lg:grid-cols-16 gap-2 h-auto p-1">
+          <TabsList className="grid grid-cols-8 lg:grid-cols-17 gap-2 h-auto p-1">
             <TabsTrigger value="overview" className="flex items-center gap-2 py-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -103,6 +104,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="prayers" className="flex items-center gap-2 py-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Doa</span>
+            </TabsTrigger>
+            <TabsTrigger value="tasbih" className="flex items-center gap-2 py-2">
+              <Fingerprint className="h-4 w-4" />
+              <span className="hidden sm:inline">Tasbih</span>
             </TabsTrigger>
             <TabsTrigger value="reviews" className="flex items-center gap-2 py-2">
               <MessageSquare className="h-4 w-4" />
@@ -172,6 +177,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="prayers">
             <PrayersManagement />
+          </TabsContent>
+
+          <TabsContent value="tasbih">
+            <TasbihManagement />
           </TabsContent>
 
           <TabsContent value="reviews">

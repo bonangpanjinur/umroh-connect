@@ -11,7 +11,7 @@ const menuItems = [
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
   { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
-  { id: 'tracking', label: 'Grup', icon: Users, color: 'text-rose-500', audioLabel: 'Tracking Grup' },
+
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'feedback', label: 'Feedback', icon: MessageSquarePlus, color: 'text-teal-500', audioLabel: 'Kirim Feedback' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
