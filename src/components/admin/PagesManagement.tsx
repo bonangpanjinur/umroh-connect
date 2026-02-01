@@ -551,7 +551,7 @@ export const PagesManagement = () => {
                     </TableRow>
                   ) : (
                     filteredPages.map((page) => (
-                    <TableRow key={page.id}>
+                      <TableRow key={page.id}>
                       <TableCell className="font-medium">{page.title}</TableCell>
                       <TableCell>
                         <code className="text-xs bg-muted px-2 py-1 rounded">
@@ -609,7 +609,7 @@ export const PagesManagement = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
