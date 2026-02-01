@@ -26,7 +26,7 @@ import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import IbadahHubView from '@/components/habit/IbadahHubView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
-import FeedbackButton from '@/components/feedback/FeedbackButton';
+import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
@@ -44,7 +44,7 @@ const Index = () => {
   const [showDoa, setShowDoa] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
-  const [showPacking, setShowPacking] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
   const [showTracking, setShowTracking] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -103,8 +103,8 @@ const Index = () => {
       case 'offline':
         setShowOffline(true);
         break;
-      case 'packing':
-        setShowPacking(true);
+      case 'feedback':
+        setShowFeedback(true);
         break;
       case 'kurs':
         setShowCurrency(true);
@@ -187,34 +187,7 @@ const Index = () => {
       );
     }
 
-    // Show Packing List Generator - Premium Feature
-    if (showPacking) {
-      return (
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowPacking(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="font-bold text-lg">Packing List Generator</h2>
-          </div>
-          <div className="p-4">
-            <FeatureLock 
-              featureName="AI Packing List"
-              description="Dapatkan rekomendasi packing list berdasarkan cuaca. Fitur ini tersedia untuk jamaah yang sudah booking."
-              onViewPackages={() => {
-                setShowPacking(false);
-                handleTabChange('paket');
-              }}
-            >
-              <PackingListGenerator onBack={() => setShowPacking(false)} />
-            </FeatureLock>
-          </div>
-        </div>
-      );
-    }
+
 
     // Show Offline Manager
     if (showOffline) {
@@ -307,7 +280,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showPacking && !showTracking && !showReviews && !showQuran && !showIbadahHub && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showTracking && !showReviews && !showQuran && !showIbadahHub && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
@@ -317,8 +290,8 @@ const Index = () => {
         <QiblaModal isOpen={isQiblaOpen} onClose={() => setIsQiblaOpen(false)} />
         <CurrencyConverter isOpen={showCurrency} onClose={() => setShowCurrency(false)} />
         
-        {/* Feedback FAB */}
-        <FeedbackButton />
+        {/* Feedback Form Modal */}
+        <FeedbackForm isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
       </div>
     </div>
   );
