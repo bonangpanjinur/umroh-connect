@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useToggleHabit } from '@/hooks/useIbadahHabits';
 
 export interface QuranSurah {
   id: number;
@@ -81,6 +82,8 @@ export const useAddQuranLog = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const toggleHabit = useToggleHabit();
+
   return useMutation({
     mutationFn: async (log: {
       userId: string;
@@ -92,7 +95,8 @@ export const useAddQuranLog = () => {
       juzStart?: number;
       juzEnd?: number;
     }) => {
-      const { data, error } = await supabase
+      // 1. Save reading log
+      const { data, error } = await (supabase as any)
         .from('quran_tadarus_logs')
         .insert({
           user_id: log.userId,
@@ -101,16 +105,19 @@ export const useAddQuranLog = () => {
           surah_end: log.surahEnd,
           ayah_end: log.ayahEnd,
           total_verses: log.totalVerses,
-          juz_start: log.juzStart,
-          juz_end: log.juzEnd,
+          juz_start: log.juzStart || 1,
+          juz_end: log.juzEnd || log.juzStart || 1,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving quran log:', error);
+        throw error;
+      }
 
-      // Also update last read
-      await supabase
+      // 2. Update last read
+      const { error: lastReadError } = await (supabase as any)
         .from('quran_last_read')
         .upsert({
           user_id: log.userId,
@@ -119,6 +126,21 @@ export const useAddQuranLog = () => {
           juz_number: log.juzEnd || 1,
           updated_at: new Date().toISOString(),
         });
+      
+      if (lastReadError) console.error('Error updating last read:', lastReadError);
+
+      // 3. Connect to habit tracker (tilawah habit)
+      try {
+        await toggleHabit.mutateAsync({
+          userId: log.userId,
+          habitId: 'tilawah',
+          isCompleted: true,
+          completedCount: 1,
+          targetCount: 1
+        });
+      } catch (habitError) {
+        console.error('Error updating tilawah habit:', habitError);
+      }
 
       return data;
     },

@@ -192,14 +192,19 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
                       </div>
                       <div>
                         <p className="font-bold text-sm">
-                          {surah?.name || `Surah ${log.surah_start}`}
+                          {surah?.englishName || `Surah ${log.surah_start}`}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground">Ayat {log.ayah_start} - {log.ayah_end}</span>
-                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                          <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium border-emerald-200 text-emerald-600 bg-emerald-50">
-                            {log.total_verses} ayat
-                          </Badge>
+                        <div className="flex flex-col gap-0.5 mt-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Ayat {log.ayah_start} - {log.ayah_end}</span>
+                            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                            <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium border-emerald-200 text-emerald-600 bg-emerald-50">
+                              {log.total_verses} ayat
+                            </Badge>
+                          </div>
+                          {log.juz_end && (
+                            <span className="text-[10px] text-primary/70 font-medium">Juz {log.juz_end}</span>
+                          )}
                         </div>
                       </div>
                     </div>

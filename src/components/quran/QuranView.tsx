@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, Search, ChevronRight, ChevronLeft, 
-  Star, Bookmark, Play, Headphones, CheckCircle2
+  Star, Bookmark, Play, Headphones, CheckCircle2, Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,14 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     // Ensure targetAyah is a number and not an event object
     const targetAyah = typeof ayahOverride === 'number' ? ayahOverride : currentAyah;
 
+    // Correctly get juz numbers
+    // Note: ayahs array index is 0-based, while ayah numberInSurah is 1-based
+    const startAyahIndex = Math.max(0, startAyah - 1);
+    const targetAyahIndex = Math.max(0, targetAyah - 1);
+    
+    const juzStart = surahArabic.ayahs[startAyahIndex]?.juz || 1;
+    const juzEnd = surahArabic.ayahs[targetAyahIndex]?.juz || juzStart;
+
     addLog.mutate({
       userId: user.id,
       surahStart: selectedSurah,
@@ -70,8 +78,8 @@ const QuranView = ({ onBack }: QuranViewProps) => {
       surahEnd: selectedSurah,
       ayahEnd: targetAyah,
       totalVerses: Math.max(1, targetAyah - startAyah + 1),
-      juzStart: surahArabic.ayahs[startAyah - 1]?.juz,
-      juzEnd: surahArabic.ayahs[targetAyah - 1]?.juz,
+      juzStart: juzStart,
+      juzEnd: juzEnd,
     });
     
     // Reset start ayah for next session
@@ -329,6 +337,18 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                           title="Tandai Terakhir Baca"
                         >
                           <Bookmark className={`w-4 h-4 ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'fill-current' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 rounded-full ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'text-emerald-600 bg-emerald-50' : 'text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50'}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFinishReading(ayah.numberInSurah);
+                          }}
+                          title="Selesai di ayat ini"
+                        >
+                          <Check className={`w-4 h-4 ${lastRead?.surah_number === selectedSurah && lastRead?.ayah_number === ayah.numberInSurah ? 'stroke-[3px]' : ''}`} />
                         </Button>
                       </div>
                     </div>
