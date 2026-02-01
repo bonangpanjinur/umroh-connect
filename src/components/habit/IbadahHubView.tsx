@@ -27,10 +27,11 @@ import RamadhanDashboard from './RamadhanDashboard';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
+  onOpenQuran?: () => void;
   onNavigateToAuth?: () => void;
 }
 
-export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewProps) => {
+export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: IbadahHubViewProps) => {
   const { user } = useAuthContext();
   const { isPremium } = useIsPremium();
   const [activeTab, setActiveTab] = useState('ibadah');
@@ -242,6 +243,7 @@ export const IbadahHubView = ({ onOpenTasbih, onNavigateToAuth }: IbadahHubViewP
                 habits={habits}
                 isRamadhanMode={isRamadhanMode}
                 onOpenTasbih={onOpenTasbih}
+                onOpenQuran={onOpenQuran}
                 onShowLibrary={() => setShowHabitLibrary(true)}
                 stats={stats}
                 weeklyProgress={weeklyProgress}
@@ -311,6 +313,7 @@ interface IbadahSubTabsProps {
   habits: any[];
   isRamadhanMode: boolean;
   onOpenTasbih?: () => void;
+  onOpenQuran?: () => void;
   onShowLibrary: () => void;
   stats: any;
   weeklyProgress: any[];
@@ -322,6 +325,7 @@ const IbadahSubTabs = ({
   habits, 
   isRamadhanMode, 
   onOpenTasbih, 
+  onOpenQuran,
   onShowLibrary,
   stats,
   weeklyProgress,
@@ -386,7 +390,7 @@ const IbadahSubTabs = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <TadarusView />
+            <TadarusView onOpenQuran={onOpenQuran} />
           </motion.div>
         )}
 

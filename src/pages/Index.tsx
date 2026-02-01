@@ -138,10 +138,16 @@ const Index = () => {
             </button>
             <h2 className="font-bold text-lg">Ibadah & Tracking</h2>
           </div>
-          <IbadahHubView onOpenTasbih={() => {
-            setShowIbadahHub(false);
-            setIsTasbihOpen(true);
-          }} />
+          <IbadahHubView 
+            onOpenTasbih={() => {
+              setShowIbadahHub(false);
+              setIsTasbihOpen(true);
+            }} 
+            onOpenQuran={() => {
+              setShowIbadahHub(false);
+              setShowQuran(true);
+            }}
+          />
         </div>
       );
     }
