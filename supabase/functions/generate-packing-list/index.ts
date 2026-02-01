@@ -60,6 +60,103 @@ const getSeasonalWeather = (date: Date): WeatherData => {
   };
 };
 
+// Generate packing list without AI as fallback
+const generateFallbackPackingList = (gender: 'male' | 'female', duration: number, weather: WeatherData) => {
+  const isHot = weather.makkah.temp > 35;
+  
+  const baseItems = {
+    weather_summary: `Makkah: ${weather.makkah.temp}°C (${weather.makkah.condition}), Madinah: ${weather.madinah.temp}°C (${weather.madinah.condition})`,
+    categories: [
+      {
+        name: 'Pakaian Ibadah',
+        icon: '🕌',
+        items: gender === 'male' ? [
+          { name: 'Kain Ihram (2 helai)', quantity: '2 set', priority: 'high', weather_note: 'Wajib untuk umroh' },
+          { name: 'Sabuk Ihram', quantity: '1', priority: 'high' },
+          { name: 'Sandal Ihram', quantity: '1 pasang', priority: 'high' },
+        ] : [
+          { name: 'Mukena', quantity: '2', priority: 'high' },
+          { name: 'Kerudung/Jilbab', quantity: `${Math.ceil(duration/3)}`, priority: 'high' },
+          { name: 'Gamis/Abaya', quantity: `${Math.ceil(duration/2)}`, priority: 'high' },
+        ]
+      },
+      {
+        name: 'Pakaian Sehari-hari',
+        icon: '👔',
+        items: [
+          { name: 'Baju Ganti', quantity: `${Math.ceil(duration/2)}`, priority: 'high', weather_note: isHot ? 'Pilih bahan ringan & menyerap keringat' : undefined },
+          { name: 'Celana/Rok', quantity: `${Math.ceil(duration/3)}`, priority: 'high' },
+          { name: 'Pakaian Dalam', quantity: `${duration}`, priority: 'high' },
+          { name: 'Kaos Kaki', quantity: `${Math.ceil(duration/2)} pasang`, priority: 'medium' },
+        ]
+      },
+      {
+        name: 'Perlengkapan Ibadah',
+        icon: '📿',
+        items: [
+          { name: 'Al-Quran Mini', quantity: '1', priority: 'high' },
+          { name: 'Tasbih', quantity: '1', priority: 'medium' },
+          { name: 'Buku Doa Umroh', quantity: '1', priority: 'high' },
+          { name: 'Sajadah Lipat', quantity: '1', priority: 'medium' },
+        ]
+      },
+      {
+        name: 'Dokumen Penting',
+        icon: '📄',
+        items: [
+          { name: 'Paspor (min 6 bulan valid)', quantity: '1', priority: 'high' },
+          { name: 'Visa Umroh', quantity: '1', priority: 'high' },
+          { name: 'Tiket Pesawat', quantity: '1', priority: 'high' },
+          { name: 'Fotokopi Dokumen', quantity: '2 set', priority: 'high' },
+          { name: 'Pas Foto 4x6', quantity: '4 lembar', priority: 'medium' },
+        ]
+      },
+      {
+        name: 'Kesehatan & Toiletries',
+        icon: '💊',
+        items: [
+          { name: 'Obat Pribadi', quantity: 'secukupnya', priority: 'high' },
+          { name: 'Masker', quantity: '10+', priority: 'high' },
+          { name: 'Hand Sanitizer', quantity: '2', priority: 'high' },
+          { name: 'Sunscreen SPF 50+', quantity: '1', priority: isHot ? 'high' : 'medium', weather_note: isHot ? 'WAJIB untuk cuaca panas' : undefined },
+          { name: 'Lip Balm', quantity: '1', priority: 'medium' },
+          { name: 'Lotion Pelembab', quantity: '1', priority: 'medium' },
+        ]
+      },
+      {
+        name: 'Elektronik',
+        icon: '🔌',
+        items: [
+          { name: 'Handphone + Charger', quantity: '1 set', priority: 'high' },
+          { name: 'Power Bank 20000mAh', quantity: '1', priority: 'high' },
+          { name: 'Adapter Colokan (Type G)', quantity: '1', priority: 'high' },
+          { name: 'Earphone', quantity: '1', priority: 'low' },
+        ]
+      },
+      {
+        name: 'Lain-lain',
+        icon: '🎒',
+        items: [
+          { name: 'Tas Kecil untuk Thawaf', quantity: '1', priority: 'high' },
+          { name: 'Botol Minum Lipat', quantity: '1', priority: 'high' },
+          { name: 'Payung Lipat', quantity: '1', priority: isHot ? 'high' : 'medium', weather_note: isHot ? 'Penting untuk cuaca panas' : undefined },
+          { name: 'Kacamata Hitam', quantity: '1', priority: 'medium' },
+          { name: 'Gembok Koper', quantity: '2', priority: 'medium' },
+        ]
+      },
+    ],
+    tips: [
+      isHot ? 'Cuaca panas! Bawa payung, sunscreen, dan minum air yang cukup.' : 'Cuaca cukup nyaman, tetap bawa sunscreen.',
+      'Gunakan koper dengan roda 4 untuk kemudahan di bandara.',
+      'Siapkan tas kecil berisi dokumen penting untuk dibawa saat beribadah.',
+      'Bawa obat-obatan pribadi dalam kemasan asli.',
+      `Untuk ${duration} hari, bawa pakaian secukupnya - bisa cuci di hotel.`,
+    ],
+  };
+  
+  return baseItems;
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -68,14 +165,30 @@ Deno.serve(async (req) => {
   try {
     const { departureDate, returnDate, gender, duration, preferences } = await req.json() as PackingListRequest;
     
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
-    }
+    console.log('Generating packing list for:', { departureDate, returnDate, gender, duration });
     
     // Get weather data
     const depDate = new Date(departureDate);
     const weather = getSeasonalWeather(depDate);
+    
+    // Check for LOVABLE_API_KEY
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!LOVABLE_API_KEY) {
+      console.log('LOVABLE_API_KEY not found, using fallback packing list');
+      const fallbackList = generateFallbackPackingList(gender, duration, weather);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          weather: weather,
+          packing_list: fallbackList,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
     
     // Build context for AI
     const weatherContext = `
@@ -122,7 +235,7 @@ Berikan dalam format JSON dengan struktur:
   "tips": ["tip 1", "tip 2", ...]
 }`;
 
-    console.log('Generating packing list with AI...');
+    console.log('Calling AI gateway...');
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -131,7 +244,7 @@ Berikan dalam format JSON dengan struktur:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -141,25 +254,60 @@ Berikan dalam format JSON dengan struktur:
     });
 
     if (!response.ok) {
+      console.error('AI gateway error:', response.status);
+      
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        // Rate limit - use fallback
+        console.log('Rate limited, using fallback');
+        const fallbackList = generateFallbackPackingList(gender, duration, weather);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            weather: weather,
+            packing_list: fallbackList,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
       }
+      
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please add credits.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        console.log('Credits exhausted, using fallback');
+        const fallbackList = generateFallbackPackingList(gender, duration, weather);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            weather: weather,
+            packing_list: fallbackList,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
       }
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      
+      // Other errors - use fallback
+      const fallbackList = generateFallbackPackingList(gender, duration, weather);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          weather: weather,
+          packing_list: fallbackList,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
     }
 
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content || '';
+    
+    console.log('AI response received');
     
     // Parse JSON from response
     let packingList;
@@ -169,14 +317,8 @@ Berikan dalam format JSON dengan struktur:
       const jsonStr = jsonMatch ? jsonMatch[1] : content;
       packingList = JSON.parse(jsonStr.trim());
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError);
-      // Return structured fallback
-      packingList = {
-        weather_summary: weatherContext,
-        categories: [],
-        tips: ['Tidak dapat menghasilkan rekomendasi. Silakan coba lagi.'],
-        raw_response: content,
-      };
+      console.error('Failed to parse AI response, using fallback');
+      packingList = generateFallbackPackingList(gender, duration, weather);
     }
     
     return new Response(
@@ -193,12 +335,30 @@ Berikan dalam format JSON dengan struktur:
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error generating packing list:', error);
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
-    );
+    
+    // Return fallback on any error
+    try {
+      const weather = getSeasonalWeather(new Date());
+      const fallbackList = generateFallbackPackingList('male', 9, weather);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          weather: weather,
+          packing_list: fallbackList,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    } catch {
+      return new Response(
+        JSON.stringify({ error: errorMessage }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
   }
 });
