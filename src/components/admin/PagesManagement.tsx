@@ -577,7 +577,8 @@ export const PagesManagement = () => {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
-                      </TableCell>               <TableCell className="text-right">
+                      </TableCell>
+                      <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button
                             variant="ghost"
@@ -608,7 +609,7 @@ export const PagesManagement = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  )))}
+                  ))}
                 </TableBody>
               </Table>
             </div>
