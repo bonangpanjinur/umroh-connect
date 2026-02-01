@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AgentDashboard from "./pages/AgentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import PageDetail from "./pages/PageDetail";
 import NotFound from "./pages/NotFound";
 import { OfflineBanner } from "./components/pwa/OfflineBanner";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
@@ -34,6 +35,7 @@ const App = () => (
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/agent" element={<AgentDashboard />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/:slug" element={<PageDetail />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
