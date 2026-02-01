@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    surah_number INTEGER NOT NULL,
+    surah_number INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
 -- 2. Tabel Terakhir Baca (Last Read)
 CREATE TABLE IF NOT EXISTS public.quran_last_read (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    surah_number INTEGER NOT NULL,
+    surah_number INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
     juz_number INTEGER DEFAULT 1, -- Pastikan kolom ini ada sebelum VIEW dibuat
@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS public.quran_tadarus_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     read_date DATE DEFAULT CURRENT_DATE NOT NULL,
-    surah_start INTEGER NOT NULL,
+    surah_start INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_start INTEGER NOT NULL,
-    surah_end INTEGER NOT NULL,
+    surah_end INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_end INTEGER NOT NULL,
     total_verses INTEGER NOT NULL,
     juz_start INTEGER,

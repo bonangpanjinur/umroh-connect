@@ -177,7 +177,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
           ) : todayLogs && todayLogs.length > 0 ? (
             <div className="divide-y divide-muted/30">
               {todayLogs.map((log, index) => {
-                const surah = surahs?.find(s => s.number === log.surah_start);
+                const surah = log.quran_surahs;
                 return (
                   <motion.div 
                     key={log.id} 
@@ -192,7 +192,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
                       </div>
                       <div>
                         <p className="font-bold text-sm">
-                          {surah?.englishName || `Surah ${log.surah_start}`}
+                          {surah?.name || `Surah ${log.surah_start}`}
                         </p>
                         <div className="flex flex-col gap-0.5 mt-0.5">
                           <div className="flex items-center gap-2">
