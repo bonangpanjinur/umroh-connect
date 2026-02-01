@@ -64,13 +64,10 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
   const purchaseCredits = usePurchaseCredits();
   const { data: transactions, isLoading: transactionsLoading } = useCreditTransactions(travelId);
 
-  // Fetch platform settings
-  const { data: platformSettings } = usePlatformSettings();
-  const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
-  const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
-  
   // Fetch automatic payment gateway config
   const { data: paymentConfig } = usePublicPaymentConfig();
+  
+  const qrisImageUrl = paymentConfig?.qrisImageUrl || '';
   
   const provider = paymentConfig?.provider || 'manual';
   const isGatewayEnabled = provider !== 'manual';
@@ -188,6 +185,10 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       if (error) throw error;
       if (data?.paymentUrl) {
         window.location.href = data.paymentUrl;
+      } else if (data?.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else if (data?.invoice_url) {
+        window.location.href = data.invoice_url;
       }
     } catch (error: any) {
       toast({
