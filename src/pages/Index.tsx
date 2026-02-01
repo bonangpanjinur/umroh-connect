@@ -46,7 +46,7 @@ const Index = () => {
   const [showOffline, setShowOffline] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
-  const [showTracking, setShowTracking] = useState(false);
+
   const [showReviews, setShowReviews] = useState(false);
   const [showQuran, setShowQuran] = useState(false);
   const [showIbadahHub, setShowIbadahHub] = useState(false);
@@ -109,9 +109,7 @@ const Index = () => {
       case 'kurs':
         setShowCurrency(true);
         break;
-      case 'tracking':
-        setShowTracking(true);
-        break;
+
       case 'reviews':
         setShowReviews(true);
         break;
@@ -158,34 +156,7 @@ const Index = () => {
       return <PublicReviewsView onBack={() => setShowReviews(false)} />;
     }
 
-    // Show Group Tracking - Premium Feature
-    if (showTracking) {
-      return (
-        <div className="min-h-screen bg-background">
-          <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowTracking(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h2 className="font-bold text-lg">Tracking Grup</h2>
-          </div>
-          <div className="p-4">
-            <FeatureLock 
-              featureName="Tracking Grup"
-              description="Pantau lokasi rombongan secara real-time. Fitur ini tersedia untuk jamaah yang sudah booking paket."
-              onViewPackages={() => {
-                setShowTracking(false);
-                handleTabChange('paket');
-              }}
-            >
-              <GroupTrackingView onBack={() => setShowTracking(false)} />
-            </FeatureLock>
-          </div>
-        </div>
-      );
-    }
+
 
 
 
@@ -280,7 +251,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showTracking && !showReviews && !showQuran && !showIbadahHub && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
