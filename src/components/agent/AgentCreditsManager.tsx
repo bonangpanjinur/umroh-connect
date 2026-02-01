@@ -221,7 +221,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
               <p className="text-amber-100 text-sm font-medium mb-1">Saldo Kredit Broadcast</p>
               <div className="flex items-center gap-2">
                 <Zap className="w-8 h-8 text-amber-300 fill-amber-300" />
-                <h2 className="text-4xl font-bold">{credits?.balance || 0}</h2>
+                <h2 className="text-4xl font-bold">{credits?.credits_remaining || 0}</h2>
               </div>
             </div>
             <Button 
