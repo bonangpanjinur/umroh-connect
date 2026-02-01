@@ -13,7 +13,11 @@ import {
 import { BookOpen, Plus, Trash2, Calendar, CheckCircle2, ChevronRight, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const TadarusView = () => {
+interface TadarusViewProps {
+  onOpenQuran?: () => void;
+}
+
+const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
   const { user } = useAuthContext();
   const { data: surahs } = useQuranSurahs();
   const { data: todayLogs, isLoading: logsLoading } = useTodayQuranLogs(user?.id);
@@ -25,16 +29,14 @@ const TadarusView = () => {
   const progressPercentage = Math.min((stats.estimatedJuz / targetJuz) * 100, 100);
 
   const handleAddClick = () => {
-    // In this app, we trigger the Quran view from Index.tsx
-    // We can use a custom event or just tell the user to open Al-Quran
-    // For now, we'll assume the user knows to click the Al-Quran menu
-    // But we can also try to trigger a click on the Al-Quran menu if we had access to it
-    const quranMenu = document.querySelector('[data-menu="quran"]') as HTMLElement;
-    if (quranMenu) {
-      quranMenu.click();
+    if (onOpenQuran) {
+      onOpenQuran();
     } else {
-      // Fallback: just reload with a hint or similar
-      window.location.href = '/?tab=home&open=quran';
+      // Fallback: try to find the menu item in the DOM if prop is not provided
+      const quranMenu = document.querySelector('[data-menu="quran"]') as HTMLElement;
+      if (quranMenu) {
+        quranMenu.click();
+      }
     }
   };
 
