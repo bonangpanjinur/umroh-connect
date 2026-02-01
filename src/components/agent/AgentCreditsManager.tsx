@@ -1,20 +1,16 @@
-// Path: src/components/agent/AgentCreditsManager.tsx
-
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import {
-  Zap, Plus, History, CreditCard, Building2, 
-  Smartphone, QrCode, Upload, CheckCircle2, 
-  ArrowUpCircle, ArrowDownCircle, Gift,
-  ShoppingCart, Sparkles, Loader2
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Zap, Plus, History, CheckCircle2, Clock, AlertCircle, 
+  ChevronRight, CreditCard, Building2, Smartphone, QrCode, 
+  Upload, Loader2, ArrowLeft, Check, ExternalLink, Wallet, Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -22,133 +18,87 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  useAgentCredits, 
+  usePurchaseCredits, 
+  useCreditTransactions 
+} from '@/hooks/useAgentCredits';
 import { usePlatformSettings } from '@/hooks/useAdminData';
-import { usePublicPaymentConfig } from "@/hooks/usePublicPaymentConfig";
+import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { useMidtrans } from '@/hooks/useMidtrans';
 
 interface AgentCreditsManagerProps {
-  travelId?: string;
+  travelId: string;
 }
 
+type PaymentCategory = 'gateway' | 'qris' | 'manual';
+
 const creditPackages = [
-  { id: '1', credits: 1, label: '1 Kredit', popular: false },
-  { id: '5', credits: 5, label: '5 Kredit', popular: false },
-  { id: '10', credits: 10, label: '10 Kredit', popular: true },
-  { id: '25', credits: 25, label: '25 Kredit', popular: false },
+  { id: 'small', credits: 100, label: '100 Kredit', popular: false },
+  { id: 'medium', credits: 500, label: '500 Kredit', popular: true },
+  { id: 'large', credits: 1000, label: '1000 Kredit', popular: false },
 ];
 
-export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsManagerProps) => {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { pay, isSnapLoaded } = useMidtrans(); // Inisialisasi Midtrans Snap
+const creditPrices: Record<string, number> = {
+  small: 50000,
+  medium: 225000,
+  large: 400000,
+};
 
+export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
+  const { toast } = useToast();
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [selectedPackage, setSelectedPackage] = useState('10');
+  const [modalStep, setModalStep] = useState<'package' | 'payment'>('package');
+  const [selectedPackage, setSelectedPackage] = useState('medium');
+  const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: async () => {
-      const { data } = await supabase.auth.getUser();
-      return data.user;
-    }
-  });
+  const { data: credits, isLoading: creditsLoading } = useAgentCredits(travelId);
+  const purchaseCredits = usePurchaseCredits();
+  const { data: transactions, isLoading: transactionsLoading } = useCreditTransactions(travelId);
 
-  const travelId = propTravelId || user?.id || '';
-
-  // Fetch agent credits
-  const { data: credits, isLoading: creditsLoading } = useQuery({
-    queryKey: ['agent-credits', travelId],
-    queryFn: async () => {
-      if (!travelId) return { credits_remaining: 0, credits_used: 0 };
-      const { data, error } = await supabase
-        .from('package_credits')
-        .select('*')
-        .eq('travel_id', travelId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') throw error;
-      return data || { credits_remaining: 0, credits_used: 0 };
-    },
-    enabled: !!travelId
-  });
-
-  // Fetch credit transactions
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
-    queryKey: ['agent-credit-transactions', travelId],
-    queryFn: async () => {
-      if (!travelId) return [];
-      const { data, error } = await supabase
-        .from('credit_transactions')
-        .select('*')
-        .eq('travel_id', travelId)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!travelId
-  });
-
+  // Fetch platform settings
   const { data: platformSettings } = usePlatformSettings();
-  
-  const creditPrices = platformSettings?.find(s => s.key === 'credit_prices')?.value as Record<string, number> || {
-    '1': 50000,
-    '5': 200000,
-    '10': 350000,
-    '25': 750000
-  };
-
-  const paymentGateway = platformSettings?.find(s => s.key === 'payment_gateway')?.value as any;
   const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
-
-  const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
   
-  // Get public payment config
+  // Fetch automatic payment gateway config
   const { data: paymentConfig } = usePublicPaymentConfig();
+  
+  const provider = paymentConfig?.provider || 'manual';
+  const isGatewayEnabled = provider !== 'manual';
+  const enabledPaymentMethods = paymentConfig?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
 
-  // Purchase credits mutation (Manual)
-  const purchaseCredits = useMutation({
-    mutationFn: async (params: { credits: number; price: number; proofUrl: string }) => {
-      const { error: txError } = await supabase
-        .from('credit_transactions')
-        .insert({
-          travel_id: travelId,
-          transaction_type: 'purchase',
-          amount: params.credits,
-          price: params.price,
-          notes: `Pembelian ${params.credits} kredit - menunggu verifikasi`
-        });
+  const hasQris = enabledPaymentMethods.some(pm => pm.type === 'qris');
+  const hasManual = enabledPaymentMethods.some(pm => pm.type === 'bank_transfer');
 
-      if (txError) throw txError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agent-credit-transactions', travelId] });
-      toast({
-        title: 'Pembelian Diajukan! 🎉',
-        description: 'Mohon tunggu verifikasi dari admin (1-24 jam)',
-      });
-      setShowPurchaseModal(false);
-      setPaymentProofUrl('');
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Gagal',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
+  // Auto-select category
+  useEffect(() => {
+    if (modalStep === 'payment' && !selectedCategory) {
+      if (isGatewayEnabled) setSelectedCategory('gateway');
+      else if (hasQris) setSelectedCategory('qris');
+      else if (hasManual) setSelectedCategory('manual');
+    }
+  }, [modalStep, isGatewayEnabled, hasQris, hasManual, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedCategory === 'qris') {
+      const qrisMethod = enabledPaymentMethods.find(pm => pm.type === 'qris');
+      if (qrisMethod) setSelectedPaymentMethod(qrisMethod.id);
+    } else if (selectedCategory === 'manual') {
+      const manualMethod = enabledPaymentMethods.find(pm => pm.type === 'bank_transfer');
+      if (manualMethod) setSelectedPaymentMethod(manualMethod.id);
+    } else if (selectedCategory === 'gateway') {
+      setSelectedPaymentMethod('gateway');
+    }
+  }, [selectedCategory, enabledPaymentMethods]);
 
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,8 +106,8 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
 
     setIsUploading(true);
     try {
-      const fileName = `${travelId}/${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
+      const fileName = `credits/${travelId}/${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage
         .from('uploads')
         .upload(fileName, file);
 
@@ -168,7 +118,7 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
         .getPublicUrl(fileName);
 
       setPaymentProofUrl(publicUrl);
-      toast({ title: 'Bukti transfer berhasil diupload' });
+      toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
       toast({
         title: 'Gagal upload',
@@ -180,15 +130,15 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     }
   };
 
-  const handlePurchase = () => {
-    if (selectedPaymentMethod === 'gateway') {
+  const handleSubmitPurchase = () => {
+    if (selectedCategory === 'gateway') {
       handlePaymentGateway();
       return;
     }
 
     if (!paymentProofUrl) {
       toast({
-        title: 'Bukti transfer diperlukan',
+        title: 'Bukti pembayaran diperlukan',
         description: 'Upload bukti pembayaran terlebih dahulu',
         variant: 'destructive',
       });
@@ -199,77 +149,47 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     if (!pkg) return;
 
     purchaseCredits.mutate({
+      travelId,
       credits: pkg.credits,
-      price: creditPrices[selectedPackage],
+      amount: creditPrices[selectedPackage],
       proofUrl: paymentProofUrl,
+    }, {
+      onSuccess: () => {
+        setShowPurchaseModal(false);
+        setPaymentProofUrl('');
+        setModalStep('package');
+      }
     });
   };
 
-  // --- LOGIKA BARU: Midtrans Snap ---
   const handlePaymentGateway = async () => {
     try {
       setIsProcessingGateway(true);
       const pkg = creditPackages.find(p => p.id === selectedPackage);
       if (!pkg) return;
-      
-      const price = creditPrices[selectedPackage];
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Anda harus login");
 
-      // 1. Panggil Edge Function untuk dapatkan Token Snap
-      const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
-          amount: price,
-          transactionType: 'credit_topup',
-          itemDetails: [{
-            id: `CREDIT-${pkg.id}`,
-            price: price, // Total harga
-            quantity: pkg.credits, // Jumlah kredit
-            name: `${pkg.label} Agent`
-          }]
+          amount: creditPrices[selectedPackage],
+          description: `Pembelian ${pkg.credits} Kredit Broadcast`,
+          type: "agent_credits",
+          metadata: {
+            user_id: user.id,
+            credits: pkg.credits,
+            package_id: selectedPackage,
+            travel_id: travelId
+          }
         }
       });
 
-      if (error || !data?.token) {
-        throw new Error(error?.message || "Gagal inisialisasi pembayaran");
+      if (error) throw error;
+      if (data?.paymentUrl) {
+        window.location.href = data.paymentUrl;
       }
-
-      // 2. Munculkan Pop-up Snap
-      pay(data.token, {
-        onSuccess: (result) => {
-          toast({
-            title: "Pembayaran Berhasil!",
-            description: "Saldo kredit sedang diproses otomatis.",
-          });
-          setShowPurchaseModal(false);
-          // Refresh data setelah jeda singkat
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ['agent-credits', travelId] });
-            queryClient.invalidateQueries({ queryKey: ['agent-credit-transactions', travelId] });
-          }, 2000);
-        },
-        onPending: (result) => {
-          toast({
-            title: "Menunggu Pembayaran",
-            description: "Silakan selesaikan pembayaran Anda di pop-up / tab baru.",
-          });
-          // Bisa tutup modal atau biarkan terbuka
-        },
-        onError: (result) => {
-          toast({
-            title: "Pembayaran Gagal",
-            description: "Silakan coba lagi.",
-            variant: "destructive"
-          });
-        },
-        onClose: () => {
-          console.log("Customer closed the popup");
-        }
-      });
-
     } catch (error: any) {
-      console.error(error);
       toast({
         title: "Gagal memproses pembayaran otomatis",
         description: error.message,
@@ -284,154 +204,40 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case 'purchase': return <ArrowUpCircle className="h-4 w-4 text-green-500" />;
-      case 'usage': return <ArrowDownCircle className="h-4 w-4 text-red-500" />;
-      case 'bonus': return <Gift className="h-4 w-4 text-purple-500" />;
-      default: return <CreditCard className="h-4 w-4" />;
-    }
-  };
-
-  const selectedPaymentData = enabledManualMethods.find((pm: any) => pm.id === selectedPaymentMethod);
+  const selectedPaymentData = enabledPaymentMethods.find((pm: any) => pm.id === selectedPaymentMethod);
 
   return (
-    <div className="space-y-4">
-      {/* Credits Balance Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-5 text-white"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm text-white/80">Saldo Kredit</p>
-            <p className="text-4xl font-bold">{credits?.credits_remaining || 0}</p>
-          </div>
-          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-            <Zap className="w-7 h-7" />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-sm text-white/80">
-          <div className="flex items-center gap-1">
-            <ArrowDownCircle className="w-4 h-4" />
-            <span>{credits?.credits_used || 0} digunakan</span>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          onClick={() => setShowPurchaseModal(true)}
-          className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-        >
-          <ShoppingCart className="w-5 h-5" />
-          <span className="text-sm">Beli Kredit</span>
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto py-4 flex flex-col items-center gap-2"
-          onClick={() => { /* Scroll to history logic if needed */ }}
-        >
-          <History className="w-5 h-5" />
-          <span className="text-sm">Riwayat</span>
-        </Button>
-      </div>
-
-      {/* Credit Packages Preview */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            Paket Kredit
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-2">
-            {creditPackages.map((pkg) => (
-              <div
-                key={pkg.id}
-                className={`p-3 rounded-xl text-center border ${
-                  pkg.popular ? 'border-primary bg-primary/5' : 'border-border'
-                }`}
-              >
-                <p className="text-lg font-bold">{pkg.credits}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatCurrency(creditPrices[pkg.id])}
-                </p>
-                {pkg.popular && (
-                  <Badge className="mt-1 text-[10px]" variant="default">
-                    Populer
-                  </Badge>
-                )}
+    <div className="space-y-6">
+      {/* Credits Status Card */}
+      <Card className="bg-gradient-to-br from-amber-500 to-orange-600 text-white border-none shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-amber-100 text-sm font-medium mb-1">Saldo Kredit Broadcast</p>
+              <div className="flex items-center gap-2">
+                <Zap className="w-8 h-8 text-amber-300 fill-amber-300" />
+                <h2 className="text-4xl font-bold">{credits?.balance || 0}</h2>
               </div>
-            ))}
+            </div>
+            <Button 
+              onClick={() => {
+                setModalStep('package');
+                setShowPurchaseModal(true);
+              }}
+              className="bg-white text-orange-600 hover:bg-amber-50"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Isi Saldo
+            </Button>
           </div>
-          <Button
-            className="w-full mt-3"
-            onClick={() => setShowPurchaseModal(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Beli Kredit
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Transaction History */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <History className="w-4 h-4" />
-            Riwayat Transaksi
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactionsLoading ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-            </div>
-          ) : transactions?.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
-              <CreditCard className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Belum ada transaksi</p>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {transactions?.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
-                >
-                  {getTransactionIcon(tx.transaction_type)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium capitalize">
-                      {tx.transaction_type === 'purchase' && 'Pembelian Kredit'}
-                      {tx.transaction_type === 'usage' && 'Penggunaan Kredit'}
-                      {tx.transaction_type === 'bonus' && 'Kredit Bonus'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(tx.created_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tx.amount > 0 ? '+' : ''}{tx.amount}
-                    </p>
-                    {tx.price && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(tx.price)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="bg-white/10 rounded-xl p-3 flex items-center gap-2 text-sm">
+            <AlertCircle className="w-4 h-4 text-amber-200" />
+            <p className="text-amber-50">1 kredit digunakan untuk 1 pesan broadcast WA per jamaah.</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -440,21 +246,16 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-primary" />
-              Beli Kredit
+              <Zap className="w-5 h-5 text-amber-500" />
+              {modalStep === 'package' ? 'Beli Kredit Broadcast' : 'Pilih Pembayaran'}
             </DialogTitle>
             <DialogDescription>
-              Pilih paket kredit dan metode pembayaran
+              {modalStep === 'package' ? 'Pilih paket kredit sesuai kebutuhan Anda' : 'Selesaikan pembayaran Anda'}
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="package" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="package">1. Pilih Paket</TabsTrigger>
-              <TabsTrigger value="payment">2. Bayar</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="package" className="space-y-4">
+          {modalStep === 'package' && (
+            <div className="space-y-4 mt-4">
               <RadioGroup value={selectedPackage} onValueChange={setSelectedPackage}>
                 {creditPackages.map((pkg) => (
                   <div key={pkg.id}>
@@ -486,204 +287,171 @@ export const AgentCreditsManager = ({ travelId: propTravelId }: AgentCreditsMana
                   </div>
                 ))}
               </RadioGroup>
-            </TabsContent>
+              <Button className="w-full py-6 text-base font-bold" onClick={() => setModalStep('payment')}>
+                Lanjut ke Pembayaran
+              </Button>
+            </div>
+          )}
 
-            <TabsContent value="payment" className="space-y-4">
-              {/* Payment Methods */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Metode Pembayaran</Label>
-                <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <div className="grid gap-2">
-                    
-                    {/* Automatic Gateway Option (Midtrans Snap) */}
-                    {paymentConfig?.provider !== 'manual' && (
-                      <div>
-                        <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
-                        <Label
-                          htmlFor="pay-gateway"
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                            selectedPaymentMethod === 'gateway'
-                              ? 'bg-primary/10 border-2 border-primary'
-                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                          }`}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <CreditCard className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <span className="font-medium block">Bayar Otomatis (Instan)</span>
-                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet (Midtrans)</span>
-                          </div>
-                        </Label>
-                      </div>
-                    )}
+          {modalStep === 'payment' && (
+            <div className="space-y-6 mt-4">
+              <button 
+                onClick={() => setModalStep('package')}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Kembali
+              </button>
 
-                    {/* Manual Methods */}
-                    {enabledManualMethods.map((method: any) => (
-                      <div key={method.id}>
-                        <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
-                        <Label
-                          htmlFor={`pay-${method.id}`}
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                            selectedPaymentMethod === method.id
-                              ? 'bg-primary/10 border-2 border-primary'
-                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                          }`}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                            {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
-                            {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
-                            {method.type === 'qris' && <QrCode className="w-5 h-5" />}
-                          </div>
-                          <div>
-                            <span className="font-medium block">{method.name}</span>
-                            <span className="text-xs text-muted-foreground">Transfer Manual & Upload Bukti</span>
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {/* Automatic Payment Info */}
-              {selectedPaymentMethod === 'gateway' && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300">
-                  <p>Pop-up pembayaran aman akan muncul. Kredit ditambahkan otomatis setelah pembayaran sukses.</p>
-                </div>
-              )}
-
-              {/* Manual Payment Details */}
-              {selectedPaymentMethod !== 'gateway' && selectedPaymentData && (
-                <div className="bg-secondary rounded-xl p-4">
-                  {selectedPaymentData.type === 'bank_transfer' && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">No. Rekening:</span>
-                        <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Atas Nama:</span>
-                        <span className="font-medium">{selectedPaymentData.accountName || '-'}</span>
-                      </div>
-                    </div>
-                  )}
-                  {selectedPaymentData.type === 'ewallet' && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Nomor:</span>
-                        <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
-                      </div>
-                    </div>
-                  )}
-                  {selectedPaymentData.type === 'qris' && qrisImageUrl && (
-                    <div className="text-center">
-                      <p className="text-sm font-medium mb-3">Scan QRIS</p>
-                      <img
-                        src={qrisImageUrl}
-                        alt="QRIS"
-                        className="max-w-[180px] mx-auto rounded-lg"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Amount to Pay */}
-              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+              {/* Order Summary */}
+              <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-amber-700">Total Bayar</span>
-                  <span className="text-2xl font-bold text-amber-700">
+                  <span className="text-sm text-muted-foreground">Paket {creditPackages.find(p => p.id === selectedPackage)?.label}</span>
+                  <span className="text-xl font-bold text-primary">
                     {formatCurrency(creditPrices[selectedPackage])}
                   </span>
                 </div>
               </div>
 
-              {/* Upload Proof */}
-              {selectedPaymentMethod !== 'gateway' && selectedPaymentMethod && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Upload Bukti Transfer</Label>
-                  <div className="relative">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleUploadProof}
-                      className="hidden"
-                      id="proof-upload"
-                      disabled={isUploading}
-                    />
-                    <Label
-                      htmlFor="proof-upload"
-                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                        paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary'
+              {/* Category Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Pilih Metode Pembayaran</Label>
+                <div className="grid gap-2">
+                  {isGatewayEnabled && (
+                    <div 
+                      onClick={() => setSelectedCategory('gateway')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'gateway' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
                       }`}
                     >
-                      {isUploading ? (
-                        <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
-                      ) : paymentProofUrl ? (
-                        <>
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <span className="text-green-700">Bukti terupload</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5 text-muted-foreground" />
-                          <span className="text-muted-foreground">Klik untuk upload</span>
-                        </>
-                      )}
-                    </Label>
-                  </div>
-                  {paymentProofUrl && (
-                    <img
-                      src={paymentProofUrl}
-                      alt="Bukti"
-                      className="mt-2 rounded-lg max-h-32 object-cover"
-                    />
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'gateway' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">Payment Gateway</p>
+                        <p className="text-[10px] text-muted-foreground">{provider === 'midtrans' ? 'Midtrans' : 'Xendit'} (Otomatis)</p>
+                      </div>
+                      {selectedCategory === 'gateway' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
+                  )}
+
+                  {hasQris && (
+                    <div 
+                      onClick={() => setSelectedCategory('qris')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'qris' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'qris' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">QRIS</p>
+                        <p className="text-[10px] text-muted-foreground">Scan QR Code</p>
+                      </div>
+                      {selectedCategory === 'qris' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
+                  )}
+
+                  {hasManual && (
+                    <div 
+                      onClick={() => setSelectedCategory('manual')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'manual' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'manual' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">Transfer Manual</p>
+                        <p className="text-[10px] text-muted-foreground">Transfer Bank</p>
+                      </div>
+                      {selectedCategory === 'manual' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
                   )}
                 </div>
+              </div>
+
+              {/* Details and Upload */}
+              {selectedCategory === 'gateway' && (
+                <Button 
+                  className="w-full py-6 text-base font-bold gap-2"
+                  onClick={handlePaymentGateway}
+                  disabled={isProcessingGateway}
+                >
+                  {isProcessingGateway ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                  Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
+                </Button>
               )}
 
-              {/* Purchase Button */}
-              <Button
-                className="w-full"
-                onClick={handlePurchase}
-                disabled={
-                  (selectedPaymentMethod === 'gateway' 
-                    ? (isProcessingGateway || !isSnapLoaded) 
-                    : (!paymentProofUrl || purchaseCredits.isPending)) || !selectedPaymentMethod
-                }
-              >
-                {selectedPaymentMethod === 'gateway' ? (
-                  isProcessingGateway ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses Payment...
-                    </>
-                  ) : !isSnapLoaded ? (
-                    'Memuat Gateway...'
-                  ) : (
-                    'Bayar Sekarang'
-                  )
-                ) : (
-                  purchaseCredits.isPending ? (
-                    <div className="animate-spin w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full mr-2" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                  )
-                )}
-                {selectedPaymentMethod === 'gateway' && !isProcessingGateway && isSnapLoaded ? 'Bayar Sekarang' : 
-                 purchaseCredits.isPending ? 'Memproses...' : 
-                 selectedPaymentMethod !== 'gateway' ? 'Konfirmasi Pembayaran' : ''}
-              </Button>
+              {(selectedCategory === 'qris' || selectedCategory === 'manual') && (
+                <div className="space-y-4">
+                  {selectedCategory === 'manual' && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Pilih Bank</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {enabledPaymentMethods.filter(pm => pm.type === 'bank_transfer').map(pm => (
+                          <div 
+                            key={pm.id}
+                            onClick={() => setSelectedPaymentMethod(pm.id)}
+                            className={`p-2 text-center rounded-lg border cursor-pointer transition-all text-xs font-medium ${
+                              selectedPaymentMethod === pm.id ? 'bg-primary text-white border-primary' : 'bg-muted hover:bg-muted/80 border-transparent'
+                            }`}
+                          >
+                            {pm.name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {selectedPaymentMethod !== 'gateway' && (
-                <p className="text-xs text-center text-muted-foreground">
-                  Kredit akan ditambahkan setelah pembayaran diverifikasi (1-24 jam)
-                </p>
+                  {selectedPaymentData && (
+                    <Card className="border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        {selectedCategory === 'qris' ? (
+                          <div className="text-center space-y-2">
+                            {qrisImageUrl && <img src={qrisImageUrl} alt="QRIS" className="w-40 h-40 mx-auto border rounded-lg" />}
+                            <p className="text-xs font-medium">Scan kode QR di atas</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Bank</span><span className="font-bold">{selectedPaymentData.name}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">No. Rekening</span><span className="font-mono font-bold">{selectedPaymentData.accountNumber}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Atas Nama</span><span className="font-medium">{selectedPaymentData.accountName}</span></div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold">Upload Bukti Pembayaran</Label>
+                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border'}`}>
+                      {paymentProofUrl ? (
+                        <div className="space-y-2">
+                          <Check className="w-8 h-8 text-green-500 mx-auto" />
+                          <p className="text-sm font-bold text-green-700">Bukti Terupload</p>
+                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofUrl('')}>Ganti</Button>
+                        </div>
+                      ) : (
+                        <Label htmlFor="proof-upload-credits" className="cursor-pointer space-y-2 block">
+                          <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                          <p className="text-sm font-medium">Klik untuk upload bukti</p>
+                        </Label>
+                      )}
+                      <input id="proof-upload-credits" type="file" accept="image/*" className="hidden" onChange={handleUploadProof} disabled={isUploading} />
+                    </div>
+                  </div>
+
+                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitPurchase} disabled={!paymentProofUrl || purchaseCredits.isPending || isUploading}>
+                    {purchaseCredits.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
+                    Konfirmasi Pembayaran
+                  </Button>
+                </div>
               )}
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

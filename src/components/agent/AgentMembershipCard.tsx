@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Crown, CheckCircle2, Clock, AlertCircle, Upload,
-  Sparkles, Shield, Star, Building2, Smartphone, QrCode, CreditCard, Loader2
+  Sparkles, Shield, Star, Building2, Smartphone, QrCode, CreditCard, Loader2, ArrowLeft, Check, ExternalLink, Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import {
   getMembershipDaysRemaining,
 } from '@/hooks/useAgentMembership';
 import { usePlatformSettings } from '@/hooks/useAdminData';
-import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig'; // New Hook
+import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -35,10 +35,14 @@ interface AgentMembershipCardProps {
   travelId: string;
 }
 
+type PaymentCategory = 'gateway' | 'qris' | 'manual';
+
 export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const { toast } = useToast();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [modalStep, setModalStep] = useState<'plan' | 'payment'>('plan');
   const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [paymentProofUrl, setPaymentProofUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -53,13 +57,40 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const paymentGateway = platformSettings?.find(s => s.key === 'payment_gateway')?.value as any;
   const qrisSetting = platformSettings?.find(s => s.key === 'qris_image_url')?.value as any;
   const qrisImageUrl = typeof qrisSetting === 'string' ? qrisSetting : qrisSetting?.url || '';
-  const enabledManualMethods = paymentGateway?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
-
+  
   // Fetch automatic payment gateway config
-  const { data: paymentConfig, isLoading: paymentConfigLoading } = usePublicPaymentConfig();
+  const { data: paymentConfig } = usePublicPaymentConfig();
+  
+  const provider = paymentConfig?.provider || 'manual';
+  const isGatewayEnabled = provider !== 'manual';
+  const enabledPaymentMethods = paymentConfig?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+
+  const hasQris = enabledPaymentMethods.some(pm => pm.type === 'qris');
+  const hasManual = enabledPaymentMethods.some(pm => pm.type === 'bank_transfer');
 
   const currentPlan = MEMBERSHIP_PLANS.find(p => p.id === planType) || MEMBERSHIP_PLANS[0];
   const daysRemaining = getMembershipDaysRemaining(membership?.end_date || null);
+
+  // Auto-select category
+  useEffect(() => {
+    if (modalStep === 'payment' && !selectedCategory) {
+      if (isGatewayEnabled) setSelectedCategory('gateway');
+      else if (hasQris) setSelectedCategory('qris');
+      else if (hasManual) setSelectedCategory('manual');
+    }
+  }, [modalStep, isGatewayEnabled, hasQris, hasManual, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedCategory === 'qris') {
+      const qrisMethod = enabledPaymentMethods.find(pm => pm.type === 'qris');
+      if (qrisMethod) setSelectedPaymentMethod(qrisMethod.id);
+    } else if (selectedCategory === 'manual') {
+      const manualMethod = enabledPaymentMethods.find(pm => pm.type === 'bank_transfer');
+      if (manualMethod) setSelectedPaymentMethod(manualMethod.id);
+    } else if (selectedCategory === 'gateway') {
+      setSelectedPaymentMethod('gateway');
+    }
+  }, [selectedCategory, enabledPaymentMethods]);
 
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,7 +124,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
 
   const handleSubmitUpgrade = () => {
     // If using Gateway
-    if (selectedPaymentMethod === 'gateway') {
+    if (selectedCategory === 'gateway') {
       handlePaymentGateway();
       return;
     }
@@ -120,6 +151,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
       onSuccess: () => {
         setShowUpgradeModal(false);
         setPaymentProofUrl('');
+        setModalStep('plan');
       }
     });
   };
@@ -217,7 +249,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
     }
   };
 
-  const selectedPaymentData = enabledManualMethods.find((pm: any) => pm.id === selectedPaymentMethod);
+  const selectedPaymentData = enabledPaymentMethods.find((pm: any) => pm.id === selectedPaymentMethod);
 
   if (isLoading) {
     return (
@@ -301,51 +333,24 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
               <ul className="space-y-1">
                 {currentPlan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
                     {feature}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Upgrade Button */}
-            {planType !== 'premium' && membership?.status !== 'pending' && (
-              <Button 
-                className="w-full"
-                onClick={() => setShowUpgradeModal(true)}
-              >
-                <Crown className="w-4 h-4 mr-2" />
-                {planType === 'free' ? 'Upgrade Sekarang' : 'Upgrade ke Premium'}
-              </Button>
-            )}
-
-            {/* Pending Warning */}
-            {membership?.status === 'pending' && (
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                <p className="text-sm text-amber-700 dark:text-amber-400">
-                  Pengajuan {membership.plan_type.toUpperCase()} sedang diproses. 
-                  Kami akan memberitahu Anda setelah diverifikasi.
-                </p>
-              </div>
-            )}
-
-            {/* Rejected Warning */}
-            {membership?.status === 'rejected' && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive">
-                  Pengajuan sebelumnya ditolak. 
-                  {membership.notes && <span className="block mt-1">Alasan: {membership.notes}</span>}
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => setShowUpgradeModal(true)}
-                >
-                  Ajukan Kembali
-                </Button>
-              </div>
-            )}
+            {/* Action Button */}
+            <Button 
+              className="w-full" 
+              variant={isPremium ? "outline" : "default"}
+              onClick={() => {
+                setModalStep('plan');
+                setShowUpgradeModal(true);
+              }}
+            >
+              {isPremium ? 'Perpanjang Membership' : 'Upgrade Sekarang'}
+            </Button>
           </CardContent>
         </Card>
       </motion.div>
@@ -356,20 +361,15 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-500" />
-              Upgrade Keanggotaan
+              {modalStep === 'plan' ? 'Upgrade Keanggotaan' : 'Pilih Pembayaran'}
             </DialogTitle>
             <DialogDescription>
-              Pilih paket dan lakukan pembayaran
+              {modalStep === 'plan' ? 'Pilih paket keanggotaan Anda' : 'Selesaikan pembayaran Anda'}
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="plan" className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="plan">1. Pilih Paket</TabsTrigger>
-              <TabsTrigger value="payment">2. Bayar</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="plan" className="space-y-4">
+          {modalStep === 'plan' && (
+            <div className="space-y-4 mt-4">
               <RadioGroup value={selectedPlan} onValueChange={setSelectedPlan}>
                 {MEMBERSHIP_PLANS.filter(p => p.id !== 'free').map((plan) => (
                   <div key={plan.id}>
@@ -404,197 +404,176 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
                             {feature}
                           </li>
                         ))}
-                        {plan.features.length > 4 && (
-                          <li className="text-xs text-muted-foreground">
-                            +{plan.features.length - 4} fitur lainnya
-                          </li>
-                        )}
                       </ul>
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
-            </TabsContent>
+              <Button className="w-full py-6 text-base font-bold" onClick={() => setModalStep('payment')}>
+                Lanjut ke Pembayaran
+              </Button>
+            </div>
+          )}
 
-            <TabsContent value="payment" className="space-y-4">
+          {modalStep === 'payment' && (
+            <div className="space-y-6 mt-4">
+              <button 
+                onClick={() => setModalStep('plan')}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Kembali
+              </button>
+
               {/* Order Summary */}
-              <div className="bg-secondary rounded-xl p-4">
-                <p className="text-sm font-medium mb-2">Ringkasan Pesanan</p>
+              <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                 <div className="flex items-center justify-between">
-                  <span>Paket {MEMBERSHIP_PLANS.find(p => p.id === selectedPlan)?.name} (1 bulan)</span>
-                  <span className="font-bold">
+                  <span className="text-sm text-muted-foreground">Paket {MEMBERSHIP_PLANS.find(p => p.id === selectedPlan)?.name}</span>
+                  <span className="text-xl font-bold text-primary">
                     {formatCurrency(MEMBERSHIP_PLANS.find(p => p.id === selectedPlan)?.price || 0)}
                   </span>
                 </div>
               </div>
 
-              {/* Payment Methods */}
-              <div>
-                <Label className="text-sm font-medium mb-3 block">Metode Pembayaran</Label>
-                <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                  <div className="grid gap-2">
-                    
-                    {/* Automatic Gateway Option */}
-                    {paymentConfig && paymentConfig.provider !== 'manual' && (
-                      <div>
-                        <RadioGroupItem value="gateway" id="pay-gateway" className="sr-only" />
-                        <Label
-                          htmlFor="pay-gateway"
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                            selectedPaymentMethod === 'gateway'
-                              ? 'bg-primary/10 border-2 border-primary'
-                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                          }`}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <CreditCard className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <span className="font-medium block">Bayar via {paymentConfig?.provider === 'midtrans' ? 'Midtrans' : 'Xendit'}</span>
-                            <span className="text-xs text-muted-foreground">QRIS, VA, E-Wallet - Verifikasi Otomatis</span>
-                          </div>
-                        </Label>
+              {/* Category Selection */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Pilih Metode Pembayaran</Label>
+                <div className="grid gap-2">
+                  {isGatewayEnabled && (
+                    <div 
+                      onClick={() => setSelectedCategory('gateway')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'gateway' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'gateway' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <CreditCard className="w-5 h-5" />
                       </div>
-                    )}
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">Payment Gateway</p>
+                        <p className="text-[10px] text-muted-foreground">{provider === 'midtrans' ? 'Midtrans' : 'Xendit'} (Otomatis)</p>
+                      </div>
+                      {selectedCategory === 'gateway' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
+                  )}
 
-                    {/* Manual Methods */}
-                    {enabledManualMethods.map((method: any) => (
-                      <div key={method.id}>
-                        <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
-                        <Label
-                          htmlFor={`pay-${method.id}`}
-                          className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                            selectedPaymentMethod === method.id
-                              ? 'bg-primary/10 border-2 border-primary'
-                              : 'bg-secondary border-2 border-transparent hover:border-primary/30'
-                          }`}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                            {method.type === 'bank_transfer' && <Building2 className="w-5 h-5" />}
-                            {method.type === 'ewallet' && <Smartphone className="w-5 h-5" />}
-                            {method.type === 'qris' && <QrCode className="w-5 h-5" />}
-                          </div>
-                          <div>
-                            <span className="font-medium block">{method.name}</span>
-                            <span className="text-xs text-muted-foreground">Transfer Manual & Upload Bukti</span>
-                          </div>
-                        </Label>
+                  {hasQris && (
+                    <div 
+                      onClick={() => setSelectedCategory('qris')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'qris' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'qris' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <QrCode className="w-5 h-5" />
                       </div>
-                    ))}
-                  </div>
-                </RadioGroup>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">QRIS</p>
+                        <p className="text-[10px] text-muted-foreground">Scan QR Code</p>
+                      </div>
+                      {selectedCategory === 'qris' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
+                  )}
+
+                  {hasManual && (
+                    <div 
+                      onClick={() => setSelectedCategory('manual')}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                        selectedCategory === 'manual' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-card border-border hover:border-primary/30'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg ${selectedCategory === 'manual' ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">Transfer Manual</p>
+                        <p className="text-[10px] text-muted-foreground">Transfer Bank</p>
+                      </div>
+                      {selectedCategory === 'manual' && <Check className="w-4 h-4 text-primary" />}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Automatic Payment Info */}
-              {selectedPaymentMethod === 'gateway' && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300">
-                  <p>Anda akan diarahkan ke halaman pembayaran aman. Status keanggotaan akan aktif otomatis setelah pembayaran berhasil.</p>
-                </div>
+              {/* Details and Upload */}
+              {selectedCategory === 'gateway' && (
+                <Button 
+                  className="w-full py-6 text-base font-bold gap-2"
+                  onClick={handlePaymentGateway}
+                  disabled={isProcessingGateway}
+                >
+                  {isProcessingGateway ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
+                  Bayar via {provider === 'midtrans' ? 'Midtrans' : 'Xendit'}
+                </Button>
               )}
 
-              {/* Manual Payment Details */}
-              {selectedPaymentMethod !== 'gateway' && selectedPaymentData && (
-                <div className="bg-secondary rounded-xl p-4">
-                  {selectedPaymentData.type === 'bank_transfer' && (
+              {(selectedCategory === 'qris' || selectedCategory === 'manual') && (
+                <div className="space-y-4">
+                  {selectedCategory === 'manual' && (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">No. Rekening:</span>
-                        <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Atas Nama:</span>
-                        <span className="font-medium">{selectedPaymentData.accountName || '-'}</span>
-                      </div>
-                    </div>
-                  )}
-                  {selectedPaymentData.type === 'ewallet' && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">{selectedPaymentData.name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Nomor:</span>
-                        <span className="font-mono font-bold">{selectedPaymentData.accountNumber || '-'}</span>
+                      <Label className="text-xs text-muted-foreground">Pilih Bank</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {enabledPaymentMethods.filter(pm => pm.type === 'bank_transfer').map(pm => (
+                          <div 
+                            key={pm.id}
+                            onClick={() => setSelectedPaymentMethod(pm.id)}
+                            className={`p-2 text-center rounded-lg border cursor-pointer transition-all text-xs font-medium ${
+                              selectedPaymentMethod === pm.id ? 'bg-primary text-white border-primary' : 'bg-muted hover:bg-muted/80 border-transparent'
+                            }`}
+                          >
+                            {pm.name}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
-                  {selectedPaymentData.type === 'qris' && qrisImageUrl && (
-                    <div className="text-center">
-                      <p className="text-sm font-medium mb-3">Scan QRIS</p>
-                      <img
-                        src={qrisImageUrl}
-                        alt="QRIS Code"
-                        className="w-48 h-48 mx-auto object-contain border rounded-lg"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {/* Manual Upload Proof */}
-              {selectedPaymentMethod !== 'gateway' && selectedPaymentMethod && (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Upload Bukti Pembayaran</Label>
-                  <div className="border-2 border-dashed border-border rounded-xl p-4 text-center">
-                    {paymentProofUrl ? (
-                      <div className="space-y-2">
-                        <img
-                          src={paymentProofUrl}
-                          alt="Bukti Pembayaran"
-                          className="max-h-32 mx-auto rounded-lg object-contain"
-                        />
-                        <p className="text-xs text-green-600 flex items-center justify-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Bukti berhasil diupload
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPaymentProofUrl('')}
-                        >
-                          Ganti Bukti
-                        </Button>
-                      </div>
-                    ) : (
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={handleUploadProof}
-                          disabled={isUploading}
-                        />
+                  {selectedPaymentData && (
+                    <Card className="border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        {selectedCategory === 'qris' ? (
+                          <div className="text-center space-y-2">
+                            {qrisImageUrl && <img src={qrisImageUrl} alt="QRIS" className="w-40 h-40 mx-auto border rounded-lg" />}
+                            <p className="text-xs font-medium">Scan kode QR di atas</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Bank</span><span className="font-bold">{selectedPaymentData.name}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">No. Rekening</span><span className="font-mono font-bold">{selectedPaymentData.accountNumber}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-muted-foreground">Atas Nama</span><span className="font-medium">{selectedPaymentData.accountName}</span></div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold">Upload Bukti Pembayaran</Label>
+                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border'}`}>
+                      {paymentProofUrl ? (
                         <div className="space-y-2">
-                          <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
-                            {isUploading ? 'Mengupload...' : 'Klik untuk upload bukti pembayaran'}
-                          </p>
+                          <Check className="w-8 h-8 text-green-500 mx-auto" />
+                          <p className="text-sm font-bold text-green-700">Bukti Terupload</p>
+                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofUrl('')}>Ganti</Button>
                         </div>
-                      </label>
-                    )}
+                      ) : (
+                        <Label htmlFor="proof-upload-agent" className="cursor-pointer space-y-2 block">
+                          <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                          <p className="text-sm font-medium">Klik untuk upload bukti</p>
+                        </Label>
+                      )}
+                      <input id="proof-upload-agent" type="file" accept="image/*" className="hidden" onChange={handleUploadProof} disabled={isUploading} />
+                    </div>
                   </div>
+
+                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitUpgrade} disabled={!paymentProofUrl || requestMembership.isPending || isUploading}>
+                    {requestMembership.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Crown className="w-5 h-5 mr-2" />}
+                    Konfirmasi Pembayaran
+                  </Button>
                 </div>
               )}
-
-              {/* Submit Button */}
-              <Button
-                className="w-full"
-                disabled={
-                  (selectedPaymentMethod === 'gateway' ? isProcessingGateway : (!paymentProofUrl || requestMembership.isPending)) || !selectedPaymentMethod
-                }
-                onClick={handleSubmitUpgrade}
-              >
-                {selectedPaymentMethod === 'gateway' ? (
-                  isProcessingGateway ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses Payment...
-                    </>
-                  ) : 'Lanjut ke Pembayaran'
-                ) : (
-                  requestMembership.isPending ? 'Memproses...' : 'Kirim Pengajuan Manual'
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
