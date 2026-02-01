@@ -5,7 +5,7 @@
 -- 1. Tabel Bookmarks (Simpan Ayat)
 CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.profiles(user_id) ON DELETE CASCADE NOT NULL,
     surah_number INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
 
 -- 2. Tabel Terakhir Baca (Last Read)
 CREATE TABLE IF NOT EXISTS public.quran_last_read (
-    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID PRIMARY KEY REFERENCES public.profiles(user_id) ON DELETE CASCADE NOT NULL,
     surah_number INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
@@ -34,7 +34,7 @@ END $$;
 -- 3. Tabel Log Tadarus (Tracker)
 CREATE TABLE IF NOT EXISTS public.quran_tadarus_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.profiles(user_id) ON DELETE CASCADE NOT NULL,
     read_date DATE DEFAULT CURRENT_DATE NOT NULL,
     surah_start INTEGER NOT NULL REFERENCES public.quran_surahs(number),
     ayah_start INTEGER NOT NULL,
