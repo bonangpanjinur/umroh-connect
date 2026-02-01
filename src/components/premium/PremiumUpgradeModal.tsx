@@ -54,15 +54,45 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
 
-  const plan = plans?.[0]; // Get the first active plan
+  // Fallback plan if data is missing
+  const fallbackPlan = {
+    id: 'premium-yearly',
+    name: 'Premium Yearly',
+    description: 'Akses penuh fitur cloud & statistik',
+    price_yearly: 50000,
+    features: ['Sync data ke cloud', 'Backup otomatis', 'Akses multi-device', 'Statistik lengkap']
+  };
+
+  const plan = (plans && plans.length > 0) ? plans[0] : fallbackPlan;
   
-  // Payment config
+  // Payment config with fallback
   const provider = paymentConfig?.provider || 'manual';
   const isTestMode = paymentConfig?.isTestMode ?? true;
   const midtransClientKey = paymentConfig?.apiKey || '';
   const qrisImageUrl = paymentConfig?.qrisImageUrl || '';
   const isGatewayEnabled = provider !== 'manual';
-  const enabledPaymentMethods = paymentConfig?.paymentMethods?.filter((pm: any) => pm.enabled) || [];
+  
+  // Fallback payment methods if config is missing
+  const fallbackPaymentMethods = [
+    {
+      id: 'manual-bca',
+      name: 'BCA Transfer',
+      type: 'bank_transfer',
+      enabled: true,
+      accountNumber: '1234567890',
+      accountName: 'PT Umroh Connect Indonesia'
+    },
+    {
+      id: 'qris-main',
+      name: 'QRIS',
+      type: 'qris',
+      enabled: true
+    }
+  ];
+
+  const enabledPaymentMethods = (paymentConfig?.paymentMethods && paymentConfig.paymentMethods.length > 0)
+    ? paymentConfig.paymentMethods.filter((pm: any) => pm.enabled)
+    : fallbackPaymentMethods;
 
   const hasQris = enabledPaymentMethods.some(pm => pm.type === 'qris');
   const hasManual = enabledPaymentMethods.some(pm => pm.type === 'bank_transfer');
@@ -325,12 +355,19 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
             {step === 'gateway' && 'Pembayaran Online'}
           </DialogTitle>
           <DialogDescription>
-            Simpan data ibadah Anda ke cloud
+            {plansLoading || paymentConfigLoading ? 'Memuat informasi...' : 'Simpan data ibadah Anda ke cloud'}
           </DialogDescription>
         </DialogHeader>
 
+        {(plansLoading || paymentConfigLoading) && step === 'info' && (
+          <div className="py-12 text-center space-y-4">
+            <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground text-sm">Mengambil penawaran terbaik...</p>
+          </div>
+        )}
+
         {/* Info Step */}
-        {step === 'info' && (
+        {step === 'info' && !plansLoading && !paymentConfigLoading && (
           <div className="space-y-4">
             {/* Free vs Premium comparison */}
             <div className="grid grid-cols-2 gap-3">
