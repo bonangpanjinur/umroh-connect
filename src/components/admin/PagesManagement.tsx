@@ -51,19 +51,26 @@ export const PagesManagement = () => {
 
   const fetchPages = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('pages')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('static_pages' as any)
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching pages:', error);
-      toast.error('Gagal memuat halaman');
-      return;
+      if (error) {
+        console.error('Error fetching pages:', error);
+        toast.error('Gagal memuat halaman');
+        setPages([]);
+        return;
+      }
+
+      setPages((data || []) as unknown as Page[]);
+    } catch (err) {
+      console.error('Error:', err);
+      setPages([]);
+    } finally {
+      setIsLoading(false);
     }
-
-    setPages(data || []);
-    setIsLoading(false);
   };
 
   const filteredPages = pages.filter(page => 
@@ -136,13 +143,13 @@ export const PagesManagement = () => {
       const filePath = `pages/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('page-images')
+        .from('uploads')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
-        .from('page-images')
+        .from('uploads')
         .getPublicUrl(filePath);
 
       setFormData(prev => ({
@@ -168,7 +175,7 @@ export const PagesManagement = () => {
       if (editingPage) {
         // Update existing page
         const { error } = await supabase
-          .from('pages')
+          .from('static_pages' as any)
           .update({
             title: formData.title,
             slug: formData.slug,
@@ -186,7 +193,7 @@ export const PagesManagement = () => {
       } else {
         // Create new page
         const { error } = await supabase
-          .from('pages')
+          .from('static_pages' as any)
           .insert([{
             title: formData.title,
             slug: formData.slug,
@@ -216,7 +223,7 @@ export const PagesManagement = () => {
 
     try {
       const { error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .delete()
         .eq('id', id);
 
@@ -232,7 +239,7 @@ export const PagesManagement = () => {
   const toggleActive = async (page: Page) => {
     try {
       const { error } = await supabase
-        .from('pages')
+        .from('static_pages' as any)
         .update({ is_active: !page.is_active })
         .eq('id', page.id);
 
@@ -313,7 +320,7 @@ export const PagesManagement = () => {
                           ...prev,
                           slug: generateSlug(e.target.value),
                         }))}
-                        disabled={editingPage && isSlugLocked}
+                        disabled={editingPage !== null && isSlugLocked}
                       />
                       {editingPage && (
                         <Button
@@ -478,132 +485,106 @@ export const PagesManagement = () => {
                       <img
                         src={formData.image_url}
                         alt={formData.title}
-                        className="w-full aspect-video object-cover rounded-lg mb-6"
+                        className="w-full h-48 object-cover rounded-lg mb-4"
                       />
                     )}
                     <div 
-                      className="prose prose-sm dark:prose-invert max-w-none"
-                      dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }}
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground">Konten halaman akan muncul di sini...</p>' }}
                     />
                   </div>
                 </TabsContent>
               </Tabs>
 
-              <div className="flex gap-2 justify-end mt-6">
+              <div className="flex justify-end gap-2 mt-6">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Batal
                 </Button>
                 <Button onClick={handleSave}>
-                  {editingPage ? 'Perbarui' : 'Buat'} Halaman
+                  {editingPage ? 'Simpan Perubahan' : 'Buat Halaman'}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : pages.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Belum ada halaman. Buat halaman baru untuk memulai.
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Daftar Halaman ({pages.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Judul</TableHead>
-                      <TableHead>URL</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Terakhir Diperbarui</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredPages.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                          Tidak ada halaman yang ditemukan untuk "{searchQuery}"
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredPages.map((page) => (
-                        <TableRow key={page.id}>
-                          <TableCell className="font-medium">{page.title}</TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-muted px-2 py-1 rounded">
-                              /{page.slug}
-                            </code>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={page.is_active}
-                                onCheckedChange={() => toggleActive(page)}
-                              />
-                              <Badge variant={page.is_active ? "default" : "secondary"}>
-                                {page.is_active ? 'Aktif' : 'Draft'}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {new Date(page.updated_at).toLocaleDateString('id-ID', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => toggleActive(page)}
-                                title={page.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                              >
-                                {page.is_active ? (
-                                  <Eye className="h-4 w-4" />
-                                ) : (
-                                  <EyeOff className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(page)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(page.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
+
+      {/* Pages List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Daftar Halaman
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredPages.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>Belum ada halaman yang dibuat</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Judul</TableHead>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPages.map((page) => (
+                  <TableRow key={page.id}>
+                    <TableCell className="font-medium">{page.title}</TableCell>
+                    <TableCell>
+                      <code className="text-xs bg-muted px-2 py-1 rounded">/{page.slug}</code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={page.is_active ? 'default' : 'secondary'}>
+                        {page.is_active ? 'Aktif' : 'Nonaktif'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleActive(page)}
+                          title={page.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                        >
+                          {page.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(page)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(page.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
+
+export default PagesManagement;
