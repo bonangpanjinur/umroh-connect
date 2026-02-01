@@ -57,10 +57,11 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     }
   }, [currentAyah, showAudioPlayer]);
 
-  const handleFinishReading = (ayahOverride?: number) => {
+  const handleFinishReading = (ayahOverride?: any) => {
     if (!user || !selectedSurah || !surahArabic) return;
 
-    const targetAyah = ayahOverride || currentAyah;
+    // Ensure targetAyah is a number and not an event object
+    const targetAyah = typeof ayahOverride === 'number' ? ayahOverride : currentAyah;
 
     addLog.mutate({
       userId: user.id,
@@ -75,7 +76,7 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     
     // Reset start ayah for next session
     setStartAyah(targetAyah + 1 > surahArabic.numberOfAyahs ? 1 : targetAyah + 1);
-    if (ayahOverride) setCurrentAyah(ayahOverride);
+    if (typeof ayahOverride === 'number') setCurrentAyah(ayahOverride);
   };
 
   // Surah List View
@@ -223,7 +224,7 @@ const QuranView = ({ onBack }: QuranViewProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleFinishReading}
+                onClick={() => handleFinishReading()}
                 className="h-8 w-8 text-emerald-600"
                 title="Selesai Baca"
               >
@@ -290,7 +291,11 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                     className={`pb-4 border-b border-border last:border-0 transition-colors duration-300 ${
                       currentAyah === ayah.numberInSurah ? 'bg-primary/5 -mx-4 px-4' : ''
                     }`}
-                    onClick={() => setCurrentAyah(ayah.numberInSurah)}
+                    onClick={() => {
+                      setCurrentAyah(ayah.numberInSurah);
+                      // Auto-save when clicking an ayah
+                      handleFinishReading(ayah.numberInSurah);
+                    }}
                   >
                     {/* Ayah Actions */}
                     <div className="flex justify-between items-center mb-3">
