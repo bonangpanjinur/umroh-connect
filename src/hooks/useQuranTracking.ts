@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 
-interface QuranSurah {
+export interface QuranSurah {
   id: number;
   number: number;
   name: string;
@@ -12,17 +12,25 @@ interface QuranSurah {
   juz_start: number | null;
 }
 
-interface QuranLog {
+export interface QuranTadarusLog {
   id: string;
   user_id: string;
-  log_date: string;
-  surah_number: number;
-  start_verse: number;
-  end_verse: number;
-  pages_read: number | null;
-  juz_number: number | null;
-  notes: string | null;
+  read_date: string;
+  surah_start: number;
+  ayah_start: number;
+  surah_end: number;
+  ayah_end: number;
+  total_verses: number;
+  juz_start: number | null;
+  juz_end: number | null;
   created_at: string;
+}
+
+export interface TadarusStats {
+  total_ayat: number;
+  hari_tadarus: number;
+  progress_juz: number;
+  total_surat: number;
 }
 
 // Fetch all surahs
@@ -30,48 +38,42 @@ export const useQuranSurahs = () => {
   return useQuery({
     queryKey: ['quran-surahs'],
     queryFn: async (): Promise<QuranSurah[]> => {
-      const { data, error } = await (supabase as any)
-        .from('quran_surahs')
+      const { data, error } = await supabase
+        .from('quran_surahs' as any)
         .select('*')
         .order('number', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching surahs:', error);
+        return [];
+      }
       return data as QuranSurah[];
     },
-    staleTime: Infinity, // Surahs don't change
+    staleTime: Infinity,
   });
 };
 
-// Fetch user's quran logs for a date range
-export const useQuranLogs = (userId: string | undefined, startDate?: string, endDate?: string) => {
+// Fetch user's today quran logs
+export const useTodayQuranLogs = (userId: string | undefined) => {
   const today = format(new Date(), 'yyyy-MM-dd');
-  const start = startDate || format(subDays(new Date(), 30), 'yyyy-MM-dd');
-  const end = endDate || today;
 
   return useQuery({
-    queryKey: ['quran-logs', userId, start, end],
-    queryFn: async (): Promise<QuranLog[]> => {
+    queryKey: ['quran-logs-today', userId],
+    queryFn: async (): Promise<QuranTadarusLog[]> => {
       if (!userId) return [];
 
-      const { data, error } = await (supabase as any)
-        .from('user_quran_logs')
+      const { data, error } = await supabase
+        .from('quran_tadarus_logs')
         .select('*')
         .eq('user_id', userId)
-        .gte('log_date', start)
-        .lte('log_date', end)
-        .order('log_date', { ascending: false });
+        .eq('read_date', today)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as QuranLog[];
+      return data as QuranTadarusLog[];
     },
     enabled: !!userId,
   });
-};
-
-// Get today's logs
-export const useTodayQuranLogs = (userId: string | undefined) => {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  return useQuranLogs(userId, today, today);
 };
 
 // Add quran reading log
@@ -82,35 +84,48 @@ export const useAddQuranLog = () => {
   return useMutation({
     mutationFn: async (log: {
       userId: string;
-      surahNumber: number;
-      startVerse: number;
-      endVerse: number;
-      pagesRead?: number;
-      juzNumber?: number;
-      notes?: string;
+      surahStart: number;
+      ayahStart: number;
+      surahEnd: number;
+      ayahEnd: number;
+      totalVerses: number;
+      juzStart?: number;
+      juzEnd?: number;
     }) => {
-      const today = format(new Date(), 'yyyy-MM-dd');
-
-      const { data, error } = await (supabase as any)
-        .from('user_quran_logs')
+      const { data, error } = await supabase
+        .from('quran_tadarus_logs')
         .insert({
           user_id: log.userId,
-          log_date: today,
-          surah_number: log.surahNumber,
-          start_verse: log.startVerse,
-          end_verse: log.endVerse,
-          pages_read: log.pagesRead,
-          juz_number: log.juzNumber,
-          notes: log.notes,
+          surah_start: log.surahStart,
+          ayah_start: log.ayahStart,
+          surah_end: log.surahEnd,
+          ayah_end: log.ayahEnd,
+          total_verses: log.totalVerses,
+          juz_start: log.juzStart,
+          juz_end: log.juzEnd,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Also update last read
+      await supabase
+        .from('quran_last_read')
+        .upsert({
+          user_id: log.userId,
+          surah_number: log.surahEnd,
+          ayah_number: log.ayahEnd,
+          juz_number: log.juzEnd || 1,
+          updated_at: new Date().toISOString(),
+        });
+
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['quran-logs', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['quran-logs-today', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['quran-stats', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['quran-last-read', variables.userId] });
       toast({
         title: 'Alhamdulillah! 📖',
         description: 'Bacaan Qur\'an berhasil dicatat',
@@ -133,15 +148,16 @@ export const useDeleteQuranLog = () => {
 
   return useMutation({
     mutationFn: async ({ logId, userId }: { logId: string; userId: string }) => {
-      const { error } = await (supabase as any)
-        .from('user_quran_logs')
+      const { error } = await supabase
+        .from('quran_tadarus_logs')
         .delete()
         .eq('id', logId);
 
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['quran-logs', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['quran-logs-today', variables.userId] });
+      queryClient.invalidateQueries({ queryKey: ['quran-stats', variables.userId] });
     },
     onError: (error: Error) => {
       toast({
@@ -153,33 +169,47 @@ export const useDeleteQuranLog = () => {
   });
 };
 
-// Stats for Quran reading
+// Stats for Quran reading using the view
 export const useQuranStats = (userId: string | undefined) => {
-  const ramadhanStart = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-  const { data: logs } = useQuranLogs(userId, ramadhanStart);
-  const { data: surahs } = useQuranSurahs();
+  const { data: stats } = useQuery({
+    queryKey: ['quran-stats', userId],
+    queryFn: async (): Promise<TadarusStats | null> => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('v_tadarus_dashboard')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-  const stats = {
-    totalVerses: 0,
-    totalPages: 0,
-    uniqueSurahs: new Set<number>(),
-    daysRead: new Set<string>(),
-  };
-
-  if (logs && surahs) {
-    logs.forEach(log => {
-      stats.totalVerses += (log.end_verse - log.start_verse + 1);
-      if (log.pages_read) stats.totalPages += log.pages_read;
-      stats.uniqueSurahs.add(log.surah_number);
-      stats.daysRead.add(log.log_date);
-    });
-  }
+      if (error) return null;
+      return data as TadarusStats;
+    },
+    enabled: !!userId,
+  });
 
   return {
-    totalVerses: stats.totalVerses,
-    totalPages: Math.round(stats.totalPages * 10) / 10,
-    uniqueSurahs: stats.uniqueSurahs.size,
-    daysRead: stats.daysRead.size,
-    estimatedJuz: Math.floor(stats.totalVerses / 200), // ~200 verses per juz average
+    totalVerses: stats?.total_ayat || 0,
+    uniqueSurahs: stats?.total_surat || 0,
+    daysRead: stats?.hari_tadarus || 0,
+    estimatedJuz: stats?.progress_juz || 0,
   };
+};
+
+// Hook for last read
+export const useQuranLastRead = (userId: string | undefined) => {
+  return useQuery({
+    queryKey: ['quran-last-read', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('quran_last_read')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) return null;
+      return data;
+    },
+    enabled: !!userId,
+  });
 };
