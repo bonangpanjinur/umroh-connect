@@ -34,6 +34,14 @@ export interface TadarusStats {
   total_surat: number;
 }
 
+export interface QuranLastRead {
+  user_id: string;
+  surah_number: number;
+  ayah_number: number;
+  juz_number: number;
+  updated_at: string;
+}
+
 // Fetch all surahs
 export const useQuranSurahs = () => {
   return useQuery({
@@ -48,7 +56,7 @@ export const useQuranSurahs = () => {
         console.error('Error fetching surahs:', error);
         return [];
       }
-      return data as QuranSurah[];
+      return (data || []) as unknown as QuranSurah[];
     },
     staleTime: Infinity,
   });
@@ -64,14 +72,14 @@ export const useTodayQuranLogs = (userId: string | undefined) => {
       if (!userId) return [];
 
       const { data, error } = await supabase
-        .from('quran_tadarus_logs')
+        .from('quran_tadarus_logs' as any)
         .select('*, quran_surahs!quran_tadarus_logs_surah_start_fkey(*)')
         .eq('user_id', userId)
         .eq('read_date', today)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!userId,
   });
@@ -96,8 +104,8 @@ export const useAddQuranLog = () => {
       juzEnd?: number;
     }) => {
       // 1. Save reading log
-      const { data, error } = await (supabase as any)
-        .from('quran_tadarus_logs')
+      const { data, error } = await supabase
+        .from('quran_tadarus_logs' as any)
         .insert({
           user_id: log.userId,
           surah_start: log.surahStart,
@@ -117,8 +125,8 @@ export const useAddQuranLog = () => {
       }
 
       // 2. Update last read
-      const { error: lastReadError } = await (supabase as any)
-        .from('quran_last_read')
+      const { error: lastReadError } = await supabase
+        .from('quran_last_read' as any)
         .upsert({
           user_id: log.userId,
           surah_number: log.surahEnd,
@@ -171,7 +179,7 @@ export const useDeleteQuranLog = () => {
   return useMutation({
     mutationFn: async ({ logId, userId }: { logId: string; userId: string }) => {
       const { error } = await supabase
-        .from('quran_tadarus_logs')
+        .from('quran_tadarus_logs' as any)
         .delete()
         .eq('id', logId);
 
@@ -198,13 +206,13 @@ export const useQuranStats = (userId: string | undefined) => {
     queryFn: async (): Promise<TadarusStats | null> => {
       if (!userId) return null;
       const { data, error } = await supabase
-        .from('v_tadarus_dashboard')
+        .from('v_tadarus_dashboard' as any)
         .select('*')
         .eq('user_id', userId)
         .single();
 
       if (error) return null;
-      return data as TadarusStats;
+      return data as unknown as TadarusStats;
     },
     enabled: !!userId,
   });
@@ -221,16 +229,16 @@ export const useQuranStats = (userId: string | undefined) => {
 export const useQuranLastRead = (userId: string | undefined) => {
   return useQuery({
     queryKey: ['quran-last-read', userId],
-    queryFn: async () => {
+    queryFn: async (): Promise<QuranLastRead | null> => {
       if (!userId) return null;
       const { data, error } = await supabase
-        .from('quran_last_read')
+        .from('quran_last_read' as any)
         .select('*')
         .eq('user_id', userId)
         .single();
 
       if (error) return null;
-      return data;
+      return data as unknown as QuranLastRead;
     },
     enabled: !!userId,
   });
