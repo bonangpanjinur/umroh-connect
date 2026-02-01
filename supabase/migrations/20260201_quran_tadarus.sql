@@ -5,7 +5,7 @@
 -- 1. Tabel Bookmarks (Simpan Ayat)
 CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     surah_number INTEGER NOT NULL,
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.quran_bookmarks (
 
 -- 2. Tabel Terakhir Baca (Last Read)
 CREATE TABLE IF NOT EXISTS public.quran_last_read (
-    user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     surah_number INTEGER NOT NULL,
     ayah_number INTEGER NOT NULL,
     surah_name_id TEXT,
@@ -34,7 +34,7 @@ END $$;
 -- 3. Tabel Log Tadarus (Tracker)
 CREATE TABLE IF NOT EXISTS public.quran_tadarus_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     read_date DATE DEFAULT CURRENT_DATE NOT NULL,
     surah_start INTEGER NOT NULL,
     ayah_start INTEGER NOT NULL,
@@ -50,11 +50,11 @@ CREATE TABLE IF NOT EXISTS public.quran_tadarus_logs (
 -- Menggunakan subquery untuk menghindari masalah kolom yang hilang di join
 CREATE OR REPLACE VIEW public.v_tadarus_dashboard AS
 SELECT 
-    p.id as user_id,
-    COALESCE((SELECT SUM(total_verses) FROM public.quran_tadarus_logs WHERE user_id = p.id), 0) as total_ayat,
-    COALESCE((SELECT COUNT(DISTINCT read_date) FROM public.quran_tadarus_logs WHERE user_id = p.id), 0) as hari_tadarus,
-    COALESCE((SELECT juz_number FROM public.quran_last_read WHERE user_id = p.id LIMIT 1), 0) as progress_juz,
-    COALESCE((SELECT COUNT(DISTINCT surah_start) FROM public.quran_tadarus_logs WHERE user_id = p.id), 0) as total_surat
+    p.user_id as user_id,
+    COALESCE((SELECT SUM(total_verses) FROM public.quran_tadarus_logs WHERE user_id = p.user_id), 0) as total_ayat,
+    COALESCE((SELECT COUNT(DISTINCT read_date) FROM public.quran_tadarus_logs WHERE user_id = p.user_id), 0) as hari_tadarus,
+    COALESCE((SELECT juz_number FROM public.quran_last_read WHERE user_id = p.user_id LIMIT 1), 0) as progress_juz,
+    COALESCE((SELECT COUNT(DISTINCT surah_start) FROM public.quran_tadarus_logs WHERE user_id = p.user_id), 0) as total_surat
 FROM 
     public.profiles p;
 
@@ -68,6 +68,6 @@ DROP POLICY IF EXISTS "Users can manage own bookmarks" ON public.quran_bookmarks
 DROP POLICY IF EXISTS "Users can manage own last read" ON public.quran_last_read;
 DROP POLICY IF EXISTS "Users can manage own logs" ON public.quran_tadarus_logs;
 
-CREATE POLICY "Users can manage own bookmarks" ON public.quran_bookmarks FOR ALL USING (auth.uid() IN (SELECT user_id FROM public.profiles WHERE id = quran_bookmarks.user_id));
-CREATE POLICY "Users can manage own last read" ON public.quran_last_read FOR ALL USING (auth.uid() IN (SELECT user_id FROM public.profiles WHERE id = quran_last_read.user_id));
-CREATE POLICY "Users can manage own logs" ON public.quran_tadarus_logs FOR ALL USING (auth.uid() IN (SELECT user_id FROM public.profiles WHERE id = quran_tadarus_logs.user_id));
+CREATE POLICY "Users can manage own bookmarks" ON public.quran_bookmarks FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own last read" ON public.quran_last_read FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own logs" ON public.quran_tadarus_logs FOR ALL USING (auth.uid() = user_id);
