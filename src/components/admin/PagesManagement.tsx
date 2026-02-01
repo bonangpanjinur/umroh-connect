@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy, Lock, Unlock, Search, FileText, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Page {
@@ -34,6 +34,8 @@ export const PagesManagement = () => {
   const [editingPage, setEditingPage] = useState<Page | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('content');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSlugLocked, setIsSlugLocked] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -63,6 +65,11 @@ export const PagesManagement = () => {
     setPages(data || []);
     setIsLoading(false);
   };
+
+  const filteredPages = pages.filter(page => 
+    page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    page.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     fetchPages();
@@ -114,6 +121,7 @@ export const PagesManagement = () => {
       is_active: page.is_active,
     });
     setActiveTab('content');
+    setIsSlugLocked(true);
     setIsDialogOpen(true);
   };
 
@@ -244,12 +252,38 @@ export const PagesManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Manajemen Halaman</h2>
           <p className="text-muted-foreground">Kelola halaman statis aplikasi</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="flex items-center gap-2">
+          <div className="relative w-full md:w-64">
+            <Input
+              placeholder="Cari halaman..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+            <div className="absolute left-2.5 top-2.5 text-muted-foreground">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-search"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => resetForm()} className="gap-2">
               <Plus className="h-4 w-4" />
@@ -264,10 +298,11 @@ export const PagesManagement = () => {
             </DialogHeader>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="content">Konten</TabsTrigger>
                 <TabsTrigger value="seo">SEO</TabsTrigger>
                 <TabsTrigger value="image">Gambar</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
 
               <TabsContent value="content" className="space-y-4 mt-4">
@@ -290,20 +325,38 @@ export const PagesManagement = () => {
                       value={formData.slug}
                       onChange={(e) => setFormData(prev => ({
                         ...prev,
-                        slug: e.target.value,
+                        slug: generateSlug(e.target.value),
                       }))}
-                      disabled={!!editingPage}
+                      disabled={editingPage && isSlugLocked}
                     />
+                    {editingPage && (
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        type="button"
+                        onClick={() => setIsSlugLocked(!isSlugLocked)}
+                        title={isSlugLocked ? "Buka kunci URL" : "Kunci URL"}
+                      >
+                        {isSlugLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="icon"
+                      type="button"
                       onClick={() => copySlug(formData.slug)}
+                      title="Salin URL"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     URL halaman akan menjadi: /{formData.slug}
+                    {editingPage && !isSlugLocked && (
+                      <span className="text-destructive block mt-1 font-medium">
+                        Peringatan: Mengubah URL dapat merusak link yang sudah ada!
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -388,13 +441,28 @@ export const PagesManagement = () => {
               <TabsContent value="image" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Gambar Halaman</Label>
-                  {formData.image_url && (
-                    <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden">
+                  {formData.image_url ? (
+                    <div className="relative w-full h-48 bg-muted rounded-lg overflow-hidden group">
                       <img
                         src={formData.image_url}
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Hapus Gambar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg bg-muted/50 text-muted-foreground">
+                      <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                      <p className="text-sm">Belum ada gambar</p>
                     </div>
                   )}
                   <div className="flex gap-2">
@@ -414,17 +482,23 @@ export const PagesManagement = () => {
                       </Button>
                     )}
                   </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="preview" className="mt-4">
+                <div className="border rounded-lg p-6 bg-card min-h-[300px] max-h-[500px] overflow-y-auto">
+                  <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
                   {formData.image_url && (
-                    <Button
-                      variant="outline"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        image_url: '',
-                      }))}
-                    >
-                      Hapus Gambar
-                    </Button>
+                    <img
+                      src={formData.image_url}
+                      alt={formData.title}
+                      className="w-full aspect-video object-cover rounded-lg mb-6"
+                    />
                   )}
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
@@ -460,16 +534,23 @@ export const PagesManagement = () => {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Judul</TableHead>
-                    <TableHead>URL</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dibuat</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
+                    <TableRow>
+                      <TableHead>Judul</TableHead>
+                      <TableHead>URL</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Terakhir Diperbarui</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pages.map((page) => (
+                  {filteredPages.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Tidak ada halaman yang ditemukan untuk "{searchQuery}"
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredPages.map((page) => (
                     <TableRow key={page.id}>
                       <TableCell className="font-medium">{page.title}</TableCell>
                       <TableCell>
@@ -478,14 +559,25 @@ export const PagesManagement = () => {
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={page.is_active ? 'default' : 'secondary'}>
-                          {page.is_active ? 'Aktif' : 'Nonaktif'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={page.is_active}
+                            onCheckedChange={() => toggleActive(page)}
+                          />
+                          <Badge variant={page.is_active ? "default" : "secondary"}>
+                            {page.is_active ? 'Aktif' : 'Draft'}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(page.created_at).toLocaleDateString('id-ID')}
-                      </TableCell>
-                      <TableCell className="text-right">
+                        {new Date(page.updated_at).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </TableCell>               <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button
                             variant="ghost"
@@ -516,7 +608,7 @@ export const PagesManagement = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )))}
                 </TableBody>
               </Table>
             </div>
