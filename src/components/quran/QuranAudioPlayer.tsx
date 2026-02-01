@@ -48,7 +48,7 @@ const QuranAudioPlayer = ({
   onAyahChange,
   onClose,
 }: QuranAudioPlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -117,9 +117,8 @@ const QuranAudioPlayer = ({
     audio.addEventListener('waiting', () => setIsLoading(true));
     audio.addEventListener('canplay', () => setIsLoading(false));
 
-    if (isPlaying) {
-      audio.play().catch(console.error);
-    }
+    audio.play().catch(console.error);
+    setIsPlaying(true);
 
     return () => {
       audio.pause();

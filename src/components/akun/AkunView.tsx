@@ -14,6 +14,7 @@ import PushNotificationSettings from '@/components/notifications/PushNotificatio
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import ThemeToggle from '@/components/settings/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
+import FeedbackForm from '@/components/feedback/FeedbackForm';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -124,6 +125,7 @@ const AkunView = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return localStorage.getItem('prayer-card-background');
@@ -414,9 +416,12 @@ const AkunView = () => {
         </button>
 
         {/* Help */}
-        <button className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors mt-4 ${
-          isElderlyMode ? 'p-5' : 'p-4'
-        }`}>
+        <button 
+          onClick={() => setShowFeedback(true)}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors mt-4 ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
           <div className="flex items-center gap-3">
             <HelpCircle style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
             <span className={`font-medium text-foreground ${fontSize.sm}`}>Bantuan & Feedback</span>
@@ -504,6 +509,9 @@ const AkunView = () => {
           </div>
         </div>
       )}
+
+        {/* Feedback Form Modal */}
+      <FeedbackForm isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
 
       {/* Background Settings Sheet */}
       {showBackgroundSettings && (
