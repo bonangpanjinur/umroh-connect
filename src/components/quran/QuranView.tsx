@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, Search, ChevronRight, ChevronLeft, 
@@ -32,6 +32,7 @@ const QuranView = ({ onBack }: QuranViewProps) => {
   const { data: surahList, isLoading: listLoading } = useSurahList();
   const { data: surahArabic, isLoading: arabicLoading } = useSurahArabic(selectedSurah);
   const { data: surahTranslation, isLoading: translationLoading } = useSurahTranslation(selectedSurah);
+  const ayahRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
 
   const filteredSurahs = surahList?.filter(surah => 
     surah.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -40,6 +41,15 @@ const QuranView = ({ onBack }: QuranViewProps) => {
   );
 
   const isLoading = arabicLoading || translationLoading;
+
+  useEffect(() => {
+    if (showAudioPlayer && currentAyah && ayahRefs.current[currentAyah]) {
+      ayahRefs.current[currentAyah]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentAyah, showAudioPlayer]);
 
   // Surah List View
   if (!selectedSurah) {
@@ -204,16 +214,42 @@ const QuranView = ({ onBack }: QuranViewProps) => {
                 return (
                   <motion.div
                     key={ayah.number}
+                    ref={el => ayahRefs.current[ayah.numberInSurah] = el}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.02 }}
-                    className="pb-4 border-b border-border last:border-0"
+                    className={`pb-4 border-b border-border last:border-0 transition-colors duration-300 ${
+                      currentAyah === ayah.numberInSurah && showAudioPlayer ? 'bg-primary/5 -mx-4 px-4' : ''
+                    }`}
                   >
-                    {/* Ayah Number Badge */}
-                    <div className="flex justify-between items-start mb-3">
-                      <Badge variant="secondary" className="text-xs">
+                    {/* Ayah Actions */}
+                    <div className="flex justify-between items-center mb-3">
+                      <Badge 
+                        variant={currentAyah === ayah.numberInSurah && showAudioPlayer ? "primary" : "secondary"} 
+                        className="text-xs"
+                      >
                         {ayah.numberInSurah}
                       </Badge>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 rounded-full ${currentAyah === ayah.numberInSurah && showAudioPlayer ? 'text-primary bg-primary/10' : 'text-muted-foreground'}`}
+                          onClick={() => {
+                            setCurrentAyah(ayah.numberInSurah);
+                            setShowAudioPlayer(true);
+                          }}
+                        >
+                          <Play className={`w-4 h-4 ${currentAyah === ayah.numberInSurah && showAudioPlayer ? 'fill-current' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full text-muted-foreground"
+                        >
+                          <Bookmark className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Arabic Text */}
