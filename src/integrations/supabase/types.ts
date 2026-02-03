@@ -1976,6 +1976,30 @@ export type Database = {
         }
         Relationships: []
       }
+      quran_last_read: {
+        Row: {
+          ayah_number: number
+          juz_number: number
+          surah_number: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ayah_number: number
+          juz_number?: number
+          surah_number: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ayah_number?: number
+          juz_number?: number
+          surah_number?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       quran_surahs: {
         Row: {
           created_at: string
@@ -2003,6 +2027,48 @@ export type Database = {
           name_arabic?: string
           number?: number
           total_verses?: number
+        }
+        Relationships: []
+      }
+      quran_tadarus_logs: {
+        Row: {
+          ayah_end: number
+          ayah_start: number
+          created_at: string | null
+          id: string
+          juz_end: number | null
+          juz_start: number | null
+          read_date: string
+          surah_end: number
+          surah_start: number
+          total_verses: number
+          user_id: string
+        }
+        Insert: {
+          ayah_end: number
+          ayah_start: number
+          created_at?: string | null
+          id?: string
+          juz_end?: number | null
+          juz_start?: number | null
+          read_date?: string
+          surah_end: number
+          surah_start: number
+          total_verses: number
+          user_id: string
+        }
+        Update: {
+          ayah_end?: number
+          ayah_start?: number
+          created_at?: string | null
+          id?: string
+          juz_end?: number | null
+          juz_start?: number | null
+          read_date?: string
+          surah_end?: number
+          surah_start?: number
+          total_verses?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -2758,7 +2824,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_tadarus_dashboard: {
+        Row: {
+          hari_tadarus: number | null
+          progress_juz: number | null
+          total_ayat: number | null
+          total_surat: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       generate_booking_code: { Args: never; Returns: string }
