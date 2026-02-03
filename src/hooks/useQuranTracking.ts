@@ -71,17 +71,32 @@ export const useTodayQuranLogs = (userId: string | undefined) => {
     queryFn: async (): Promise<any[]> => {
       if (!userId) return [];
 
-      const { data, error } = await supabase
+      // First get the logs
+      const { data: logs, error: logsError } = await supabase
         .from('quran_tadarus_logs' as any)
-        .select('*, quran_surahs!quran_tadarus_logs_surah_start_fkey(*)')
+        .select('*')
         .eq('user_id', userId)
         .eq('read_date', today)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+      if (logsError) throw logsError;
+      if (!logs || logs.length === 0) return [];
+
+      // Then get surah info for each log
+      const surahNumbers = [...new Set(logs.map((l: any) => l.surah_start))];
+      const { data: surahs } = await supabase
+        .from('quran_surahs' as any)
+        .select('*')
+        .in('number', surahNumbers);
+
+      // Merge surah data into logs
+      return logs.map((log: any) => ({
+        ...log,
+        quran_surahs: surahs?.find((s: any) => s.number === log.surah_start) || null,
+      }));
     },
     enabled: !!userId,
+    staleTime: 30000, // 30 seconds
   });
 };
 
