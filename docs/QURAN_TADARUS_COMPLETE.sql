@@ -1,6 +1,6 @@
 -- ==========================================
--- COMPLETE QURAN & TADARUS SETUP
--- Jalankan SEKALI di SQL Editor Supabase
+-- COMPLETE QURAN & TADARUS SETUP v2.0
+-- Jalankan SEKALI di Supabase SQL Editor
 -- ==========================================
 
 -- ==========================================
@@ -27,11 +27,17 @@ DROP POLICY IF EXISTS "Users can delete own logs" ON public.quran_tadarus_logs;
 DROP POLICY IF EXISTS "Anyone can view active pages" ON public.static_pages;
 DROP POLICY IF EXISTS "Admins can manage pages" ON public.static_pages;
 
--- Drop existing tables (order matters due to FK)
-DROP TABLE IF EXISTS public.quran_tadarus_logs;
-DROP TABLE IF EXISTS public.quran_last_read;
-DROP TABLE IF EXISTS public.quran_surahs;
-DROP TABLE IF EXISTS public.static_pages;
+-- Drop policies on quran_bookmarks
+DROP POLICY IF EXISTS "Users can view own bookmarks" ON public.quran_bookmarks;
+DROP POLICY IF EXISTS "Users can insert own bookmarks" ON public.quran_bookmarks;
+DROP POLICY IF EXISTS "Users can delete own bookmarks" ON public.quran_bookmarks;
+
+-- Drop existing tables (order matters due to dependencies)
+DROP TABLE IF EXISTS public.quran_bookmarks CASCADE;
+DROP TABLE IF EXISTS public.quran_tadarus_logs CASCADE;
+DROP TABLE IF EXISTS public.quran_last_read CASCADE;
+DROP TABLE IF EXISTS public.quran_surahs CASCADE;
+DROP TABLE IF EXISTS public.static_pages CASCADE;
 
 -- ==========================================
 -- 2. CREATE TABLES
@@ -72,6 +78,18 @@ CREATE TABLE public.quran_tadarus_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
+-- Table: quran_bookmarks (Bookmark ayat favorit)
+CREATE TABLE public.quran_bookmarks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    surah_number INTEGER NOT NULL,
+    ayah_number INTEGER NOT NULL,
+    surah_name_id TEXT,
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    UNIQUE(user_id, surah_number, ayah_number)
+);
+
 -- Table: static_pages (Halaman statis/info)
 CREATE TABLE public.static_pages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -87,11 +105,12 @@ CREATE TABLE public.static_pages (
 );
 
 -- ==========================================
--- 3. CREATE INDEXES
+-- 3. CREATE INDEXES FOR PERFORMANCE
 -- ==========================================
 
 CREATE INDEX idx_quran_tadarus_logs_user_date ON public.quran_tadarus_logs(user_id, read_date);
 CREATE INDEX idx_quran_tadarus_logs_surah ON public.quran_tadarus_logs(surah_start);
+CREATE INDEX idx_quran_bookmarks_user ON public.quran_bookmarks(user_id);
 CREATE INDEX idx_static_pages_slug ON public.static_pages(slug);
 
 -- ==========================================
@@ -115,13 +134,14 @@ GROUP BY user_id;
 ALTER TABLE public.quran_surahs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quran_last_read ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quran_tadarus_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quran_bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.static_pages ENABLE ROW LEVEL SECURITY;
 
 -- ==========================================
 -- 6. CREATE RLS POLICIES
 -- ==========================================
 
--- Policies for quran_surahs (public read)
+-- Policies for quran_surahs (public read - master data)
 CREATE POLICY "Anyone can view surahs" ON public.quran_surahs
     FOR SELECT USING (true);
 
@@ -143,6 +163,16 @@ CREATE POLICY "Users can insert own logs" ON public.quran_tadarus_logs
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own logs" ON public.quran_tadarus_logs
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Policies for quran_bookmarks
+CREATE POLICY "Users can view own bookmarks" ON public.quran_bookmarks
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bookmarks" ON public.quran_bookmarks
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own bookmarks" ON public.quran_bookmarks
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Policies for static_pages
@@ -167,6 +197,12 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS update_static_pages_updated_at ON public.static_pages;
 CREATE TRIGGER update_static_pages_updated_at
     BEFORE UPDATE ON public.static_pages
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS update_quran_last_read_updated_at ON public.quran_last_read;
+CREATE TRIGGER update_quran_last_read_updated_at
+    BEFORE UPDATE ON public.quran_last_read
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_updated_at();
 
@@ -291,6 +327,83 @@ INSERT INTO public.quran_surahs (number, name, name_arabic, total_verses, juz_st
 (114, 'An-Nas', 'الناس', 6, 30);
 
 -- ==========================================
+-- 9. INSERT DEFAULT STATIC PAGES
+-- ==========================================
+
+INSERT INTO public.static_pages (slug, title, content, is_active) VALUES
+('privacy-policy', 'Kebijakan Privasi', '# Kebijakan Privasi
+
+Kami menghargai privasi Anda. Kebijakan ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda.
+
+## Informasi yang Kami Kumpulkan
+- Data profil pengguna
+- Riwayat aktivitas ibadah
+- Preferensi aplikasi
+
+## Penggunaan Informasi
+Informasi Anda digunakan untuk:
+- Menyediakan layanan aplikasi
+- Meningkatkan pengalaman pengguna
+- Mengirim notifikasi penting
+
+## Keamanan Data
+Kami menggunakan enkripsi dan praktik keamanan terbaik untuk melindungi data Anda.', true),
+
+('terms-conditions', 'Syarat & Ketentuan', '# Syarat & Ketentuan
+
+Dengan menggunakan aplikasi ini, Anda menyetujui syarat dan ketentuan berikut.
+
+## Penggunaan Layanan
+- Gunakan aplikasi untuk tujuan yang sah
+- Jangan menyalahgunakan fitur aplikasi
+- Hormati pengguna lain
+
+## Hak Kekayaan Intelektual
+Semua konten dalam aplikasi ini dilindungi hak cipta.
+
+## Batasan Tanggung Jawab
+Kami tidak bertanggung jawab atas kerugian yang timbul dari penggunaan aplikasi.', true),
+
+('about', 'Tentang Kami', '# Tentang Arah Umroh
+
+Arah Umroh adalah aplikasi super untuk perjalanan ibadah Umroh dan Haji Anda.
+
+## Visi
+Memudahkan setiap muslim dalam mempersiapkan dan menjalani ibadah umroh/haji.
+
+## Fitur Unggulan
+- Pencarian paket umroh & haji
+- Panduan manasik lengkap
+- Tracker ibadah harian
+- Al-Quran digital
+- Peta lokasi penting
+- Dan masih banyak lagi!
+
+## Kontak
+Email: support@arahumroh.com', true),
+
+('faq', 'FAQ', '# Pertanyaan Umum (FAQ)
+
+## Bagaimana cara booking paket?
+Pilih paket yang Anda inginkan, lalu klik tombol "Booking" dan ikuti instruksi selanjutnya.
+
+## Apakah ada biaya untuk menggunakan aplikasi?
+Aplikasi dasar gratis. Fitur premium tersedia dengan langganan berbayar.
+
+## Bagaimana cara menghubungi travel agent?
+Setelah booking, Anda dapat menghubungi travel agent melalui fitur chat di aplikasi.
+
+## Apakah data saya aman?
+Ya, kami menggunakan enkripsi standar industri untuk melindungi data Anda.', true);
+
+-- ==========================================
 -- SELESAI! 
--- Jalankan SQL ini di Supabase SQL Editor
+-- ==========================================
+-- Tabel yang dibuat:
+-- 1. quran_surahs (114 surat Al-Quran)
+-- 2. quran_last_read (posisi terakhir baca)
+-- 3. quran_tadarus_logs (log bacaan harian)
+-- 4. quran_bookmarks (bookmark ayat)
+-- 5. static_pages (halaman statis)
+-- 6. v_tadarus_dashboard (view statistik)
 -- ==========================================
