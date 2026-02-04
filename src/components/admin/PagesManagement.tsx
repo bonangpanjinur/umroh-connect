@@ -51,6 +51,7 @@ export const PagesManagement = () => {
   });
   const [htmlContent, setHtmlContent] = useState('');
   const [cssContent, setCssContent] = useState('');
+  const [jsContent, setJsContent] = useState('');
   const [useHtmlEditor, setUseHtmlEditor] = useState(false);
 
   const fetchPages = async () => {
@@ -99,6 +100,7 @@ export const PagesManagement = () => {
     });
     setHtmlContent('');
     setCssContent('');
+    setJsContent('');
     setUseHtmlEditor(false);
     setEditingPage(null);
     setActiveTab('content');
@@ -134,12 +136,14 @@ export const PagesManagement = () => {
       meta_keywords: page.meta_keywords || '',
       is_active: page.is_active,
     });
-    // Try to extract HTML and CSS from content if it exists
+    // Try to extract HTML, CSS, and JS from content if it exists
     if (page.content && page.content.includes('<style>')) {
       const styleMatch = page.content.match(/<style>([\s\S]*?)<\/style>/);
-      const htmlMatch = page.content.match(/<body>([\s\S]*?)<\/body>/);
+      const htmlMatch = page.content.match(/<body>([\s\S]*?)<script>/);
+      const jsMatch = page.content.match(/<script>([\s\S]*?)<\/script>/);
       if (styleMatch) setCssContent(styleMatch[1]);
       if (htmlMatch) setHtmlContent(htmlMatch[1]);
+      if (jsMatch) setJsContent(jsMatch[1]);
       setUseHtmlEditor(true);
     }
     setActiveTab('content');
@@ -188,8 +192,8 @@ export const PagesManagement = () => {
 
     let finalContent = formData.content;
     
-    // If using HTML editor, combine HTML and CSS
-    if (useHtmlEditor && (htmlContent || cssContent)) {
+    // If using HTML editor, combine HTML, CSS, and JavaScript
+    if (useHtmlEditor && (htmlContent || cssContent || jsContent)) {
       finalContent = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -201,6 +205,9 @@ ${cssContent}
 </head>
 <body>
 ${htmlContent}
+<script>
+${jsContent}
+</script>
 </body>
 </html>`;
     }
@@ -474,8 +481,10 @@ ${htmlContent}
                     <PageHtmlEditor
                       html={htmlContent}
                       css={cssContent}
+                      javascript={jsContent}
                       onHtmlChange={setHtmlContent}
                       onCssChange={setCssContent}
+                      onJavaScriptChange={setJsContent}
                     />
                   ) : (
                     <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-center">

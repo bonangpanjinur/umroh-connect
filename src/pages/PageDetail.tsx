@@ -49,18 +49,20 @@ const PageDetail = () => {
 
   if (isFullHtml) {
     return (
-      <div className="min-h-screen w-full bg-white">
+      <div className="min-h-screen w-full bg-white relative">
         <iframe
+          key={page.id}
           srcDoc={page.content || ''}
           title={page.title}
           className="w-full h-screen border-none"
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts allow-same-origin allow-forms"
+          style={{ display: 'block' }}
         />
         {/* Floating back button for custom landing pages */}
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-white/80 backdrop-blur-sm"
+          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-white/80 backdrop-blur-sm hover:bg-white"
           onClick={() => navigate(-1)}
           title="Kembali"
         >
