@@ -44,6 +44,32 @@ const PageDetail = () => {
     );
   }
 
+  // Check if content is a full HTML document (custom landing page)
+  const isFullHtml = page.content?.includes('<!DOCTYPE html>') || page.content?.includes('<html');
+
+  if (isFullHtml) {
+    return (
+      <div className="min-h-screen w-full bg-white">
+        <iframe
+          srcDoc={page.content || ''}
+          title={page.title}
+          className="w-full h-screen border-none"
+          sandbox="allow-scripts allow-same-origin"
+        />
+        {/* Floating back button for custom landing pages */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50 bg-white/80 backdrop-blur-sm"
+          onClick={() => navigate(-1)}
+          title="Kembali"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
