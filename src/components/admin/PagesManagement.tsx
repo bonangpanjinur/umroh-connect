@@ -10,8 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy, Lock, Unlock, Search, FileText, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy, Lock, Unlock, Search, FileText, Image as ImageIcon, Code } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHtmlEditor } from './PageHtmlEditor';
 
 interface Page {
   id: string;
@@ -48,6 +49,9 @@ export const PagesManagement = () => {
     meta_keywords: '',
     is_active: true,
   });
+  const [htmlContent, setHtmlContent] = useState('');
+  const [cssContent, setCssContent] = useState('');
+  const [useHtmlEditor, setUseHtmlEditor] = useState(false);
 
   const fetchPages = async () => {
     setIsLoading(true);
@@ -93,6 +97,9 @@ export const PagesManagement = () => {
       meta_keywords: '',
       is_active: true,
     });
+    setHtmlContent('');
+    setCssContent('');
+    setUseHtmlEditor(false);
     setEditingPage(null);
     setActiveTab('content');
   };
@@ -127,6 +134,14 @@ export const PagesManagement = () => {
       meta_keywords: page.meta_keywords || '',
       is_active: page.is_active,
     });
+    // Try to extract HTML and CSS from content if it exists
+    if (page.content && page.content.includes('<style>')) {
+      const styleMatch = page.content.match(/<style>([\s\S]*?)<\/style>/);
+      const htmlMatch = page.content.match(/<body>([\s\S]*?)<\/body>/);
+      if (styleMatch) setCssContent(styleMatch[1]);
+      if (htmlMatch) setHtmlContent(htmlMatch[1]);
+      setUseHtmlEditor(true);
+    }
     setActiveTab('content');
     setIsSlugLocked(true);
     setIsDialogOpen(true);
@@ -171,6 +186,25 @@ export const PagesManagement = () => {
       return;
     }
 
+    let finalContent = formData.content;
+    
+    // If using HTML editor, combine HTML and CSS
+    if (useHtmlEditor && (htmlContent || cssContent)) {
+      finalContent = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+${cssContent}
+  </style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+    }
+
     try {
       if (editingPage) {
         // Update existing page
@@ -179,7 +213,7 @@ export const PagesManagement = () => {
           .update({
             title: formData.title,
             slug: formData.slug,
-            content: formData.content,
+            content: finalContent,
             image_url: formData.image_url,
             meta_title: formData.meta_title,
             meta_description: formData.meta_description,
@@ -197,7 +231,7 @@ export const PagesManagement = () => {
           .insert([{
             title: formData.title,
             slug: formData.slug,
-            content: formData.content,
+            content: finalContent,
             image_url: formData.image_url,
             meta_title: formData.meta_title,
             meta_description: formData.meta_description,
@@ -291,8 +325,9 @@ export const PagesManagement = () => {
               </DialogHeader>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="content">Konten</TabsTrigger>
+                  <TabsTrigger value="html-editor">HTML/CSS</TabsTrigger>
                   <TabsTrigger value="seo">SEO</TabsTrigger>
                   <TabsTrigger value="image">Gambar</TabsTrigger>
                   <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -309,9 +344,22 @@ export const PagesManagement = () => {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="slug">URL Halaman *</Label>
-                    <div className="flex gap-2">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <Code className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-900">Gunakan HTML/CSS Editor</span>
+                    </div>
+                    <Switch
+                      checked={useHtmlEditor}
+                      onCheckedChange={setUseHtmlEditor}
+                    />
+                  </div>
+
+                  {!useHtmlEditor ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="slug">URL Halaman *</Label>
+                        <div className="flex gap-2">
                       <Input
                         id="slug"
                         placeholder="halaman-url"
@@ -353,19 +401,60 @@ export const PagesManagement = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Konten Halaman</Label>
-                    <Textarea
-                      id="content"
-                      placeholder="Masukkan konten halaman (mendukung HTML)"
-                      value={formData.content}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        content: e.target.value,
-                      }))}
-                      rows={8}
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="content">Konten Halaman</Label>
+                        <Textarea
+                          id="content"
+                          placeholder="Masukkan konten halaman (mendukung HTML)"
+                          value={formData.content}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            content: e.target.value,
+                          }))}
+                          rows={8}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">URL Halaman *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="slug"
+                          placeholder="halaman-url"
+                          value={formData.slug}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            slug: generateSlug(e.target.value),
+                          }))}
+                          disabled={editingPage !== null && isSlugLocked}
+                        />
+                        {editingPage && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            type="button"
+                            onClick={() => setIsSlugLocked(!isSlugLocked)}
+                            title={isSlugLocked ? "Buka kunci URL" : "Kunci URL"}
+                          >
+                            {isSlugLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          type="button"
+                          onClick={() => copySlug(formData.slug)}
+                          title="Salin URL"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        URL halaman akan menjadi: /{formData.slug}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <Label htmlFor="is_active">Aktifkan Halaman</Label>
@@ -378,6 +467,23 @@ export const PagesManagement = () => {
                       }))}
                     />
                   </div>
+                </TabsContent>
+
+                <TabsContent value="html-editor" className="space-y-4 mt-4">
+                  {useHtmlEditor ? (
+                    <PageHtmlEditor
+                      html={htmlContent}
+                      css={cssContent}
+                      onHtmlChange={setHtmlContent}
+                      onCssChange={setCssContent}
+                    />
+                  ) : (
+                    <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                      <Code className="h-12 w-12 mx-auto mb-3 text-amber-600 opacity-50" />
+                      <p className="text-amber-900 font-medium">Aktifkan HTML/CSS Editor di tab Konten</p>
+                      <p className="text-amber-700 text-sm mt-1">Gunakan toggle untuk mengaktifkan editor HTML/CSS</p>
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="seo" className="space-y-4 mt-4">
