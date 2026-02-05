@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
 import PackageCard from '@/components/paket/PackageCard';
 import { Button } from '@/components/ui/button';
-import { Building2, Phone, Mail, MapPin, MessageSquare, AlertCircle } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, MessageSquare, AlertCircle, Loader2 } from 'lucide-react';
 import { PackageWithDetails } from '@/types/database';
 
 const AgentPublicProfile = () => {
@@ -25,15 +25,19 @@ const AgentPublicProfile = () => {
     try {
       setLoading(true);
       
-      // 1. Fetch settings by slug
+      // 1. Fetch settings by slug OR custom_slug (if approved)
       const { data: settingsData, error: settingsError } = await supabase
         .from('agent_website_settings')
         .select('*')
-        .eq('slug', slug)
+        .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
         .maybeSingle();
 
       if (settingsError) throw settingsError;
+      
       if (!settingsData) {
+        // If not found in agent settings, maybe it's a static page
+        // We'll let the parent or App.tsx handle the fallback if possible, 
+        // but here we'll just set error.
         setError('Halaman tidak ditemukan');
         return;
       }
@@ -63,14 +67,23 @@ const AgentPublicProfile = () => {
         setPackages(packagesData as PackageWithDetails[]);
       }
 
-      // 4. Inject SEO & Pixel if PRO
-      if (settingsData.is_pro_active) {
-        if (settingsData.meta_title) document.title = settingsData.meta_title;
-        if (settingsData.fb_pixel_id) {
-          injectFbPixel(settingsData.fb_pixel_id);
+      // 4. Inject SEO & Meta Tags
+      const title = settingsData.meta_title || (travelData ? `${travelData.name} | Umroh Connect` : 'Agent Profile');
+      document.title = title;
+      
+      if (settingsData.meta_description) {
+        let metaDesc = document.querySelector('meta[name="description"]');
+        if (!metaDesc) {
+          metaDesc = document.createElement('meta');
+          metaDesc.setAttribute('name', 'description');
+          document.head.appendChild(metaDesc);
         }
-      } else if (travelData) {
-        document.title = `${travelData.name} | Umroh Connect`;
+        metaDesc.setAttribute('content', settingsData.meta_description);
+      }
+
+      // 5. Inject Pixel if PRO
+      if (settingsData.is_pro_active && settingsData.fb_pixel_id) {
+        injectFbPixel(settingsData.fb_pixel_id);
       }
 
     } catch (err: any) {
@@ -104,7 +117,7 @@ const AgentPublicProfile = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -122,7 +135,7 @@ const AgentPublicProfile = () => {
   // Render Custom HTML Mode
   if (settings.is_builder_active && settings.html_content) {
     return (
-      <>
+      <div className="min-h-screen w-full bg-white relative">
         <div dangerouslySetInnerHTML={{ __html: settings.html_content }} />
         {!settings.is_pro_active && (
           <footer className="py-4 text-center border-t bg-muted/30">
@@ -131,7 +144,7 @@ const AgentPublicProfile = () => {
             </p>
           </footer>
         )}
-      </>
+      </div>
     );
   }
 
@@ -199,7 +212,7 @@ const AgentPublicProfile = () => {
       {/* Footer */}
       <footer className="py-8 text-center border-t bg-white">
         <div className="max-w-6xl mx-auto px-6">
-          <p className="text-sm font-medium mb-2">© 2026 {travel?.name}. All rights reserved.</p>
+          <p className="text-sm font-medium mb-2">© {new Date().getFullYear()} {travel?.name}. All rights reserved.</p>
           {!settings.is_pro_active && (
             <p className="text-xs text-muted-foreground">
               Powered by <a href="https://umrohconnect.id" className="font-bold text-primary">Umroh Connect</a>
