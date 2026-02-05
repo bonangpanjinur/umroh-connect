@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import BottomNav from "@/components/layout/BottomNav";
+import AgentPublicProfile from "./AgentPublicProfile";
+import { useState, useEffect } from "react";
 
 interface StaticPage {
   id: string;
@@ -18,6 +20,21 @@ interface StaticPage {
 export default function PageDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [isAgent, setIsAgent] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkIsAgent = async () => {
+      if (!slug) return;
+      const { data } = await supabase
+        .from('agent_website_settings')
+        .select('user_id')
+        .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
+        .maybeSingle();
+      
+      setIsAgent(!!data);
+    };
+    checkIsAgent();
+  }, [slug]);
 
   const { data: page, isLoading, error } = useQuery({
     queryKey: ["page", slug],
@@ -37,12 +54,16 @@ export default function PageDetail() {
     retry: 1, 
   });
 
-  if (isLoading) {
+  if (isLoading || isAgent === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isAgent) {
+    return <AgentPublicProfile />;
   }
 
   // Tampilkan UI Not Found yang bagus jika data null
