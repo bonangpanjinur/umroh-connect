@@ -54,6 +54,11 @@ const quillModules = {
   ],
 };
 
+const RESERVED_SLUGS = [
+  "admin", "auth", "login", "register", "agent", "dashboard",
+  "profile", "settings", "api", "u", "p", "404", "offline", "kemitraan"
+];
+
 export const PagesManagement = () => {
   const [pages, setPages] = useState<Page[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,9 +244,23 @@ export const PagesManagement = () => {
     return true;
   };
 
+  const validateSlug = (slug: string) => {
+    const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, "-");
+    
+    if (RESERVED_SLUGS.includes(cleanSlug)) {
+      toast.error(`Slug '${cleanSlug}' digunakan oleh sistem.`);
+      return false;
+    }
+    return true;
+  };
+
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.slug.trim()) {
       toast.error('Judul dan URL harus diisi');
+      return;
+    }
+
+    if (!validateSlug(formData.slug)) {
       return;
     }
 
