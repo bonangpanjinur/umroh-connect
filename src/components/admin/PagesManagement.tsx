@@ -14,10 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy, 
   Lock, Unlock, Search, FileText, Image as ImageIcon, 
-  Code, ExternalLink, Settings, Info, AlertCircle, Layout
+  Code, ExternalLink, Settings, Info, AlertCircle, Layout, Sparkles, Menu
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHtmlEditor } from './PageHtmlEditor';
+import { VisualBlockBuilder } from '../blocks/VisualBlockBuilder';
+import { SEOHelper } from '../blocks/SEOHelper';
+import { NavigationManager } from './NavigationManager';
+import { generatePageHTML } from '../blocks/BlockRenderers';
+import { BlockData } from '@/types/blocks';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -59,6 +64,7 @@ export const PagesManagement = () => {
   const [isSlugLocked, setIsSlugLocked] = useState(true);
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [showStandardPreview, setShowStandardPreview] = useState(false);
+  const [mainTab, setMainTab] = useState('pages');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -76,6 +82,7 @@ export const PagesManagement = () => {
   const [htmlContent, setHtmlContent] = useState('');
   const [cssContent, setCssContent] = useState('');
   const [jsContent, setJsContent] = useState('');
+  const [blocks, setBlocks] = useState<BlockData[]>([]);
 
   const fetchPages = async () => {
     setIsLoading(true);
@@ -120,6 +127,7 @@ export const PagesManagement = () => {
     setHtmlContent('');
     setCssContent('');
     setJsContent('');
+    setBlocks([]);
     setEditingPage(null);
     setActiveTab('content');
     setIsSlugLocked(true);
@@ -162,6 +170,7 @@ export const PagesManagement = () => {
     setHtmlContent('');
     setCssContent('');
     setJsContent('');
+    setBlocks(page.layout_data || []);
 
     // Extract content if it's builder/landing type
     if ((page.page_type === 'builder' || page.page_type === 'landing') && page.content) {
@@ -187,8 +196,8 @@ export const PagesManagement = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `pages/${fileName}`;
+      const fileName = \`\${Date.now()}.\${fileExt}\`;
+      const filePath = \`pages/\${fileName}\`;
 
       const { error: uploadError } = await supabase.storage
         .from('uploads')
@@ -242,26 +251,31 @@ export const PagesManagement = () => {
     }
 
     let finalContent = formData.content;
+    let layoutData = blocks;
     
-    // If using builder/landing, combine HTML, CSS, and JavaScript
-    if ((formData.page_type === 'builder' || formData.page_type === 'landing') && (htmlContent || cssContent || jsContent)) {
-      finalContent = `<!DOCTYPE html>
+    // If using builder, generate HTML from blocks
+    if (formData.page_type === 'builder') {
+      finalContent = generatePageHTML(blocks, formData.title, formData.meta_description || '');
+    } 
+    // If using landing (manual HTML), combine HTML, CSS, and JavaScript
+    else if (formData.page_type === 'landing' && (htmlContent || cssContent || jsContent)) {
+      finalContent = \`<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-${cssContent}
+\${cssContent}
   </style>
 </head>
 <body>
-${htmlContent}
+\${htmlContent}
 <script>
-${jsContent}
+\${jsContent}
 </script>
 </body>
-</html>`;
+</html>\`;
     }
 
     try {
@@ -275,6 +289,7 @@ ${jsContent}
         meta_keywords: formData.meta_keywords,
         is_active: formData.is_active,
         page_type: formData.page_type,
+        layout_data: layoutData,
       };
 
       if (editingPage) {
@@ -332,7 +347,7 @@ ${jsContent}
       toast.success(page.is_active ? 'Halaman dinonaktifkan' : 'Halaman diaktifkan');
       fetchPages();
     } catch (error: any) {
-      console.error('Error toggling page status:', error);
+      console.error('Error toggling active:', error);
       toast.error('Gagal mengubah status halaman');
     }
   };
@@ -342,451 +357,416 @@ ${jsContent}
     page.slug.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getCharCountColor = (current: number, min: number, max: number) => {
-    if (current === 0) return 'text-muted-foreground';
-    if (current >= min && current <= max) return 'text-green-600';
-    return 'text-amber-600';
+  const getCharCountColor = (count: number, min: number, max: number) => {
+    if (count === 0) return 'text-muted-foreground';
+    if (count >= min && count <= max) return 'text-green-600';
+    return 'text-yellow-600';
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Manajemen Halaman</h2>
-          <p className="text-muted-foreground">Kelola halaman statis dan landing page aplikasi</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-full md:w-64">
-            <Input
-              placeholder="Cari halaman..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-            <div className="absolute left-2.5 top-2.5 text-muted-foreground">
-              <Search className="h-4 w-4" />
+      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="pages" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Manajemen Halaman
+          </TabsTrigger>
+          <TabsTrigger value="navigation" className="flex items-center gap-2">
+            <Menu className="h-4 w-4" />
+            Navigasi Menu
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pages" className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari halaman..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => resetForm()} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Halaman Baru
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{editingPage ? 'Edit Halaman' : 'Buat Halaman Baru'}</DialogTitle>
-              </DialogHeader>
-              
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="content" className="gap-2">
-                    <Layout className="h-4 w-4" /> Editor Konten
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" className="gap-2">
-                    <Settings className="h-4 w-4" /> Pengaturan & SEO
-                  </TabsTrigger>
-                </TabsList>
+            
+            <div className="flex items-center gap-2">
+              <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) resetForm();
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" /> Buat Halaman Baru
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                      {editingPage ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                      {editingPage ? 'Edit Halaman' : 'Buat Halaman Baru'}
+                    </DialogTitle>
+                  </DialogHeader>
 
-                <TabsContent value="content" className="space-y-4 mt-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-base font-bold">Metode Editor</Label>
-                        <Badge variant="secondary" className="font-normal">
-                          {formData.page_type === 'standard' ? 'Visual Editor' : 'Code Builder'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">Pilih tipe konten yang ingin Anda buat</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {formData.page_type === 'standard' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setShowStandardPreview(!showStandardPreview)}
-                          className="gap-2"
-                        >
-                          {showStandardPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          {showStandardPreview ? 'Tutup Preview' : 'Lihat Preview'}
-                        </Button>
-                      )}
-                      <Select 
-                        value={formData.page_type} 
-                        onValueChange={(value: any) => setFormData(prev => ({ ...prev, page_type: value }))}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Pilih tipe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="standard">Rich Text (Mudah)</SelectItem>
-                          <SelectItem value="builder">HTML Builder (Custom)</SelectItem>
-                          <SelectItem value="landing">Full Landing Page</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="content" className="flex items-center gap-2">
+                        <Layout className="h-4 w-4" /> Konten
+                      </TabsTrigger>
+                      <TabsTrigger value="seo" className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" /> SEO & Meta
+                      </TabsTrigger>
+                      <TabsTrigger value="settings" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" /> Pengaturan
+                      </TabsTrigger>
+                    </TabsList>
 
-                  <div className="space-y-4">
-                    {formData.page_type === 'standard' ? (
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className={showStandardPreview ? 'hidden md:block' : 'block'}>
-                          <div className="bg-white dark:bg-slate-950 rounded-md border min-h-[400px]">
-                            <ReactQuill
-                              theme="snow"
-                              value={formData.content}
-                              onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                              modules={quillModules}
-                              className="h-[350px] mb-12"
-                            />
-                          </div>
-                        </div>
-                        
-                        {showStandardPreview && (
-                          <div className="border rounded-lg bg-white dark:bg-slate-950 min-h-[400px] overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-                            <div className="bg-muted/50 p-2 border-b flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="flex gap-1.5">
-                                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                                </div>
-                                <span className="text-xs font-medium ml-2">Live Preview</span>
-                              </div>
-                              <Button variant="ghost" size="sm" onClick={() => setShowStandardPreview(false)}>
-                                <EyeOff className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            <div className="p-8 max-h-[500px] overflow-y-auto">
-                              <article className="prose prose-sm dark:prose-invert max-w-none">
-                                <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
-                                {formData.image_url && (
-                                  <img
-                                    src={formData.image_url}
-                                    alt={formData.title}
-                                    className="w-full h-64 object-cover rounded-xl mb-8"
-                                  />
-                                )}
-                                <div dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }} />
-                              </article>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <PageHtmlEditor
-                        html={htmlContent}
-                        css={cssContent}
-                        javascript={jsContent}
-                        onHtmlChange={setHtmlContent}
-                        onCssChange={setCssContent}
-                        onJavaScriptChange={setJsContent}
-                      />
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="settings" className="space-y-6 mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-base font-bold">Informasi Dasar</Label>
-                        <div className="space-y-3">
+                    <TabsContent value="content" className="space-y-6 pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="md:col-span-2 space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="title">Judul Halaman</Label>
+                            <Label htmlFor="title" className="text-base font-semibold">Judul Halaman</Label>
                             <Input
                               id="title"
-                              placeholder="Masukkan judul halaman"
+                              placeholder="Contoh: Paket Umroh Ramadhan 2024"
+                              className="text-lg h-12"
                               value={formData.title}
                               onChange={handleTitleChange}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="slug" className="flex items-center justify-between">
-                              URL (Slug)
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6" 
-                                onClick={() => setIsSlugLocked(!isSlugLocked)}
-                              >
-                                {isSlugLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                              </Button>
-                            </Label>
-                            <div className="relative">
-                              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">/</span>
-                              <Input
-                                id="slug"
-                                placeholder="url-halaman"
-                                className="pl-6"
-                                value={formData.slug}
-                                onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
-                                disabled={isSlugLocked}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 pt-2">
-                            <Switch
-                              id="is_active"
-                              checked={formData.is_active}
-                              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                            />
-                            <Label htmlFor="is_active">Publikasikan halaman ini</Label>
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="space-y-2 pt-4 border-t">
-                        <Label className="text-base font-bold">Thumbnail & Media</Label>
-                        <div className="space-y-3">
-                          {formData.image_url ? (
-                            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group border">
-                              <img
-                                src={formData.image_url}
-                                alt="Preview"
-                                className="w-full h-full object-cover"
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Hapus
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg bg-muted/30 text-muted-foreground">
-                              <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
-                              <p className="text-xs font-medium">Belum ada thumbnail</p>
-                            </div>
-                          )}
-                          
-                          <div className="flex gap-2">
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageUpload}
-                              disabled={isUploading}
-                              className="cursor-pointer text-xs"
-                            />
-                            {isUploading && (
-                              <Button disabled variant="outline" size="sm">
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                          <div className="space-y-2">
+                            <Label className="text-base font-semibold">Tipe Editor</Label>
+                            <div className="grid grid-cols-3 gap-3">
+                              <Button
+                                type="button"
+                                variant={formData.page_type === 'builder' ? 'default' : 'outline'}
+                                className="flex flex-col h-auto py-3 gap-1"
+                                onClick={() => setFormData(prev => ({ ...prev, page_type: 'builder' }))}
+                              >
+                                <Layout className="h-5 w-5" />
+                                <span className="text-xs">Visual Builder</span>
                               </Button>
+                              <Button
+                                type="button"
+                                variant={formData.page_type === 'standard' ? 'default' : 'outline'}
+                                className="flex flex-col h-auto py-3 gap-1"
+                                onClick={() => setFormData(prev => ({ ...prev, page_type: 'standard' }))}
+                              >
+                                <FileText className="h-5 w-5" />
+                                <span className="text-xs">Rich Text</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={formData.page_type === 'landing' ? 'default' : 'outline'}
+                                className="flex flex-col h-auto py-3 gap-1"
+                                onClick={() => setFormData(prev => ({ ...prev, page_type: 'landing' }))}
+                              >
+                                <Code className="h-5 w-5" />
+                                <span className="text-xs">Custom HTML</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t">
+                            {formData.page_type === 'builder' ? (
+                              <VisualBlockBuilder 
+                                blocks={blocks} 
+                                onBlocksChange={setBlocks} 
+                              />
+                            ) : formData.page_type === 'standard' ? (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-base font-semibold">Isi Konten</Label>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 gap-1 text-xs"
+                                    onClick={() => setShowStandardPreview(!showStandardPreview)}
+                                  >
+                                    {showStandardPreview ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                    {showStandardPreview ? 'Tutup Preview' : 'Lihat Preview'}
+                                  </Button>
+                                </div>
+                                
+                                {showStandardPreview ? (
+                                  <div className="border rounded-lg p-6 bg-white min-h-[400px] prose prose-sm max-w-none dark:prose-invert">
+                                    <div dangerouslySetInnerHTML={{ __html: formData.content }} />
+                                  </div>
+                                ) : (
+                                  <ReactQuill
+                                    theme="snow"
+                                    value={formData.content}
+                                    onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                                    modules={quillModules}
+                                    className="h-[400px] mb-12"
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <PageHtmlEditor
+                                html={htmlContent}
+                                css={cssContent}
+                                javascript={jsContent}
+                                onHtmlChange={setHtmlContent}
+                                onCssChange={setCssContent}
+                                onJavaScriptChange={setJsContent}
+                              />
                             )}
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="space-y-4">
-                      <Label className="text-base font-bold">Optimasi SEO</Label>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 flex gap-2">
-                        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                          Informasi ini akan muncul di hasil pencarian Google dan saat halaman dibagikan di media sosial.
-                        </p>
-                      </div>
+                        <div className="space-y-6">
+                          <div className="space-y-4 p-4 bg-muted/30 rounded-xl border">
+                            <Label className="text-base font-bold">Informasi Publikasi</Label>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="slug" className="flex items-center justify-between text-xs">
+                                URL (Slug)
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6" 
+                                  onClick={() => setIsSlugLocked(!isSlugLocked)}
+                                >
+                                  {isSlugLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                                </Button>
+                              </Label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">/</span>
+                                <Input
+                                  id="slug"
+                                  placeholder="url-halaman"
+                                  className="pl-6 h-9 text-sm"
+                                  value={formData.slug}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                                  disabled={isSlugLocked}
+                                />
+                              </div>
+                            </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label htmlFor="meta_title" className="text-xs">Meta Title</Label>
-                          <span className={`text-[10px] font-medium ${getCharCountColor(formData.meta_title?.length || 0, 50, 60)}`}>
-                            {formData.meta_title?.length || 0}/60
-                          </span>
-                        </div>
-                        <Input
-                          id="meta_title"
-                          placeholder="Judul untuk search engine"
-                          value={formData.meta_title || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                          className="h-8 text-sm"
-                        />
-                      </div>
+                            <div className="flex items-center gap-2 pt-2">
+                              <Switch
+                                id="is_active"
+                                checked={formData.is_active}
+                                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                              />
+                              <Label htmlFor="is_active" className="text-sm">Publikasikan halaman</Label>
+                            </div>
+                          </div>
 
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label htmlFor="meta_description" className="text-xs">Meta Description</Label>
-                          <span className={`text-[10px] font-medium ${getCharCountColor(formData.meta_description?.length || 0, 150, 160)}`}>
-                            {formData.meta_description?.length || 0}/160
-                          </span>
-                        </div>
-                        <Textarea
-                          id="meta_description"
-                          placeholder="Deskripsi singkat untuk hasil pencarian"
-                          rows={3}
-                          value={formData.meta_description || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                          className="text-sm"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="meta_keywords" className="text-xs">Keywords</Label>
-                        <Input
-                          id="meta_keywords"
-                          placeholder="umroh, paket hemat, travel"
-                          value={formData.meta_keywords || ''}
-                          onChange={(e) => setFormData(prev => ({ ...prev, meta_keywords: e.target.value }))}
-                          className="h-8 text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <DialogFooter className="mt-6 border-t pt-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Batal
-                </Button>
-                <Button onClick={handleSave} disabled={isCheckingSlug}>
-                  {isCheckingSlug ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Memeriksa...
-                    </>
-                  ) : (
-                    editingPage ? 'Simpan Perubahan' : 'Buat Halaman'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5 text-primary" />
-            Daftar Halaman
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Memuat data halaman...</p>
-            </div>
-          ) : filteredPages.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed rounded-xl">
-              <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground opacity-50" />
-              </div>
-              <h3 className="text-lg font-medium">Belum ada halaman</h3>
-              <p className="text-muted-foreground max-w-xs mx-auto mt-1">
-                Mulai buat halaman statis pertama Anda untuk memberikan informasi kepada pengguna.
-              </p>
-              <Button variant="outline" onClick={() => setIsDialogOpen(true)} className="mt-6">
-                <Plus className="h-4 w-4 mr-2" /> Buat Halaman
-              </Button>
-            </div>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-[300px]">Judul & URL</TableHead>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Terakhir Diubah</TableHead>
-                    <TableHead className="text-right">Aksi</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPages.map((page) => (
-                    <TableRow key={page.id} className="group">
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {page.title}
-                          </span>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                              /{page.slug}
-                            </code>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`https://arahumroh.id/${page.slug}`);
-                                toast.success('URL disalin');
-                              }}
-                            >
-                              <Copy className="h-2.5 w-2.5" />
-                            </Button>
+                          <div className="space-y-4 p-4 bg-muted/30 rounded-xl border">
+                            <Label className="text-base font-bold">Thumbnail</Label>
+                            {formData.image_url ? (
+                              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group border">
+                                <img
+                                  src={formData.image_url}
+                                  alt="Preview"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Hapus
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg bg-muted/30 text-muted-foreground">
+                                <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                                <p className="text-xs font-medium">Belum ada thumbnail</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex gap-2">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                                className="cursor-pointer text-xs h-9"
+                              />
+                              {isUploading && (
+                                <Button disabled variant="outline" size="sm">
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize font-normal">
-                          {page.page_type === 'standard' ? 'Rich Text' : page.page_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div 
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => toggleActive(page)}
-                        >
-                          <div className={`w-2 h-2 rounded-full ${page.is_active ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-slate-300'}`} />
-                          <span className="text-sm font-medium">
-                            {page.is_active ? 'Aktif' : 'Draf'}
-                          </span>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="seo" className="pt-4">
+                      <SEOHelper 
+                        pageTitle={formData.title}
+                        metaTitle={formData.meta_title || ''}
+                        metaDescription={formData.meta_description || ''}
+                        keywords={formData.meta_keywords || ''}
+                        onMetaTitleChange={(val) => setFormData(prev => ({ ...prev, meta_title: val }))}
+                        onMetaDescriptionChange={(val) => setFormData(prev => ({ ...prev, meta_description: val }))}
+                        onKeywordsChange={(val) => setFormData(prev => ({ ...prev, meta_keywords: val }))}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="settings" className="space-y-6 pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <Label className="text-base font-bold">Informasi Tambahan</Label>
+                          <div className="p-4 border rounded-lg space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">ID Halaman:</span>
+                              <span className="font-mono text-xs">{editingPage?.id || 'Baru'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Dibuat:</span>
+                              <span>{editingPage ? new Date(editingPage.created_at).toLocaleDateString('id-ID') : '-'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Terakhir Diubah:</span>
+                              <span>{editingPage ? new Date(editingPage.updated_at).toLocaleDateString('id-ID') : '-'}</span>
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {new Date(page.updated_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            asChild
-                          >
-                            <a href={`/page/${page.slug}`} target="_blank" rel="noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEdit(page)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(page.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <DialogFooter className="mt-6 border-t pt-4">
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Batal
+                    </Button>
+                    <Button onClick={handleSave} disabled={isCheckingSlug}>
+                      {isCheckingSlug ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Memeriksa...
+                        </>
+                      ) : (
+                        editingPage ? 'Simpan Perubahan' : 'Buat Halaman'
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                Daftar Halaman
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Memuat data halaman...</p>
+                </div>
+              ) : filteredPages.length === 0 ? (
+                <div className="text-center py-20 border-2 border-dashed rounded-xl">
+                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-muted-foreground opacity-50" />
+                  </div>
+                  <h3 className="text-lg font-medium">Belum ada halaman</h3>
+                  <p className="text-muted-foreground max-w-xs mx-auto mt-1">
+                    Mulai buat halaman statis pertama Anda untuk memberikan informasi kepada pengguna.
+                  </p>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(true)} className="mt-6">
+                    <Plus className="h-4 w-4 mr-2" /> Buat Halaman
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[300px]">Judul & URL</TableHead>
+                        <TableHead>Tipe</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Terakhir Diubah</TableHead>
+                        <TableHead className="text-right">Aksi</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPages.map((page) => (
+                        <TableRow key={page.id} className="group">
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                {page.title}
+                              </span>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                                  /{page.slug}
+                                </code>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(\`https://arahumroh.id/\${page.slug}\`);
+                                    toast.success('URL disalin');
+                                  }}
+                                >
+                                  <Copy className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize font-normal">
+                              {page.page_type === 'standard' ? 'Rich Text' : page.page_type === 'builder' ? 'Visual Builder' : 'Custom HTML'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer"
+                              onClick={() => toggleActive(page)}
+                            >
+                              <Switch checked={page.is_active} />
+                              <span className="text-xs text-muted-foreground">
+                                {page.is_active ? 'Aktif' : 'Draft'}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(page.updated_at).toLocaleDateString('id-ID')}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(page)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(page.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                <a href={\`/\${page.slug}\`} target="_blank" rel="noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="navigation">
+          <NavigationManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
-
-export default PagesManagement;
