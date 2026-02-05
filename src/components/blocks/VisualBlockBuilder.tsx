@@ -626,7 +626,7 @@ export function VisualBlockBuilder({
                 <BlockEditor block={selectedBlock} onChange={updateBlock} />
               </CardContent>
             </Card>
-          ) : activeTab === 'content' && (
+          ) : (
             <div className="h-32 flex items-center justify-center border-2 border-dashed rounded-lg text-muted-foreground text-sm">
               Pilih blok untuk mulai mengedit
             </div>

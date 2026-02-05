@@ -109,7 +109,7 @@ const AgentDashboard = () => {
 
   const renderOverview = () => {
     const totalBookings = bookingStats.totalBookings || 0;
-    const totalRevenue = bookingStats.totalRevenue || 0;
+    const totalRevenue = bookingStats.totalPaid || 0;
     const totalLeads = inquiryStats?.total || 0;
 
     return (
@@ -360,9 +360,9 @@ const AgentDashboard = () => {
                   </div>
                 );
               case 'bookings':
-                return <BookingsManagement travelId={travel?.id || ''} />;
+                return <BookingsManagement travelId={travel?.id} />;
               case 'chat':
-                return <ChatManagement travelId={travel?.id || ''} />;
+                return <ChatManagement />;
               case 'haji':
                 return (
                   <div className="space-y-6">
@@ -374,7 +374,7 @@ const AgentDashboard = () => {
                   </div>
                 );
               case 'inquiries':
-                return <InquiriesManagement travelId={travel?.id || ''} />;
+                return <InquiriesManagement />;
               case 'website':
                 return <AgentWebsiteManager />;
               case 'featured':

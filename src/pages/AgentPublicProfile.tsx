@@ -197,7 +197,7 @@ const AgentPublicProfile = () => {
             {packages.map((pkg) => (
               <PackageCard 
                 key={pkg.id} 
-                pkg={pkg} 
+                package={pkg} 
                 onClick={() => navigate(`/paket/${pkg.id}`)} 
               />
             ))}
