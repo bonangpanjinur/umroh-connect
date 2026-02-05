@@ -166,7 +166,7 @@ ${jsContent}
 
   const websiteUrl = settings?.slug 
     ? `${window.location.origin}/${settings.slug}`
-    : `${window.location.origin}/agent/${user?.id?.substring(0, 8)}`;
+    : `${window.location.origin}/u/${user?.id?.substring(0, 8)}`;
 
   return (
     <div className="space-y-6">
