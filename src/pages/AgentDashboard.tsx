@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Bell, Settings } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Bell, Settings, LayoutDashboard, Share2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
@@ -27,6 +27,9 @@ import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
 import { AgentWebsiteManager } from '@/components/agent/AgentWebsiteManager';
 import { AgentDashboardSidebar } from '@/components/agent/AgentDashboardSidebar';
 import { Package as PackageType } from '@/types/database';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
@@ -55,12 +58,13 @@ const AgentDashboard = () => {
 
   if (authLoading || travelLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex justify-center">
-        <div className="w-full bg-background min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-            <p className="text-muted-foreground">Memuat dashboard Anda...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-primary/20 rounded-full animate-ping absolute inset-0" />
+            <div className="animate-spin w-16 h-16 border-4 border-primary border-t-transparent rounded-full relative" />
           </div>
+          <p className="text-muted-foreground font-medium animate-pulse">Memuat dashboard Anda...</p>
         </div>
       </div>
     );
@@ -69,15 +73,15 @@ const AgentDashboard = () => {
   // Check if user has agent role
   if (profile && profile.role !== 'agent' && profile.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex justify-center">
-        <div className="w-full bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
-          <AlertCircle className="w-16 h-16 text-destructive mb-4" />
-          <h2 className="text-xl font-bold mb-2">Akses Ditolak</h2>
-          <p className="text-muted-foreground mb-6">
-            Anda tidak memiliki akses ke dashboard agent. Hubungi admin untuk upgrade akun Anda.
-          </p>
-          <Button onClick={() => navigate('/')}>Kembali ke Beranda</Button>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mb-6">
+          <AlertCircle className="w-10 h-10 text-destructive" />
         </div>
+        <h2 className="text-2xl font-bold mb-2">Akses Ditolak</h2>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          Anda tidak memiliki akses ke dashboard agent. Hubungi admin untuk upgrade akun Anda.
+        </p>
+        <Button size="lg" onClick={() => navigate('/')}>Kembali ke Beranda</Button>
       </div>
     );
   }
@@ -86,127 +90,204 @@ const AgentDashboard = () => {
     setActiveTab(tab);
   };
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return (
-          <div className="space-y-6">
-            <AgentMembershipCard travelId={travel?.id || ''} />
-            <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
-            <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
-          </div>
-        );
-      case 'analytics':
-        return <AnalyticsDashboard travelId={travel?.id || ''} />;
-      case 'packages':
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-2xl">Daftar Paket Umroh</h3>
-                <p className="text-sm text-muted-foreground mt-1">Kelola semua paket perjalanan Anda</p>
-              </div>
-              <Button size="lg" onClick={() => {
-                setEditingPackage(null);
-                setShowPackageForm(true);
-              }} className="gap-2">
-                <Plus className="w-4 h-4" /> Tambah Paket
-              </Button>
-            </div>
-            
-            {packagesLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : packages && packages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {packages.map((pkg) => (
-                  <PackageCardAgent 
-                    key={pkg.id} 
-                    pkg={pkg} 
-                    onEdit={() => {
-                      setEditingPackage(pkg);
-                      setShowPackageForm(true);
-                    }} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center py-16 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-2xl border-2 border-dashed border-border"
-              >
-                <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-semibold text-foreground mb-2">Belum ada paket umroh</p>
-                <p className="text-sm text-muted-foreground mb-6">Mulai buat paket pertama Anda untuk menarik pelanggan</p>
-                <Button onClick={() => {
-                  setEditingPackage(null);
-                  setShowPackageForm(true);
-                }}>
-                  <Plus className="w-4 h-4 mr-2" /> Buat Paket Pertama
-                </Button>
-              </motion.div>
-            )}
-          </div>
-        );
-      case 'bookings':
-        return <BookingsManagement travelId={travel?.id || ''} />;
-      case 'chat':
-        return <ChatManagement travelId={travel?.id || ''} />;
-      case 'haji':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-bold text-2xl">Manajemen Pendaftaran Haji</h3>
-              <p className="text-sm text-muted-foreground mt-1">Kelola data pendaftaran haji pelanggan Anda</p>
-            </div>
-            <HajiManagement travelId={travel?.id} />
-          </div>
-        );
-      case 'inquiries':
-        return <InquiriesManagement travelId={travel?.id || ''} />;
-      case 'website':
-        return <AgentWebsiteManager />;
-      case 'featured':
-        return <FeaturedPackageManager travelId={travel?.id || ''} />;
-      case 'membership':
-        return <AgentMembershipCard travelId={travel?.id || ''} />;
-      case 'credits':
-        return <AgentCreditsManager travelId={travel?.id || ''} />;
-      default:
-        return null;
+  const handleShare = () => {
+    if (travel) {
+      const url = `${window.location.origin}/travel/${travel.id}`;
+      navigator.clipboard.writeText(url);
+      toast.success('Link profil travel berhasil disalin!');
     }
   };
 
+  const renderContent = () => {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          transition={{ duration: 0.2 }}
+          className="w-full"
+        >
+          {(() => {
+            switch (activeTab) {
+              case 'overview':
+                return (
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                      <div className="xl:col-span-2 space-y-8">
+                        <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
+                        <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+                      </div>
+                      <div className="space-y-8">
+                        <AgentMembershipCard travelId={travel?.id || ''} />
+                        <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-6 border border-border shadow-sm">
+                          <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-amber-500" />
+                            Aksi Cepat
+                          </h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => {
+                              setEditingPackage(null);
+                              setShowPackageForm(true);
+                            }}>
+                              <Plus className="w-5 h-5 text-primary" />
+                              <span className="text-xs">Tambah Paket</span>
+                            </Button>
+                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('website')}>
+                              <Globe className="w-5 h-5 text-blue-500" />
+                              <span className="text-xs">Website Builder</span>
+                            </Button>
+                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('chat')}>
+                              <MessageSquare className="w-5 h-5 text-green-500" />
+                              <span className="text-xs">Buka Chat</span>
+                            </Button>
+                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('analytics')}>
+                              <BarChart3 className="w-5 h-5 text-purple-500" />
+                              <span className="text-xs">Lihat Analitik</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              case 'analytics':
+                return <AnalyticsDashboard travelId={travel?.id || ''} />;
+              case 'packages':
+                return (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-2xl">Daftar Paket Umroh</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Kelola semua paket perjalanan Anda</p>
+                      </div>
+                      <Button size="lg" onClick={() => {
+                        setEditingPackage(null);
+                        setShowPackageForm(true);
+                      }} className="gap-2 w-full sm:w-auto">
+                        <Plus className="w-4 h-4" /> Tambah Paket
+                      </Button>
+                    </div>
+                    
+                    {packagesLoading ? (
+                      <div className="flex justify-center py-24">
+                        <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
+                      </div>
+                    ) : packages && packages.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {packages.map((pkg) => (
+                          <PackageCardAgent 
+                            key={pkg.id} 
+                            pkg={pkg} 
+                            onEdit={() => {
+                              setEditingPackage(pkg);
+                              setShowPackageForm(true);
+                            }} 
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center py-24 bg-secondary/20 rounded-3xl border-2 border-dashed border-border"
+                      >
+                        <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                          <Package className="w-10 h-10 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-xl font-bold text-foreground mb-2">Belum ada paket umroh</p>
+                        <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">Mulai buat paket pertama Anda untuk menarik pelanggan</p>
+                        <Button size="lg" onClick={() => {
+                          setEditingPackage(null);
+                          setShowPackageForm(true);
+                        }} className="rounded-full px-8">
+                          <Plus className="w-4 h-4 mr-2" /> Buat Paket Pertama
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                );
+              case 'bookings':
+                return <BookingsManagement travelId={travel?.id || ''} />;
+              case 'chat':
+                return <ChatManagement travelId={travel?.id || ''} />;
+              case 'haji':
+                return (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-bold text-2xl">Manajemen Pendaftaran Haji</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Kelola data pendaftaran haji pelanggan Anda</p>
+                    </div>
+                    <HajiManagement travelId={travel?.id} />
+                  </div>
+                );
+              case 'inquiries':
+                return <InquiriesManagement travelId={travel?.id || ''} />;
+              case 'website':
+                return <AgentWebsiteManager />;
+              case 'featured':
+                return <FeaturedPackageManager travelId={travel?.id || ''} />;
+              case 'membership':
+                return (
+                  <div className="max-w-4xl mx-auto">
+                    <AgentMembershipCard travelId={travel?.id || ''} />
+                  </div>
+                );
+              case 'credits':
+                return <AgentCreditsManager travelId={travel?.id || ''} />;
+              default:
+                return null;
+            }
+          })()}
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background">
-      <div className="w-full flex flex-col lg:flex-row relative">
-        {/* Header */}
-        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:col-span-full backdrop-blur-md">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Top Navigation Header */}
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-8 py-3">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
-              title="Kembali ke beranda"
+              className="rounded-full hover:bg-secondary"
             >
               <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="font-bold text-xl">Dashboard Agent</h1>
-              <p className="text-xs text-muted-foreground">Kelola bisnis umroh Anda dengan mudah</p>
+            </Button>
+            <div className="hidden sm:block">
+              <h1 className="font-bold text-lg leading-tight">Dashboard Agent</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                {travel?.name || 'Kelola Bisnis Anda'}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          <div className="flex items-center gap-3">
             {travel && (
-              <AgentNotificationCenter 
-                travelId={travel.id} 
-                onNavigate={handleNotificationNavigate}
-              />
+              <>
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-full border border-border">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-medium">{travel.verified ? 'Verified Agent' : 'Agent'}</span>
+                </div>
+                <AgentNotificationCenter 
+                  travelId={travel.id} 
+                  onNavigate={handleNotificationNavigate}
+                />
+                <Button variant="outline" size="icon" className="rounded-full" onClick={() => setActiveTab('settings')}>
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </>
             )}
           </div>
-        </header>
+        </div>
+      </header>
 
+      <div className="flex-1 flex flex-col lg:flex-row max-w-[1600px] mx-auto w-full relative">
         {/* Sidebar Navigation */}
         <AgentDashboardSidebar 
           activeTab={activeTab}
@@ -217,114 +298,82 @@ const AgentDashboard = () => {
           inquiryPendingCount={inquiryStats?.pending || 0}
         />
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
+        {/* Main Content Area */}
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden">
           {!travel ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-primary/10 via-secondary/5 to-background border-2 border-dashed border-border rounded-2xl p-8 text-center max-w-2xl mx-auto"
+              className="bg-gradient-to-br from-primary/5 via-secondary/5 to-background border border-border rounded-3xl p-8 lg:p-12 text-center max-w-2xl mx-auto shadow-sm"
             >
-              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
-                <Building2 className="w-10 h-10 text-primary" />
+              <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-8 rotate-3 hover:rotate-0 transition-transform duration-300">
+                <Building2 className="w-12 h-12 text-primary" />
               </div>
-              <h3 className="font-bold text-2xl mb-3">Buat Travel Anda</h3>
-              <p className="text-base text-muted-foreground mb-8 max-w-md mx-auto">
+              <h3 className="font-bold text-3xl mb-4">Mulai Perjalanan Bisnis Anda</h3>
+              <p className="text-muted-foreground mb-10 text-lg leading-relaxed">
                 Anda perlu membuat profil travel terlebih dahulu sebelum bisa menambahkan paket umroh dan mulai menerima booking dari pelanggan.
               </p>
-              <Button size="lg" onClick={() => setShowTravelForm(true)} className="gap-2">
-                <Plus className="w-4 h-4" /> Buat Travel Sekarang
+              <Button size="lg" onClick={() => setShowTravelForm(true)} className="gap-2 px-8 py-6 rounded-2xl text-lg shadow-xl shadow-primary/20">
+                <Plus className="w-5 h-5" /> Buat Profil Travel
               </Button>
             </motion.div>
           ) : (
-            <>
-              {/* Travel Info Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground rounded-2xl p-6 shadow-lg mb-8 border border-primary/30"
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl bg-primary-foreground/20 flex items-center justify-center border border-primary-foreground/30">
-                      {travel.logo_url ? (
-                        <img src={travel.logo_url} alt={travel.name} className="w-full h-full rounded-xl object-cover" />
-                      ) : (
-                        <Building2 className="w-8 h-8" />
-                      )}
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-2xl">{travel.name}</h2>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                          travel.verified 
-                            ? 'bg-green-500/20 text-green-100' 
-                            : 'bg-amber-500/20 text-amber-100'
-                        }`}>
-                          {travel.verified ? '✓ Verified' : '⏳ Belum Verified'}
-                        </span>
-                      </div>
-                    </div>
+            <div className="space-y-8">
+              {/* Modern Welcome Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Selamat datang kembali,</span>
                   </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30 border-0 gap-2"
-                    onClick={() => setShowTravelForm(true)}
-                  >
-                    <Edit2 className="w-4 h-4" /> Edit
+                  <h2 className="text-3xl lg:text-4xl font-black tracking-tight">{travel.name}</h2>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Package className="w-4 h-4" />
+                      {packages?.length || 0} Paket
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-border" />
+                    <span className="flex items-center gap-1.5">
+                      <Star className="w-4 h-4 text-amber-500" />
+                      {travel.rating || 0} ({travel.review_count || 0} ulasan)
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="rounded-xl gap-2" onClick={handleShare}>
+                    <Share2 className="w-4 h-4" />
+                    Share
+                  </Button>
+                  <Button variant="default" className="rounded-xl gap-2 shadow-lg shadow-primary/20" asChild>
+                    <a href={`/travel/${travel.id}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="w-4 h-4" />
+                      Lihat Profil
+                    </a>
                   </Button>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
-                    <p className="text-3xl font-bold">{packages?.length || 0}</p>
-                    <p className="text-sm text-primary-foreground/80 mt-1">Paket Aktif</p>
-                  </div>
-                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
-                    <p className="text-3xl font-bold">{travel.rating?.toFixed(1) || '0'}</p>
-                    <p className="text-sm text-primary-foreground/80 mt-1">Rating</p>
-                  </div>
-                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
-                    <p className="text-3xl font-bold">{travel.review_count || 0}</p>
-                    <p className="text-sm text-primary-foreground/80 mt-1">Review</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Content Area */}
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {renderContent()}
-              </motion.div>
-            </>
+              {/* Dynamic Content */}
+              {renderContent()}
+            </div>
           )}
         </main>
-
-        {/* Forms Modals */}
-        <AnimatePresence>
-          {showTravelForm && (
-            <TravelForm 
-              travel={travel} 
-              onClose={() => setShowTravelForm(false)} 
-            />
-          )}
-          {showPackageForm && (
-            <PackageForm 
-              travelId={travel?.id}
-              pkg={editingPackage} 
-              onClose={() => {
-                setShowPackageForm(false);
-                setEditingPackage(null);
-              }} 
-            />
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* Modals */}
+      <TravelForm 
+        open={showTravelForm} 
+        onOpenChange={setShowTravelForm}
+        initialData={travel || undefined}
+      />
+      
+      <PackageForm
+        open={showPackageForm}
+        onOpenChange={setShowPackageForm}
+        editingPackage={editingPackage || undefined}
+        travelId={travel?.id}
+      />
     </div>
   );
 };

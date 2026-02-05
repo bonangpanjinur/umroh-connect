@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Menu, X, BarChart3, Package, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Settings, ChevronDown, AlertCircle, DollarSign, Wallet, Briefcase } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, BarChart3, Package, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Settings, ChevronDown, AlertCircle, DollarSign, Wallet, Briefcase, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -32,12 +32,20 @@ export const AgentDashboardSidebar = ({
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>('dashboard');
 
+  // Sync expanded category with active tab on mount
+  useEffect(() => {
+    const activeItem = navItems.find(item => item.id === activeTab);
+    if (activeItem) {
+      setExpandedCategory(activeItem.category);
+    }
+  }, []);
+
   const navItems: NavItem[] = [
     // Dashboard & Analytics
     {
       id: 'overview',
       label: 'Overview',
-      icon: <BarChart3 className="w-4 h-4" />,
+      icon: <LayoutDashboard className="w-4 h-4" />,
       category: 'dashboard',
       description: 'Ringkasan performa bisnis Anda',
     },
@@ -124,15 +132,17 @@ export const AgentDashboardSidebar = ({
   ];
 
   const categories = [
-    { id: 'dashboard', label: '📊 Dashboard & Analytics', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'operations', label: '⚙️ Manajemen Operasional', icon: <Briefcase className="w-4 h-4" /> },
-    { id: 'monetization', label: '💰 Monetisasi & Revenue', icon: <DollarSign className="w-4 h-4" /> },
-    { id: 'settings', label: '⚙️ Pengaturan & Tools', icon: <Settings className="w-4 h-4" /> },
+    { id: 'dashboard', label: 'Dashboard & Analytics', icon: <BarChart3 className="w-4 h-4" />, color: 'text-blue-500' },
+    { id: 'operations', label: 'Manajemen Operasional', icon: <Briefcase className="w-4 h-4" />, color: 'text-green-500' },
+    { id: 'monetization', label: 'Monetisasi & Revenue', icon: <DollarSign className="w-4 h-4" />, color: 'text-amber-500' },
+    { id: 'settings', label: 'Pengaturan & Tools', icon: <Settings className="w-4 h-4" />, color: 'text-purple-500' },
   ];
 
   const handleTabChange = (tabId: string) => {
     onTabChange(tabId);
-    setIsOpen(false);
+    if (window.innerWidth < 1024) {
+      setIsOpen(false);
+    }
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -140,100 +150,131 @@ export const AgentDashboardSidebar = ({
   };
 
   const renderSidebarContent = () => (
-    <nav className="p-4 space-y-2">
-      {categories.map((category) => {
-        const categoryItems = navItems.filter(item => item.category === category.id);
-        if (categoryItems.length === 0) return null;
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
+        {categories.map((category) => {
+          const categoryItems = navItems.filter(item => item.category === category.id);
+          if (categoryItems.length === 0) return null;
 
-        const isExpanded = expandedCategory === category.id;
+          const isExpanded = expandedCategory === category.id;
+          const hasActiveChild = categoryItems.some(item => item.id === activeTab);
 
-        return (
-          <div key={category.id} className="space-y-1">
-            {/* Category Header */}
-            <button
-              onClick={() => toggleCategory(category.id)}
-              className={cn(
-                'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-semibold',
-                'text-muted-foreground hover:text-foreground hover:bg-secondary/50',
-                isExpanded && 'text-foreground bg-secondary/50'
-              )}
-            >
-              <span className="flex-shrink-0">{category.icon}</span>
-              <span className="flex-1 text-left">{category.label}</span>
-              <ChevronDown className={cn(
-                'w-4 h-4 transition-transform duration-200',
-                isExpanded && 'rotate-180'
-              )} />
-            </button>
+          return (
+            <div key={category.id} className="space-y-1">
+              {/* Category Header */}
+              <button
+                onClick={() => toggleCategory(category.id)}
+                className={cn(
+                  'w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 group',
+                  isExpanded || hasActiveChild ? 'bg-secondary/40' : 'hover:bg-secondary/20'
+                )}
+              >
+                <div className={cn('p-1.5 rounded-md bg-background border border-border shadow-sm group-hover:scale-110 transition-transform', category.color)}>
+                  {category.icon}
+                </div>
+                <span className="flex-1 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+                  {category.label}
+                </span>
+                <ChevronDown className={cn(
+                  'w-3.5 h-3.5 text-muted-foreground transition-transform duration-300',
+                  isExpanded && 'rotate-180'
+                )} />
+              </button>
 
-            {/* Category Items */}
-            {isExpanded && (
-              <div className="space-y-1 pl-2 border-l-2 border-border">
+              {/* Category Items */}
+              <div className={cn(
+                'space-y-1 overflow-hidden transition-all duration-300 ease-in-out',
+                isExpanded ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'
+              )}>
                 {categoryItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleTabChange(item.id)}
                     className={cn(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group',
+                      'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 relative group ml-2',
                       activeTab === item.id
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'text-foreground hover:bg-secondary/70'
+                        ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
                     )}
-                    title={item.description}
                   >
-                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span className={cn('flex-shrink-0 transition-transform group-hover:scale-110', activeTab === item.id ? 'text-white' : 'text-muted-foreground')}>
+                      {item.icon}
+                    </span>
                     <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
                     {item.badge && item.badge > 0 && (
                       <span className={cn(
-                        'flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold',
+                        'flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold animate-pulse',
                         activeTab === item.id
-                          ? 'bg-primary-foreground text-primary'
+                          ? 'bg-white text-primary'
                           : 'bg-destructive text-white'
                       )}>
                         {item.badge > 9 ? '9+' : item.badge}
                       </span>
                     )}
+                    {activeTab === item.id && (
+                      <motion.div 
+                        layoutId="active-indicator"
+                        className="absolute left-0 w-1 h-6 bg-white rounded-r-full"
+                      />
+                    )}
                   </button>
                 ))}
               </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Help Section */}
-      <div className="mt-8 pt-6 border-t border-border">
-        <div className="bg-primary/10 rounded-lg p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-            <div className="text-xs">
-              <p className="font-semibold text-foreground mb-1">Tips Monetisasi</p>
-              <p className="text-muted-foreground">Upgrade ke Premium untuk fitur lebih banyak dan jangkauan lebih luas</p>
             </div>
+          );
+        })}
+      </div>
+
+      {/* Footer Help Card */}
+      <div className="p-4 mt-auto">
+        <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl p-4 border border-primary/10 relative overflow-hidden group">
+          <div className="absolute -right-2 -top-2 opacity-10 group-hover:scale-125 transition-transform duration-500">
+            <Sparkles className="w-12 h-12 text-primary" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 rounded-md bg-primary/20">
+                <Crown className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <p className="font-bold text-xs text-primary">Tips Monetisasi</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+              Upgrade ke Premium untuk fitur lebih banyak dan jangkauan lebih luas.
+            </p>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-full h-8 text-[10px] font-bold border-primary/20 hover:bg-primary hover:text-white transition-all"
+              onClick={() => handleTabChange('membership')}
+            >
+              Upgrade Sekarang
+            </Button>
           </div>
         </div>
       </div>
-    </nav>
+    </div>
   );
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-16 left-4 z-40">
+      {/* Mobile Menu Button - Floating for better access */}
+      <div className="lg:hidden fixed bottom-6 right-6 z-50">
         <Button
-          variant="ghost"
           size="icon"
           onClick={() => setIsOpen(!isOpen)}
-          className="rounded-lg"
+          className={cn(
+            "w-14 h-14 rounded-full shadow-2xl transition-all duration-300 border-2",
+            isOpen ? "bg-background text-foreground border-border rotate-90" : "bg-primary text-primary-foreground border-primary/20 scale-110"
+          )}
         >
-          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </Button>
       </div>
 
       {/* Sidebar Overlay (Mobile) */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -241,9 +282,9 @@ export const AgentDashboardSidebar = ({
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-16 h-[calc(100vh-64px)] w-72 bg-background border-r border-border overflow-y-auto transition-all duration-300 z-40 scrollbar-thin scrollbar-thumb-secondary scrollbar-track-transparent',
-          'lg:relative lg:top-0 lg:h-auto',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          'fixed left-0 top-16 h-[calc(100vh-64px)] w-72 bg-background/95 backdrop-blur-md border-r border-border overflow-hidden transition-all duration-500 z-40',
+          'lg:relative lg:top-0 lg:h-auto lg:bg-background',
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         )}
       >
         {renderSidebarContent()}
