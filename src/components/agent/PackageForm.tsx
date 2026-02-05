@@ -1,320 +1,374 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { X, Package as PackageIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package } from '@/types/database';
-import { useCreatePackage, useUpdatePackage } from '@/hooks/useAgentData';
-import { useHotels, useAirlines } from '@/hooks/useMasterData';
-import MultiImageUpload from '@/components/common/MultiImageUpload';
-import { useState } from 'react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { ImageUpload } from "@/components/common/ImageUpload";
 
 const packageSchema = z.object({
-  name: z.string().min(3, 'Nama minimal 3 karakter').max(100, 'Nama maksimal 100 karakter'),
-  description: z.string().max(1000, 'Deskripsi maksimal 1000 karakter').optional(),
-  duration_days: z.coerce.number().min(1, 'Minimal 1 hari').max(60, 'Maksimal 60 hari'),
+  name: z.string().min(3, "Nama paket minimal 3 karakter"),
+  description: z.string().min(10, "Deskripsi minimal 10 karakter"),
+  price: z.coerce.number().min(100000, "Harga tidak valid"),
+  currency: z.string().default("IDR"),
+  duration_days: z.coerce.number().min(1, "Durasi minimal 1 hari"),
+  type: z.string().min(1, "Pilih tipe paket"),
   hotel_makkah: z.string().optional(),
   hotel_madinah: z.string().optional(),
-  hotel_star: z.coerce.number().min(1).max(5),
+  departure_date: z.date({ required_error: "Tanggal keberangkatan wajib diisi" }),
+  quota: z.coerce.number().min(1, "Kuota minimal 1"),
   airline: z.string().optional(),
-  flight_type: z.enum(['direct', 'transit']),
-  meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
-  base_price: z.coerce.number().min(0, 'Harga tidak boleh negatif').optional(),
-  facilities: z.string().optional(),
+  program_type: z.string().optional(),
 });
 
-type PackageFormData = z.infer<typeof packageSchema>;
+type PackageFormValues = z.infer<typeof packageSchema>;
 
 interface PackageFormProps {
-  travelId: string;
-  package?: Package | null;
-  onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess: () => void;
+  initialData?: any;
 }
 
-const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageFormProps) => {
-  const createPackage = useCreatePackage();
-  const updatePackage = useUpdatePackage();
-  const isEditing = !!pkg;
-  
-  // Load master data
-  const { data: makkahHotels } = useHotels('Makkah');
-  const { data: madinahHotels } = useHotels('Madinah');
-  const { data: airlines } = useAirlines();
-  
-  // Image state
-  const [images, setImages] = useState<string[]>(pkg?.images || []);
+export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>(
+    initialData?.image_urls || []
+  );
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<PackageFormData>({
+  // Helper function untuk mencegah crash pada Select component
+  const safeSelectValue = (value: string | undefined | null) => {
+    return value && value.trim() !== "" ? value : undefined;
+  };
+
+  const form = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema),
     defaultValues: {
-      name: pkg?.name || '',
-      description: pkg?.description || '',
-      duration_days: pkg?.duration_days || 9,
-      hotel_makkah: pkg?.hotel_makkah || '',
-      hotel_madinah: pkg?.hotel_madinah || '',
-      hotel_star: pkg?.hotel_star || 4,
-      airline: pkg?.airline || '',
-      flight_type: pkg?.flight_type || 'direct',
-      meal_type: pkg?.meal_type || 'fullboard',
-      base_price: pkg?.base_price || undefined,
-      facilities: pkg?.facilities?.join(', ') || '',
+      name: initialData?.name || "",
+      description: initialData?.description || "",
+      price: initialData?.price || 0,
+      currency: initialData?.currency || "IDR",
+      duration_days: initialData?.duration_days || 9,
+      type: initialData?.type || "umroh",
+      quota: initialData?.quota || 45,
+      program_type: initialData?.program_type || "9_days",
+      hotel_makkah: initialData?.hotel_makkah || "",
+      hotel_madinah: initialData?.hotel_madinah || "",
+      airline: initialData?.airline || "",
+      departure_date: initialData?.departure_date 
+        ? new Date(initialData.departure_date) 
+        : undefined,
     },
   });
 
-  const onSubmit = async (data: PackageFormData) => {
+  const onSubmit = async (data: PackageFormValues) => {
+    if (!user) return;
+    setIsLoading(true);
+
     try {
       const packageData = {
         ...data,
-        travel_id: travelId,
-        hotel_makkah: data.hotel_makkah || null,
-        hotel_madinah: data.hotel_madinah || null,
-        airline: data.airline || null,
-        facilities: data.facilities ? data.facilities.split(',').map(f => f.trim()).filter(Boolean) : [],
-        images: images,
+        agent_id: user.id,
+        image_urls: uploadedImages,
+        departure_date: data.departure_date.toISOString(),
       };
 
-      if (isEditing && pkg) {
-        await updatePackage.mutateAsync({ id: pkg.id, ...packageData });
+      let error;
+      
+      if (initialData?.id) {
+        const { error: updateError } = await supabase
+          .from("travel_packages")
+          .update(packageData)
+          .eq("id", initialData.id);
+        error = updateError;
       } else {
-        await createPackage.mutateAsync(packageData);
+        const { error: insertError } = await supabase
+          .from("travel_packages")
+          .insert(packageData);
+        error = insertError;
       }
-      onSuccess?.();
-      onClose();
-    } catch (error) {
-      // Error handled by mutation
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: initialData ? "Paket berhasil diperbarui" : "Paket berhasil ditambahkan",
+      });
+      onSuccess();
+    } catch (error: any) {
+      console.error("Error saving package:", error);
+      toast({
+        title: "Gagal",
+        description: error.message || "Terjadi kesalahan saat menyimpan paket",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-card w-full max-w-lg rounded-2xl shadow-float max-h-[90vh] overflow-hidden flex flex-col"
-      >
-        {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <PackageIcon className="w-5 h-5 text-primary" />
-            </div>
-            <h2 className="font-bold text-lg">
-              {isEditing ? 'Edit Paket' : 'Buat Paket Baru'}
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nama Paket</FormLabel>
+                <FormControl>
+                  <Input placeholder="Contoh: Umroh Akbar 2025" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipe Paket</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={safeSelectValue(field.value)}
+                  defaultValue={safeSelectValue(field.value)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih tipe paket" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="umroh">Umroh Reguler</SelectItem>
+                    <SelectItem value="haji">Haji Khusus</SelectItem>
+                    <SelectItem value="tour">Wisata Halal</SelectItem>
+                    <SelectItem value="plus">Umroh Plus</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-4 overflow-y-auto hide-scrollbar">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nama Paket *</Label>
-            <Input
-              id="name"
-              placeholder="Paket Umroh Reguler 9 Hari"
-              {...register('name')}
-              className={errors.name ? 'border-destructive' : ''}
-            />
-            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Harga (IDR)</FormLabel>
+                <FormControl>
+                  <Input type="number" placeholder="Contoh: 30000000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="base_price">Harga Dasar (Mulai Dari) *</Label>
-              <Input
-                id="base_price"
-                type="number"
-                placeholder="30000000"
-                {...register('base_price')}
-                className={errors.base_price ? 'border-destructive' : ''}
-              />
-              {errors.base_price && <p className="text-xs text-destructive">{errors.base_price.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration_days">Durasi (Hari) *</Label>
-              <Input
-                id="duration_days"
-                type="number"
-                min={1}
-                max={60}
-                {...register('duration_days')}
-                className={errors.duration_days ? 'border-destructive' : ''}
-              />
-              {errors.duration_days && <p className="text-xs text-destructive">{errors.duration_days.message}</p>}
-            </div>
-          </div>
+          <FormField
+            control={form.control}
+            name="duration_days"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Durasi (Hari)</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Deskripsi</Label>
-            <Textarea
-              id="description"
-              placeholder="Deskripsi paket umroh..."
-              rows={3}
-              {...register('description')}
-            />
-          </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Deskripsi</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Deskripsi lengkap paket..." 
+                  className="min-h-[100px]"
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Package Images */}
-          <div className="space-y-2">
-            <Label>Gambar Paket</Label>
-            <MultiImageUpload
-              bucket="package-images"
-              folder="packages"
-              value={images}
-              onChange={setImages}
-              maxImages={5}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="departure_date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Tanggal Keberangkatan</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: id })
+                        ) : (
+                          <span>Pilih tanggal</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="space-y-2">
-            <Label>Bintang Hotel *</Label>
-            <Select
-              value={String(watch('hotel_star'))}
-              onValueChange={(val) => setValue('hotel_star', Number(val))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3">⭐⭐⭐ Bintang 3</SelectItem>
-                <SelectItem value="4">⭐⭐⭐⭐ Bintang 4</SelectItem>
-                <SelectItem value="5">⭐⭐⭐⭐⭐ Bintang 5</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <FormField
+            control={form.control}
+            name="quota"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kuota</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="hotel_makkah">Hotel Makkah</Label>
-              <Select
-                value={watch('hotel_makkah') || ''}
-                onValueChange={(val) => setValue('hotel_makkah', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih hotel..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">-- Pilih Hotel --</SelectItem>
-                  {makkahHotels?.map((hotel) => (
-                    <SelectItem key={hotel.id} value={hotel.name}>
-                      {hotel.name} ({hotel.distance_to_haram})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="hotel_madinah">Hotel Madinah</Label>
-              <Select
-                value={watch('hotel_madinah') || ''}
-                onValueChange={(val) => setValue('hotel_madinah', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih hotel..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">-- Pilih Hotel --</SelectItem>
-                  {madinahHotels?.map((hotel) => (
-                    <SelectItem key={hotel.id} value={hotel.name}>
-                      {hotel.name} ({hotel.distance_to_haram})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="hotel_makkah"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hotel Makkah</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nama Hotel Makkah" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="airline">Maskapai</Label>
-              <Select
-                value={watch('airline') || ''}
-                onValueChange={(val) => setValue('airline', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih maskapai..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">-- Pilih Maskapai --</SelectItem>
-                  {airlines?.map((airline) => (
-                    <SelectItem key={airline.id} value={airline.name}>
-                      {airline.name} {airline.code && `(${airline.code})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Jenis Penerbangan *</Label>
-              <Select
-                value={watch('flight_type')}
-                onValueChange={(val: 'direct' | 'transit') => setValue('flight_type', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="direct">Direct (Langsung)</SelectItem>
-                  <SelectItem value="transit">Transit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <FormField
+            control={form.control}
+            name="hotel_madinah"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hotel Madinah</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nama Hotel Madinah" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label>Tipe Makan *</Label>
-            <Select
-              value={watch('meal_type')}
-              onValueChange={(val: 'fullboard' | 'halfboard' | 'breakfast') => setValue('meal_type', val)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fullboard">Fullboard (3x makan)</SelectItem>
-                <SelectItem value="halfboard">Halfboard (2x makan)</SelectItem>
-                <SelectItem value="breakfast">Breakfast Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="airline"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Maskapai</FormLabel>
+                <FormControl>
+                  <Input placeholder="Contoh: Saudi Arabian Airlines" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="facilities">Fasilitas (pisahkan dengan koma)</Label>
-            <Input
-              id="facilities"
-              placeholder="Visa, Hotel, Makan, Transport, Muthawif"
-              {...register('facilities')}
-            />
-          </div>
-
-          <div className="pt-4 flex gap-3">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              Batal
-            </Button>
-            <Button type="submit" disabled={isSubmitting} className="flex-1">
-              {isSubmitting ? 'Menyimpan...' : isEditing ? 'Update' : 'Simpan'}
-            </Button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
+          <FormField
+            control={form.control}
+            name="program_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Program</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={safeSelectValue(field.value)}
+                  defaultValue={safeSelectValue(field.value)}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih program" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="9_days">9 Hari</SelectItem>
+                    <SelectItem value="12_days">12 Hari</SelectItem>
+                    <SelectItem value="15_days">15 Hari</SelectItem>
+                    <SelectItem value="30_days">Ramadhan (30 Hari)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {initialData ? "Simpan Perubahan" : "Buat Paket"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
-};
-
-export default PackageForm;
+}
