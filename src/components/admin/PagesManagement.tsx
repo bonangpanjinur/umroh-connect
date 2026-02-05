@@ -480,6 +480,13 @@ ${jsContent}
                                 onBlocksChange={setBlocks}
                                 designSettings={designSettings}
                                 onDesignSettingsChange={setDesignSettings}
+                                pageTitle={formData.title}
+                                metaTitle={formData.meta_title}
+                                metaDescription={formData.meta_description}
+                                keywords={formData.meta_keywords}
+                                onMetaTitleChange={(v) => setFormData(prev => ({ ...prev, meta_title: v }))}
+                                onMetaDescriptionChange={(v) => setFormData(prev => ({ ...prev, meta_description: v }))}
+                                onKeywordsChange={(v) => setFormData(prev => ({ ...prev, meta_keywords: v }))}
                               />
                             ) : formData.page_type === 'standard' ? (
                               <div className="space-y-4">

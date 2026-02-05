@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Plus, Trash2, Copy, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown,
   Zap, Grid, MessageSquare, Package, HelpCircle, Mail, Type, Image as ImageIcon, Video as VideoIcon,
-  Monitor, Tablet, Smartphone, Undo2, Redo2, Layout, Save, Settings2, MoreVertical
+  Monitor, Tablet, Smartphone, Undo2, Redo2, Layout, Save, Settings2, MoreVertical, Search
 } from 'lucide-react';
+import { SEOHelper } from './SEOHelper';
 import { toast } from 'sonner';
 import { DynamicPackages } from './DynamicPackages';
 
@@ -47,6 +48,13 @@ interface VisualBlockBuilderProps {
   onBlocksChange: (blocks: BlockData[]) => void;
   designSettings?: DesignSettings;
   onDesignSettingsChange?: (settings: DesignSettings) => void;
+  pageTitle?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  keywords?: string;
+  onMetaTitleChange?: (v: string) => void;
+  onMetaDescriptionChange?: (v: string) => void;
+  onKeywordsChange?: (v: string) => void;
 }
 
 const BLOCK_ICONS: Record<string, React.ReactNode> = {
@@ -176,7 +184,14 @@ export function VisualBlockBuilder({
   blocks, 
   onBlocksChange, 
   designSettings = DEFAULT_DESIGN_SETTINGS,
-  onDesignSettingsChange 
+  onDesignSettingsChange,
+  pageTitle = '',
+  metaTitle = '',
+  metaDescription = '',
+  keywords = '',
+  onMetaTitleChange = () => {},
+  onMetaDescriptionChange = () => {},
+  onKeywordsChange = () => {},
 }: VisualBlockBuilderProps) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -414,12 +429,15 @@ export function VisualBlockBuilder({
         {/* Left Column: Editor Controls */}
         <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
           <Tabs defaultValue="structure" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="structure" className="flex items-center gap-2">
-                <Layout className="h-4 w-4" /> Struktur
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="structure" className="flex items-center gap-1 text-xs">
+                <Layout className="h-3.5 w-3.5" /> Struktur
               </TabsTrigger>
-              <TabsTrigger value="design" className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4" /> Desain Global
+              <TabsTrigger value="design" className="flex items-center gap-1 text-xs">
+                <Settings2 className="h-3.5 w-3.5" /> Desain
+              </TabsTrigger>
+              <TabsTrigger value="seo" className="flex items-center gap-1 text-xs">
+                <Search className="h-3.5 w-3.5" /> SEO
               </TabsTrigger>
             </TabsList>
             
@@ -551,11 +569,40 @@ export function VisualBlockBuilder({
                     </div>
                   </div>
                   
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t flex items-center justify-between">
+                    <label className="text-sm font-medium">Aktifkan Animasi Scroll (AOS)</label>
+                    <input 
+                      type="checkbox"
+                      checked={globalDesign.enableAOS !== false}
+                      onChange={(e) => setGlobalDesign({...globalDesign, enableAOS: e.target.checked})}
+                      className="h-4 w-4"
+                    />
+                  </div>
+                  
+                  <div className="pt-2">
                     <p className="text-[10px] text-muted-foreground italic">
                       * Pengaturan ini akan diterapkan secara otomatis ke seluruh blok yang mendukung gaya global.
                     </p>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="seo" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">SEO & Analytics Dashboard</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SEOHelper 
+                    pageTitle={pageTitle}
+                    metaTitle={metaTitle}
+                    metaDescription={metaDescription}
+                    keywords={keywords}
+                    onMetaTitleChange={onMetaTitleChange}
+                    onMetaDescriptionChange={onMetaDescriptionChange}
+                    onKeywordsChange={onKeywordsChange}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

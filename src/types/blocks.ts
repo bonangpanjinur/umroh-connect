@@ -13,6 +13,8 @@ export interface BlockData {
     backgroundColor?: string;
     customClass?: string;
     isVisible?: boolean;
+    animation?: 'fade-up' | 'fade-down' | 'fade-left' | 'fade-right' | 'zoom-in' | 'zoom-out' | 'none';
+    animationDuration?: number;
   };
 }
 
@@ -20,6 +22,7 @@ export interface DesignSettings {
   primaryColor: string;
   fontFamily: string;
   borderRadius: string;
+  enableAOS?: boolean;
 }
 
 export const DEFAULT_DESIGN_SETTINGS: DesignSettings = {

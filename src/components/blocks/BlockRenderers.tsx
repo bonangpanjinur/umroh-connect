@@ -305,8 +305,16 @@ export function renderBlock(block: BlockData): string {
     
     // We need to strip the original section wrapper's padding if we apply it to the outer div
     // But for simplicity, we wrap the rendered HTML
+    const animationAttr = s.animation && s.animation !== 'none' ? `data-aos="${s.animation}"` : '';
+    const durationAttr = s.animationDuration ? `data-aos-duration="${s.animationDuration}"` : '';
+    
     return `
-      <div class="${paddingClasses} ${s.customClass || ''}" style="${bgStyle}">
+      <div 
+        class="${paddingClasses} ${s.customClass || ''}" 
+        style="${bgStyle}"
+        ${animationAttr}
+        ${durationAttr}
+      >
         ${html}
       </div>
     `;
@@ -332,6 +340,7 @@ export function generatePageHTML(
   <meta name="description" content="${escapeHtml(metaDescription)}">
   <title>${escapeHtml(title)} | Arah Umroh</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
   <style>
     :root {
       --primary: ${design.primaryColor};
@@ -361,6 +370,13 @@ export function generatePageHTML(
       <p>&copy; ${new Date().getFullYear()} Arah Umroh. All rights reserved.</p>
     </div>
   </footer>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>
+    AOS.init({
+      once: true,
+      offset: 120,
+    });
+  </script>
 </body>
 </html>`;
 }
