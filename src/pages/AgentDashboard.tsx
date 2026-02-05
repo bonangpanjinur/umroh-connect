@@ -511,6 +511,7 @@ const AgentDashboard = () => {
               <div className="p-6 overflow-y-auto">
                 <PackageForm
                   initialData={editingPackage || undefined}
+                  travelId={travel?.id}
                   onSuccess={() => {
                     setShowPackageForm(false);
                     setEditingPackage(null);

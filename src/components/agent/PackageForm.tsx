@@ -20,131 +20,132 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { Loader2, X, Image as ImageIcon } from "lucide-react";
+import { useCreatePackage, useUpdatePackage } from "@/hooks/useAgentData";
 import { ImageUpload } from "@/components/common/ImageUpload";
+import { Package } from "@/types/database";
+import { Label } from "@/components/ui/label";
 
 const packageSchema = z.object({
   name: z.string().min(3, "Nama paket minimal 3 karakter"),
   description: z.string().min(10, "Deskripsi minimal 10 karakter"),
-  price: z.coerce.number().min(100000, "Harga tidak valid"),
-  currency: z.string().default("IDR"),
   duration_days: z.coerce.number().min(1, "Durasi minimal 1 hari"),
-  type: z.string().min(1, "Pilih tipe paket"),
+  package_type: z.enum(['umroh', 'haji_reguler', 'haji_plus', 'haji_furoda']),
   hotel_makkah: z.string().optional(),
   hotel_madinah: z.string().optional(),
-  departure_date: z.date({ required_error: "Tanggal keberangkatan wajib diisi" }),
-  quota: z.coerce.number().min(1, "Kuota minimal 1"),
+  hotel_star: z.coerce.number().min(1).max(5),
   airline: z.string().optional(),
-  program_type: z.string().optional(),
+  flight_type: z.enum(['direct', 'transit']),
+  meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
+  is_active: z.boolean().default(true),
 });
 
 type PackageFormValues = z.infer<typeof packageSchema>;
 
 interface PackageFormProps {
   onSuccess: () => void;
-  initialData?: any;
+  initialData?: Package;
+  travelId?: string;
 }
 
-export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
-  const { user } = useAuthContext();
-  const { toast } = useToast();
+export function PackageForm({ onSuccess, initialData, travelId }: PackageFormProps) {
+  const createPackage = useCreatePackage();
+  const updatePackage = useUpdatePackage();
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>(
-    initialData?.image_urls || []
-  );
-
-  // Helper function untuk mencegah crash pada Select component
-  const safeSelectValue = (value: string | undefined | null) => {
-    return value && value.trim() !== "" ? value : undefined;
-  };
+  const [images, setImages] = useState<string[]>(initialData?.images || []);
 
   const form = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema),
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
-      price: initialData?.price || 0,
-      currency: initialData?.currency || "IDR",
       duration_days: initialData?.duration_days || 9,
-      type: initialData?.type || "umroh",
-      quota: initialData?.quota || 45,
-      program_type: initialData?.program_type || "9_days",
+      package_type: initialData?.package_type || "umroh",
       hotel_makkah: initialData?.hotel_makkah || "",
       hotel_madinah: initialData?.hotel_madinah || "",
+      hotel_star: initialData?.hotel_star || 3,
       airline: initialData?.airline || "",
-      departure_date: initialData?.departure_date 
-        ? new Date(initialData.departure_date) 
-        : undefined,
+      flight_type: initialData?.flight_type || "direct",
+      meal_type: initialData?.meal_type || "fullboard",
+      is_active: initialData?.is_active ?? true,
     },
   });
 
   const onSubmit = async (data: PackageFormValues) => {
-    if (!user) return;
+    if (!travelId && !initialData?.travel_id) return;
     setIsLoading(true);
 
     try {
       const packageData = {
         ...data,
-        agent_id: user.id,
-        image_urls: uploadedImages,
-        departure_date: data.departure_date.toISOString(),
+        travel_id: travelId || initialData?.travel_id,
+        images: images,
+        facilities: initialData?.facilities || [], // Keep existing or empty
       };
 
-      let error;
-      
       if (initialData?.id) {
-        const { error: updateError } = await supabase
-          .from("travel_packages")
-          .update(packageData)
-          .eq("id", initialData.id);
-        error = updateError;
+        await updatePackage.mutateAsync({ id: initialData.id, ...packageData });
       } else {
-        const { error: insertError } = await supabase
-          .from("travel_packages")
-          .insert(packageData);
-        error = insertError;
+        await createPackage.mutateAsync(packageData);
       }
 
-      if (error) throw error;
-
-      toast({
-        title: "Berhasil",
-        description: initialData ? "Paket berhasil diperbarui" : "Paket berhasil ditambahkan",
-      });
       onSuccess();
     } catch (error: any) {
       console.error("Error saving package:", error);
-      toast({
-        title: "Gagal",
-        description: error.message || "Terjadi kesalahan saat menyimpan paket",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleAddImage = (url: string) => {
+    setImages((prev) => [...prev, url]);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Image Upload Section */}
+        <div className="space-y-4">
+          <Label className="text-base font-bold flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            Foto Paket & Galeri
+          </Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {images.map((url, index) => (
+              <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
+                <img src={url} alt={`Package ${index}`} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            <div className="aspect-video">
+              <ImageUpload
+                bucket="package-images"
+                folder="packages"
+                onUpload={handleAddImage}
+                className="h-full w-full"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Unggah foto hotel, pesawat, atau brosur paket (Maksimal 8 foto)</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nama Paket</FormLabel>
+                <FormLabel>Nama Paket *</FormLabel>
                 <FormControl>
                   <Input placeholder="Contoh: Umroh Akbar 2025" {...field} />
                 </FormControl>
@@ -155,15 +156,11 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
 
           <FormField
             control={form.control}
-            name="type"
+            name="package_type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipe Paket</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={safeSelectValue(field.value)}
-                  defaultValue={safeSelectValue(field.value)}
-                >
+                <FormLabel>Tipe Paket *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih tipe paket" />
@@ -171,9 +168,9 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="umroh">Umroh Reguler</SelectItem>
-                    <SelectItem value="haji">Haji Khusus</SelectItem>
-                    <SelectItem value="tour">Wisata Halal</SelectItem>
-                    <SelectItem value="plus">Umroh Plus</SelectItem>
+                    <SelectItem value="haji_reguler">Haji Reguler</SelectItem>
+                    <SelectItem value="haji_plus">Haji Plus</SelectItem>
+                    <SelectItem value="haji_furoda">Haji Furoda</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -182,15 +179,15 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
-            name="price"
+            name="duration_days"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Harga (IDR)</FormLabel>
+                <FormLabel>Durasi (Hari) *</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="Contoh: 30000000" {...field} />
+                  <Input type="number" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -199,13 +196,44 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
 
           <FormField
             control={form.control}
-            name="duration_days"
+            name="flight_type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Durasi (Hari)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
+                <FormLabel>Penerbangan *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih tipe" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="direct">Direct (Langsung)</SelectItem>
+                    <SelectItem value="transit">Transit</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="meal_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Konsumsi *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih tipe" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="fullboard">Fullboard</SelectItem>
+                    <SelectItem value="halfboard">Halfboard</SelectItem>
+                    <SelectItem value="breakfast">Breakfast Only</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -217,10 +245,10 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Deskripsi</FormLabel>
+              <FormLabel>Deskripsi Paket *</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="Deskripsi lengkap paket..." 
+                  placeholder="Jelaskan keunggulan paket Anda..." 
                   className="min-h-[100px]"
                   {...field} 
                 />
@@ -230,65 +258,7 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="departure_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Tanggal Keberangkatan</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "PPP", { locale: id })
-                        ) : (
-                          <span>Pilih tanggal</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="quota"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Kuota</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
             name="hotel_makkah"
@@ -296,7 +266,7 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
               <FormItem>
                 <FormLabel>Hotel Makkah</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nama Hotel Makkah" {...field} />
+                  <Input placeholder="Nama Hotel" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -310,23 +280,7 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
               <FormItem>
                 <FormLabel>Hotel Madinah</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nama Hotel Madinah" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="airline"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Maskapai</FormLabel>
-                <FormControl>
-                  <Input placeholder="Contoh: Saudi Arabian Airlines" {...field} />
+                  <Input placeholder="Nama Hotel" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -335,25 +289,20 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
 
           <FormField
             control={form.control}
-            name="program_type"
+            name="hotel_star"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Program</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={safeSelectValue(field.value)}
-                  defaultValue={safeSelectValue(field.value)}
-                >
+                <FormLabel>Bintang Hotel *</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value.toString()}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih program" />
+                      <SelectValue placeholder="Pilih bintang" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="9_days">9 Hari</SelectItem>
-                    <SelectItem value="12_days">12 Hari</SelectItem>
-                    <SelectItem value="15_days">15 Hari</SelectItem>
-                    <SelectItem value="30_days">Ramadhan (30 Hari)</SelectItem>
+                    <SelectItem value="3">Bintang 3</SelectItem>
+                    <SelectItem value="4">Bintang 4</SelectItem>
+                    <SelectItem value="5">Bintang 5</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -361,9 +310,23 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="airline"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Maskapai</FormLabel>
+              <FormControl>
+                <Input placeholder="Contoh: Saudi Arabian Airlines" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <div className="flex justify-end gap-3 pt-4">
-          <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+          <Button type="submit" disabled={isLoading} className="w-full md:w-auto px-8">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {initialData ? "Simpan Perubahan" : "Buat Paket"}
           </Button>
