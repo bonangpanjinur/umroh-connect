@@ -32,12 +32,33 @@ export const AgentWebsiteManager = () => {
   const [cssContent, setCssContent] = useState('');
   const [jsContent, setJsContent] = useState('');
   const [requestedSlug, setRequestedSlug] = useState('');
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchSettings();
+      fetchTemplates();
     }
   }, [user]);
+
+  const fetchTemplates = async () => {
+    try {
+      setLoadingTemplates(true);
+      const { data, error } = await supabase
+        .from('website_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('is_premium', { ascending: true });
+
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -200,6 +221,88 @@ ${jsContent}
         </TabsList>
 
         <TabsContent value="config" className="space-y-6">
+          {/* Template Selection Section */}
+          <Card className="border-primary/20 shadow-md overflow-hidden">
+            <CardHeader className="bg-primary/5 border-b border-primary/10">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Palette className="h-6 w-6 text-primary" />
+                Pilih Desain Website
+              </CardTitle>
+              <CardDescription>Pilih template yang paling sesuai dengan brand travel Anda</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              {loadingTemplates ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {templates.map((template) => (
+                    <div 
+                      key={template.id}
+                      className={cn(
+                        "relative group cursor-pointer rounded-2xl border-2 transition-all duration-300 overflow-hidden",
+                        settings?.active_template_id === template.id 
+                          ? "border-primary ring-4 ring-primary/10 shadow-lg" 
+                          : "border-border hover:border-primary/50 hover:shadow-md"
+                      )}
+                      onClick={() => {
+                        if (template.is_premium && !settings?.is_pro_active) {
+                          toast.error('Template ini hanya tersedia untuk member PRO');
+                          return;
+                        }
+                        setSettings({...settings, active_template_id: template.id});
+                      }}
+                    >
+                      <div className="aspect-video bg-muted relative">
+                        {template.thumbnail_url ? (
+                          <img src={template.thumbnail_url} alt={template.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                            <Layout className="w-12 h-12 text-primary/20" />
+                          </div>
+                        )}
+                        
+                        {/* Overlay on hover */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                           <Button size="sm" variant="secondary" className="rounded-full" onClick={(e) => {
+                             e.stopPropagation();
+                             window.open(`${window.location.origin}/preview-template/${template.slug}`, '_blank');
+                           }}>
+                             <Eye className="w-4 h-4 mr-2" /> Preview
+                           </Button>
+                        </div>
+
+                        {/* Badges */}
+                        <div className="absolute top-3 right-3 flex flex-col gap-2">
+                          {template.is_premium && (
+                            <Badge className="bg-amber-500 text-white border-none shadow-sm">
+                              <Sparkles className="w-3 h-3 mr-1" /> PRO
+                            </Badge>
+                          )}
+                          {settings?.active_template_id === template.id && (
+                            <Badge className="bg-primary text-white border-none shadow-sm">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Digunakan
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-card">
+                        <h4 className="font-bold text-lg mb-1">{template.name}</h4>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
+                      </div>
+                      
+                      {/* Selection Indicator */}
+                      {settings?.active_template_id === template.id && (
+                        <div className="absolute inset-0 border-4 border-primary pointer-events-none rounded-2xl" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* URL Management */}
             <Card>

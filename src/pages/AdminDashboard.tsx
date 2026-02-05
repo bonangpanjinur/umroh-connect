@@ -23,6 +23,7 @@ import SubscriptionsManagement from '@/components/admin/SubscriptionsManagement'
 import { PaymentGatewaySettings } from '@/components/admin/PaymentGatewaySettings';
 import { TasbihManagement } from '@/components/admin/TasbihManagement';
 import { AgentUrlManagement } from '@/components/admin/AgentUrlManagement';
+import WebsiteTemplatesManagement from '@/components/admin/WebsiteTemplatesManagement';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -65,7 +66,7 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-8 lg:grid-cols-17 gap-2 h-auto p-1">
+          <TabsList className="grid grid-cols-8 lg:grid-cols-18 gap-2 h-auto p-1">
             <TabsTrigger value="overview" className="flex items-center gap-2 py-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -142,6 +143,10 @@ const AdminDashboard = () => {
               <Globe className="h-4 w-4" />
               <span className="hidden sm:inline">URL</span>
             </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-2 py-2">
+              <Layout className="h-4 w-4" />
+              <span className="hidden sm:inline">Template</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -217,6 +222,9 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent value="urls">
             <AgentUrlManagement />
+          </TabsContent>
+          <TabsContent value="templates">
+            <WebsiteTemplatesManagement />
           </TabsContent>
         </Tabs>
       </main>
