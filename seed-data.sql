@@ -447,3 +447,10 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 -- ========================================
 -- Data telah siap digunakan.
 -- Pastikan tabel-tabel sudah ada sebelum menjalankan script ini.
+
+-- ========================================
+-- 5. WEBSITE TEMPLATES
+-- ========================================
+INSERT INTO public.website_templates (name, slug, description, thumbnail_url, is_premium, is_active) VALUES
+('Default Theme', 'default', 'Tampilan standar Umroh Connect yang bersih dan profesional.', '/placeholder.svg', false, true),
+('Gold Luxury', 'gold-luxury', 'Desain mewah dengan nuansa emas, terinspirasi dari Jannah Firdaus.', '/placeholder.svg', true, true);

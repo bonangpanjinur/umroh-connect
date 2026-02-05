@@ -295,7 +295,24 @@ export interface AgentWebsiteSettings {
   show_features?: boolean;
   show_contact_form?: boolean;
   features_json?: any;
+  active_template_id?: string | null;
   created_at: string;
   updated_at: string;
 }
 
+
+export interface WebsiteTemplate {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  is_premium: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+// Update AgentWebsiteSettings to include active_template_id
+// Note: In TypeScript, we can extend the interface or just add the field if it's already defined.
+// Since it's already defined above, I will use 'edit' to add the field in the next step if needed, 
+// but for now I'll just append the new interface.
