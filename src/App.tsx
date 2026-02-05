@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PageDetail from "./pages/PageDetail";
 import AgentPublicProfile from "./pages/AgentPublicProfile";
 import NotFound from "./pages/NotFound";
+import DynamicSlugHandler from "./pages/DynamicSlugHandler";
 import { OfflineBanner } from "./components/pwa/OfflineBanner";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
 
@@ -37,7 +38,7 @@ const App = () => (
                   <Route path="/agent" element={<AgentDashboard />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/agent/:slug" element={<AgentPublicProfile />} />
-                  <Route path="/:slug" element={<PageDetail />} />
+                  <Route path="/:slug" element={<DynamicSlugHandler />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
