@@ -196,8 +196,8 @@ export const PagesManagement = () => {
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = \`\${Date.now()}.\${fileExt}\`;
-      const filePath = \`pages/\${fileName}\`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `pages/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('uploads')
@@ -259,23 +259,23 @@ export const PagesManagement = () => {
     } 
     // If using landing (manual HTML), combine HTML, CSS, and JavaScript
     else if (formData.page_type === 'landing' && (htmlContent || cssContent || jsContent)) {
-      finalContent = \`<!DOCTYPE html>
+      finalContent = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-\${cssContent}
+${cssContent}
   </style>
 </head>
 <body>
-\${htmlContent}
+${htmlContent}
 <script>
-\${jsContent}
+${jsContent}
 </script>
 </body>
-</html>\`;
+</html>`;
     }
 
     try {
@@ -710,7 +710,7 @@ export const PagesManagement = () => {
                                   size="icon" 
                                   className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity"
                                   onClick={() => {
-                                    navigator.clipboard.writeText(\`https://arahumroh.id/\${page.slug}\`);
+                                    navigator.clipboard.writeText(`https://arahumroh.id/${page.slug}`);
                                     toast.success('URL disalin');
                                   }}
                                 >
@@ -747,7 +747,7 @@ export const PagesManagement = () => {
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                <a href={\`/\${page.slug}\`} target="_blank" rel="noreferrer">
+                                <a href={`/${page.slug}`} target="_blank" rel="noreferrer">
                                   <ExternalLink className="h-4 w-4" />
                                 </a>
                               </Button>
