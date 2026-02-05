@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Bell, Settings, LayoutDashboard, Share2, ExternalLink } from 'lucide-react';
+import { 
+  ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, 
+  BarChart3, MessageSquare, Users, Sparkles, ClipboardList, 
+  TrendingUp, Zap, Crown, Globe, Bell, Settings, LayoutDashboard, 
+  Share2, ExternalLink, Star, DollarSign, MousePointer2, 
+  ArrowUpRight, ArrowDownRight, Calendar, Clock
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
@@ -26,10 +32,12 @@ import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
 import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
 import { AgentWebsiteManager } from '@/components/agent/AgentWebsiteManager';
 import { AgentDashboardSidebar } from '@/components/agent/AgentDashboardSidebar';
+import { AgentDashboardHeader } from '@/components/agent/AgentDashboardHeader';
 import { Package as PackageType } from '@/types/database';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +47,7 @@ const AgentDashboard = () => {
   const [showPackageForm, setShowPackageForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { data: travel, isLoading: travelLoading } = useAgentTravel();
   const { data: packages, isLoading: packagesLoading } = useAgentPackages(travel?.id);
@@ -98,60 +107,151 @@ const AgentDashboard = () => {
     }
   };
 
+  const renderOverview = () => {
+    const totalBookings = bookingStats.totalBookings || 0;
+    const totalRevenue = bookingStats.totalRevenue || 0;
+    const totalLeads = inquiryStats?.total || 0;
+
+    return (
+      <div className="space-y-6">
+        {/* Bento Grid Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Main Stat: Revenue */}
+          <Card className="lg:col-span-2 overflow-hidden border-none shadow-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <DollarSign className="h-6 w-6" />
+                </div>
+                <Badge className="bg-white/20 text-white border-none">
+                  <ArrowUpRight className="h-3 w-3 mr-1" /> +12.5%
+                </Badge>
+              </div>
+              <p className="text-primary-foreground/80 text-sm font-medium">Total Pendapatan</p>
+              <h3 className="text-3xl font-bold mt-1">Rp {totalRevenue.toLocaleString('id-ID')}</h3>
+              <div className="mt-6 flex items-center gap-4 text-xs text-primary-foreground/60">
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> 30 Hari Terakhir
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Update: Baru saja
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Stat: Bookings */}
+          <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+                  <ClipboardList className="h-6 w-6" />
+                </div>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">Total Booking</p>
+              <h3 className="text-2xl font-bold mt-1">{totalBookings}</h3>
+              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <ArrowUpRight className="h-3 w-3" /> 5 booking baru minggu ini
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Stat: Leads */}
+          <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600">
+                  <Users className="h-6 w-6" />
+                </div>
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">Lead Masuk</p>
+              <h3 className="text-2xl font-bold mt-1">{totalLeads}</h3>
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {inquiryStats?.pending || 0} perlu direspon
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Second Row: Charts & Quick Links */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
+            <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+          </div>
+          
+          <div className="space-y-6">
+            {/* Quick Links Bento Card */}
+            <Card className="border-none shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  Aksi Cepat
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-3 p-4">
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => {
+                  setEditingPackage(null);
+                  setShowPackageForm(true);
+                }}>
+                  <Plus className="w-5 h-5 text-primary" />
+                  <span className="text-xs">Paket Baru</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('website')}>
+                  <Globe className="w-5 h-5 text-blue-500" />
+                  <span className="text-xs">Edit Website</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('chat')}>
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <span className="text-xs">Buka Chat</span>
+                </Button>
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('analytics')}>
+                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                  <span className="text-xs">Analitik</span>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <AgentMembershipCard travelId={travel?.id || ''} />
+            
+            {/* Website Status Card */}
+            <Card className="border-none shadow-md bg-secondary/20">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-bold text-sm">Status Website</h4>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Online</Badge>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border mb-4">
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-mono truncate flex-1">umroh.connect/{travel?.id.substring(0, 8)}</span>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <Button variant="ghost" size="sm" className="w-full text-xs text-primary" onClick={() => setActiveTab('website')}>
+                  Kelola Domain & SEO
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     return (
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -10 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
           className="w-full"
         >
           {(() => {
             switch (activeTab) {
               case 'overview':
-                return (
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                      <div className="xl:col-span-2 space-y-8">
-                        <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
-                        <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
-                      </div>
-                      <div className="space-y-8">
-                        <AgentMembershipCard travelId={travel?.id || ''} />
-                        <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-6 border border-border shadow-sm">
-                          <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-amber-500" />
-                            Aksi Cepat
-                          </h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => {
-                              setEditingPackage(null);
-                              setShowPackageForm(true);
-                            }}>
-                              <Plus className="w-5 h-5 text-primary" />
-                              <span className="text-xs">Tambah Paket</span>
-                            </Button>
-                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('website')}>
-                              <Globe className="w-5 h-5 text-blue-500" />
-                              <span className="text-xs">Website Builder</span>
-                            </Button>
-                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('chat')}>
-                              <MessageSquare className="w-5 h-5 text-green-500" />
-                              <span className="text-xs">Buka Chat</span>
-                            </Button>
-                            <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-background/50" onClick={() => setActiveTab('analytics')}>
-                              <BarChart3 className="w-5 h-5 text-purple-500" />
-                              <span className="text-xs">Lihat Analitik</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
+                return renderOverview();
               case 'analytics':
                 return <AnalyticsDashboard travelId={travel?.id || ''} />;
               case 'packages':
@@ -165,7 +265,7 @@ const AgentDashboard = () => {
                       <Button size="lg" onClick={() => {
                         setEditingPackage(null);
                         setShowPackageForm(true);
-                      }} className="gap-2 w-full sm:w-auto">
+                      }} className="gap-2 w-full sm:w-auto rounded-xl shadow-lg shadow-primary/20">
                         <Plus className="w-4 h-4" /> Tambah Paket
                       </Button>
                     </div>
@@ -217,7 +317,7 @@ const AgentDashboard = () => {
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-bold text-2xl">Manajemen Pendaftaran Haji</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Kelola data pendaftaran haji pelanggan Anda</p>
+                      <p className="text-sm text-muted-foreground mt-1">Kelola pendaftaran haji reguler dan khusus</p>
                     </div>
                     <HajiManagement travelId={travel?.id} />
                   </div>
@@ -247,48 +347,16 @@ const AgentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Navigation Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-8 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-              className="rounded-full hover:bg-secondary"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="hidden sm:block">
-              <h1 className="font-bold text-lg leading-tight">Dashboard Agent</h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                {travel?.name || 'Kelola Bisnis Anda'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {travel && (
-              <>
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-full border border-border">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-medium">{travel.verified ? 'Verified Agent' : 'Agent'}</span>
-                </div>
-                <AgentNotificationCenter 
-                  travelId={travel.id} 
-                  onNavigate={handleNotificationNavigate}
-                />
-                <Button variant="outline" size="icon" className="rounded-full" onClick={() => setActiveTab('settings')}>
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <AgentDashboardHeader 
+        travelName={travel?.name}
+        activeTab={activeTab}
+        userEmail={user?.email}
+        userAvatar={profile?.avatar_url || undefined}
+        onLogout={() => navigate('/auth')}
+        unreadNotifications={0}
+      />
 
-      <div className="flex-1 flex flex-col lg:flex-row max-w-[1600px] mx-auto w-full relative">
-        {/* Sidebar Navigation */}
+      <div className="flex-1 flex flex-col lg:flex-row w-full relative">
         <AgentDashboardSidebar 
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -296,10 +364,11 @@ const AgentDashboard = () => {
           bookingOverdueCount={bookingStats.overduePayments}
           hajiPendingCount={hajiStats?.pending || 0}
           inquiryPendingCount={inquiryStats?.pending || 0}
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden">
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden bg-secondary/10">
           {!travel ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -318,41 +387,33 @@ const AgentDashboard = () => {
               </Button>
             </motion.div>
           ) : (
-            <div className="space-y-8">
-              {/* Modern Welcome Header */}
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Selamat datang kembali,</span>
+            <div className="max-w-[1400px] mx-auto space-y-8">
+              {/* Welcome Header */}
+              {activeTab === 'overview' && (
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                      <Sparkles className="w-4 h-4" />
+                      <span>Selamat datang kembali,</span>
+                    </div>
+                    <h2 className="text-3xl lg:text-4xl font-black tracking-tight">{travel.name}</h2>
+                    <p className="text-muted-foreground text-sm">Berikut adalah ringkasan performa bisnis Anda hari ini.</p>
                   </div>
-                  <h2 className="text-3xl lg:text-4xl font-black tracking-tight">{travel.name}</h2>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Package className="w-4 h-4" />
-                      {packages?.length || 0} Paket
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-border" />
-                    <span className="flex items-center gap-1.5">
-                      <Star className="w-4 h-4 text-amber-500" />
-                      {travel.rating || 0} ({travel.review_count || 0} ulasan)
-                    </span>
+                  
+                  <div className="flex items-center gap-3">
+                    <Button variant="outline" className="rounded-xl gap-2 bg-background" onClick={handleShare}>
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </Button>
+                    <Button variant="default" className="rounded-xl gap-2 shadow-lg shadow-primary/20" asChild>
+                      <a href={`/travel/${travel.id}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="w-4 h-4" />
+                        Lihat Profil
+                      </a>
+                    </Button>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" className="rounded-xl gap-2" onClick={handleShare}>
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </Button>
-                  <Button variant="default" className="rounded-xl gap-2 shadow-lg shadow-primary/20" asChild>
-                    <a href={`/travel/${travel.id}`} target="_blank" rel="noreferrer">
-                      <ExternalLink className="w-4 h-4" />
-                      Lihat Profil
-                    </a>
-                  </Button>
-                </div>
-              </div>
+              )}
 
               {/* Dynamic Content */}
               {renderContent()}
