@@ -3,52 +3,93 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ElderlyModeProvider } from "@/contexts/ElderlyModeContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
+import { ElderlyModeProvider } from "./contexts/ElderlyModeContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import AgentDashboard from "./pages/AgentDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import PageDetail from "./pages/PageDetail";
-import AgentPublicProfile from "./pages/AgentPublicProfile";
 import NotFound from "./pages/NotFound";
-import DynamicSlugHandler from "./pages/DynamicSlugHandler";
-import { OfflineBanner } from "./components/pwa/OfflineBanner";
+import AdminDashboard from "./pages/AdminDashboard";
+import AgentDashboard from "./pages/AgentDashboard";
+import AgentPublicProfile from "./pages/AgentPublicProfile";
+import PageDetail from "./pages/PageDetail";
+import { InstallPWA } from "./components/pwa/PWAInstallPrompt";
+import { SplashScreen } from "./components/pwa/SplashScreen";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
+import { OfflineBanner } from "./components/pwa/OfflineBanner";
+import { OfflineManagerView } from "./components/offline/OfflineManagerView";
+import { useEffect, useState } from "react";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <ElderlyModeProvider>
-          <LanguageProvider>
-            <TooltipProvider>
-              <OfflineBanner />
-              <UpdatePrompt />
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/agent" element={<AgentDashboard />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/agent/:slug" element={<AgentPublicProfile />} />
-                  <Route path="/:slug" element={<DynamicSlugHandler />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </LanguageProvider>
-        </ElderlyModeProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <LanguageProvider>
+          <ElderlyModeProvider>
+            <AuthProvider>
+              <TooltipProvider>
+                <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+                  <OfflineBanner />
+                  <Toaster />
+                  <Sonner />
+                  <UpdatePrompt />
+                  <BrowserRouter>
+                    <Routes>
+                      {/* === LEVEL 1: STATIC PAGES === */}
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/offline" element={<OfflineManagerView />} />
+                      {/* Placeholder Route untuk Kemitraan (mencegah 404 jika halaman belum dibuat) */}
+                      <Route path="/kemitraan" element={<Index />} /> 
+
+                      {/* === LEVEL 2: PROTECTED ROUTES (Admin & Agent) === */}
+                      {/* Harus diletakkan SEBELUM rute dinamis */}
+                      <Route path="/admin/*" element={<AdminDashboard />} />
+                      <Route path="/agent/*" element={<AgentDashboard />} />
+                      
+                      {/* === LEVEL 3: PUBLIC PROFILES === */}
+                      <Route path="/u/:username" element={<AgentPublicProfile />} />
+                      <Route path="/u/:username/:packageSlug" element={<AgentPublicProfile />} />
+
+                      {/* Menangkap URL bebas seperti /tentang-kami. HANYA jalan jika route diatas tidak match */}
+                      <Route path="/:slug" element={<PageDetail />} />
+
+                      {/* === LEVEL 5: FALLBACK (404) === */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <InstallPWA />
+                  </BrowserRouter>
+                </div>
+              </TooltipProvider>
+            </AuthProvider>
+          </ElderlyModeProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
