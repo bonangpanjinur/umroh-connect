@@ -266,3 +266,24 @@ export interface UserChecklist {
 export interface ChecklistWithProgress extends Checklist {
   userProgress?: UserChecklist;
 }
+
+export type SlugStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AgentWebsiteSettings {
+  user_id: string;
+  slug: string | null;
+  custom_slug: string | null;
+  slug_status: SlugStatus;
+  admin_notes: string | null;
+  is_builder_active: boolean;
+  html_content: string | null;
+  is_custom_url_active: boolean;
+  is_pro_active: boolean;
+  fb_pixel_id: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  meta_image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
