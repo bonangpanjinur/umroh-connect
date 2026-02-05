@@ -16,6 +16,18 @@ export interface BlockData {
   };
 }
 
+export interface DesignSettings {
+  primaryColor: string;
+  fontFamily: string;
+  borderRadius: string;
+}
+
+export const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
+  primaryColor: '#8B5CF6',
+  fontFamily: 'sans-serif',
+  borderRadius: '8px',
+};
+
 // Hero Block
 export interface HeroBlockContent {
   title: string;

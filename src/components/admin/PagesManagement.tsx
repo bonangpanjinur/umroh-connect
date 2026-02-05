@@ -22,7 +22,7 @@ import { VisualBlockBuilder } from '../blocks/VisualBlockBuilder';
 import { SEOHelper } from '../blocks/SEOHelper';
 import { NavigationManager } from './NavigationManager';
 import { generatePageHTML } from '../blocks/BlockRenderers';
-import { BlockData } from '@/types/blocks';
+import { BlockData, DesignSettings, DEFAULT_DESIGN_SETTINGS } from '@/types/blocks';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -38,6 +38,7 @@ interface Page {
   is_active: boolean;
   page_type: 'standard' | 'builder' | 'landing';
   layout_data: any;
+  design_data: any;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +84,7 @@ export const PagesManagement = () => {
   const [cssContent, setCssContent] = useState('');
   const [jsContent, setJsContent] = useState('');
   const [blocks, setBlocks] = useState<BlockData[]>([]);
+  const [designSettings, setDesignSettings] = useState<DesignSettings>(DEFAULT_DESIGN_SETTINGS);
 
   const fetchPages = async () => {
     setIsLoading(true);
@@ -128,6 +130,7 @@ export const PagesManagement = () => {
     setCssContent('');
     setJsContent('');
     setBlocks([]);
+    setDesignSettings(DEFAULT_DESIGN_SETTINGS);
     setEditingPage(null);
     setActiveTab('content');
     setIsSlugLocked(true);
@@ -171,6 +174,7 @@ export const PagesManagement = () => {
     setCssContent('');
     setJsContent('');
     setBlocks(page.layout_data || []);
+    setDesignSettings(page.design_data || DEFAULT_DESIGN_SETTINGS);
 
     // Extract content if it's builder/landing type
     if ((page.page_type === 'builder' || page.page_type === 'landing') && page.content) {
@@ -256,7 +260,7 @@ export const PagesManagement = () => {
     // If using builder, generate HTML from blocks
     if (formData.page_type === 'builder') {
       // Pass the actual blocks to ensure any last-minute changes are captured
-      finalContent = generatePageHTML(blocks, formData.title, formData.meta_description || '');
+      finalContent = generatePageHTML(blocks, formData.title, formData.meta_description || '', designSettings);
     } 
     // If using landing (manual HTML), combine HTML, CSS, and JavaScript
     else if (formData.page_type === 'landing' && (htmlContent || cssContent || jsContent)) {
@@ -291,6 +295,7 @@ ${jsContent}
         is_active: formData.is_active,
         page_type: formData.page_type,
         layout_data: layoutData,
+        design_data: designSettings,
       };
 
       if (editingPage) {
@@ -472,7 +477,9 @@ ${jsContent}
                             {formData.page_type === 'builder' ? (
                               <VisualBlockBuilder 
                                 blocks={blocks} 
-                                onBlocksChange={setBlocks} 
+                                onBlocksChange={setBlocks}
+                                designSettings={designSettings}
+                                onDesignSettingsChange={setDesignSettings}
                               />
                             ) : formData.page_type === 'standard' ? (
                               <div className="space-y-4">

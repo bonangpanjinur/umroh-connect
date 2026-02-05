@@ -10,7 +10,9 @@ import {
   ContactBlockContent, 
   RichTextBlockContent,
   GalleryBlockContent,
-  VideoBlockContent
+  VideoBlockContent,
+  DesignSettings,
+  DEFAULT_DESIGN_SETTINGS
 } from '@/types/blocks';
 
 export function renderHeroBlock(block: BlockData): string {
@@ -314,7 +316,12 @@ export function renderBlock(block: BlockData): string {
 }
 
 // Generate complete HTML from blocks
-export function generatePageHTML(blocks: BlockData[], title: string, metaDescription: string): string {
+export function generatePageHTML(
+  blocks: BlockData[], 
+  title: string, 
+  metaDescription: string, 
+  design: DesignSettings = DEFAULT_DESIGN_SETTINGS
+): string {
   const blocksHTML = blocks.map(renderBlock).join('\n');
 
   return `<!DOCTYPE html>
@@ -327,12 +334,20 @@ export function generatePageHTML(blocks: BlockData[], title: string, metaDescrip
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --primary: #8B5CF6;
+      --primary: ${design.primaryColor};
+      --radius: ${design.borderRadius};
+    }
+    body {
+      font-family: ${design.fontFamily};
     }
     .bg-primary { background-color: var(--primary); }
     .text-primary { color: var(--primary); }
     .border-primary { border-color: var(--primary); }
     .focus\\:ring-primary:focus { --tw-ring-color: var(--primary); }
+    
+    .rounded-lg { border-radius: var(--radius); }
+    .rounded-xl { border-radius: calc(var(--radius) * 1.5); }
+    .rounded-2xl { border-radius: calc(var(--radius) * 2); }
     
     /* Reset section padding when wrapped by settings div */
     div > section { padding-top: 0 !important; padding-bottom: 0 !important; background-color: transparent !important; }
