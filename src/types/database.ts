@@ -36,6 +36,8 @@ export interface Travel {
   verified_by: string | null;
   approval_notes: string | null;
   status: TravelStatus;
+  admin_approved_slug?: string | null;
+  is_custom_url_enabled_by_admin?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +58,7 @@ export interface Package {
   images: string[];
   is_active: boolean;
   package_type: PackageType;
+  base_price?: number | null;
   // Haji-specific fields
   haji_year?: number | null;
   haji_season?: string | null;

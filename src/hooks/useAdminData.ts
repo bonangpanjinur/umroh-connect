@@ -473,6 +473,8 @@ export const useCreateTravel = () => {
       verified?: boolean;
       owner_id?: string | null;
       logo_url?: string | null;
+      admin_approved_slug?: string | null;
+      is_custom_url_enabled_by_admin?: boolean;
     }) => {
       const { data, error } = await supabase
         .from('travels')
@@ -487,6 +489,8 @@ export const useCreateTravel = () => {
           verified_at: travel.verified ? new Date().toISOString() : null,
           owner_id: travel.owner_id,
           logo_url: travel.logo_url,
+          admin_approved_slug: travel.admin_approved_slug,
+          is_custom_url_enabled_by_admin: travel.is_custom_url_enabled_by_admin || false,
           status: 'active'
         })
         .select()
@@ -538,6 +542,8 @@ export const useUpdateTravelAdmin = () => {
       verified?: boolean;
       owner_id?: string | null;
       logo_url?: string | null;
+      admin_approved_slug?: string | null;
+      is_custom_url_enabled_by_admin?: boolean;
     }) => {
       const { data: result, error } = await supabase
         .from('travels')
