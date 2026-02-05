@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Copy, Download, Eye, EyeOff, Code2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Copy, Download, Eye, EyeOff, Code2, RefreshCw, Smartphone, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PageHtmlEditorProps {
@@ -60,6 +60,7 @@ export const PageHtmlEditor = ({
   const [showPreview, setShowPreview] = useState(true);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const applyTemplate = (templateKey: string) => {
@@ -124,7 +125,7 @@ export const PageHtmlEditor = ({
     <div className="space-y-4">
       {/* Templates */}
       <div className="space-y-2">
-        <Label>Template Starter</Label>
+        <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Template Starter</Label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {Object.entries(HTML_TEMPLATES).map(([key, template]) => (
             <Button
@@ -132,7 +133,7 @@ export const PageHtmlEditor = ({
               variant={selectedTemplate === key ? 'default' : 'outline'}
               size="sm"
               onClick={() => applyTemplate(key)}
-              className="text-xs"
+              className="text-xs h-8"
             >
               {template.name}
             </Button>
@@ -141,136 +142,146 @@ export const PageHtmlEditor = ({
       </div>
 
       {/* Editor Tabs */}
-      <Tabs defaultValue="html" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="html">HTML</TabsTrigger>
-          <TabsTrigger value="css">CSS</TabsTrigger>
-          <TabsTrigger value="javascript">JavaScript</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
+      <Tabs defaultValue="html" className="w-full border rounded-xl overflow-hidden bg-background">
+        <TabsList className="w-full justify-start rounded-none border-b bg-muted/30 h-10 p-0">
+          <TabsTrigger value="html" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-10 px-6">HTML</TabsTrigger>
+          <TabsTrigger value="css" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-10 px-6">CSS</TabsTrigger>
+          <TabsTrigger value="javascript" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-10 px-6">JS</TabsTrigger>
+          <TabsTrigger value="preview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-10 px-6">Live Preview</TabsTrigger>
         </TabsList>
 
         {/* HTML Editor */}
-        <TabsContent value="html" className="space-y-2">
+        <TabsContent value="html" className="p-4 space-y-3 mt-0">
           <div className="flex justify-between items-center">
-            <Label>Kode HTML</Label>
+            <div className="flex items-center gap-2">
+              <Code2 className="h-4 w-4 text-primary" />
+              <Label className="font-bold">Struktur HTML</Label>
+            </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copyCode(html, 'HTML')}
-              className="gap-1"
+              className="h-8 gap-1 text-xs"
             >
-              <Copy className="h-4 w-4" />
-              Salin
+              <Copy className="h-3.5 w-3.5" />
+              Salin Kode
             </Button>
           </div>
           <Textarea
             value={html}
             onChange={(e) => onHtmlChange(e.target.value)}
             placeholder="Masukkan kode HTML di sini..."
-            className="font-mono text-sm min-h-64"
+            className="font-mono text-sm min-h-[400px] focus-visible:ring-primary"
           />
-          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-blue-700">
-              Gunakan class Tailwind CSS untuk styling cepat. Anda juga dapat menambahkan class kustom.
+            <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+              <strong>Tips:</strong> Gunakan class Tailwind CSS (seperti <code>bg-blue-500</code>, <code>p-4</code>, <code>flex</code>) untuk styling cepat tanpa menulis CSS tambahan.
             </p>
           </div>
         </TabsContent>
 
         {/* CSS Editor */}
-        <TabsContent value="css" className="space-y-2">
+        <TabsContent value="css" className="p-4 space-y-3 mt-0">
           <div className="flex justify-between items-center">
-            <Label>Kode CSS</Label>
+            <Label className="font-bold">Custom CSS Styles</Label>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copyCode(css, 'CSS')}
-              className="gap-1"
+              className="h-8 gap-1 text-xs"
             >
-              <Copy className="h-4 w-4" />
-              Salin
+              <Copy className="h-3.5 w-3.5" />
+              Salin Kode
             </Button>
           </div>
           <Textarea
             value={css}
             onChange={(e) => onCssChange(e.target.value)}
-            placeholder="Masukkan kode CSS di sini..."
-            className="font-mono text-sm min-h-64"
+            placeholder="/* Masukkan kode CSS di sini... */"
+            className="font-mono text-sm min-h-[400px] focus-visible:ring-primary"
           />
         </TabsContent>
 
         {/* JavaScript Editor */}
-        <TabsContent value="javascript" className="space-y-2">
+        <TabsContent value="javascript" className="p-4 space-y-3 mt-0">
           <div className="flex justify-between items-center">
-            <Label>Kode JavaScript</Label>
+            <Label className="font-bold">Interaktivitas JavaScript</Label>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copyCode(javascript, 'JavaScript')}
-              className="gap-1"
+              className="h-8 gap-1 text-xs"
             >
-              <Copy className="h-4 w-4" />
-              Salin
+              <Copy className="h-3.5 w-3.5" />
+              Salin Kode
             </Button>
           </div>
           <Textarea
             value={javascript}
             onChange={(e) => onJavaScriptChange(e.target.value)}
-            placeholder="Masukkan kode JavaScript di sini..."
-            className="font-mono text-sm min-h-64"
+            placeholder="// Masukkan kode JavaScript di sini..."
+            className="font-mono text-sm min-h-[400px] focus-visible:ring-primary"
           />
         </TabsContent>
 
         {/* Preview */}
-        <TabsContent value="preview" className="space-y-2">
-          <div className="flex justify-between items-center">
-            <Label>Preview Halaman</Label>
-            <div className="flex gap-2">
+        <TabsContent value="preview" className="p-0 mt-0">
+          <div className="bg-muted/30 p-2 border-b flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="flex border rounded-md overflow-hidden bg-background">
+                <Button 
+                  variant={previewMode === 'desktop' ? 'secondary' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 px-2 rounded-none"
+                  onClick={() => setPreviewMode('desktop')}
+                >
+                  <Monitor className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                  variant={previewMode === 'mobile' ? 'secondary' : 'ghost'} 
+                  size="sm" 
+                  className="h-7 px-2 rounded-none"
+                  onClick={() => setPreviewMode('mobile')}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase ml-2">Mode Pratinjau</span>
+            </div>
+            <div className="flex gap-1">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={refreshPreview}
-                className="gap-1"
+                className="h-7 w-7 p-0"
                 title="Refresh Preview"
               >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-                className="gap-1"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {showPreview ? 'Sembunyikan' : 'Tampilkan'}
+                <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={downloadCode}
-                className="gap-1"
+                className="h-7 gap-1 text-xs"
               >
-                <Download className="h-4 w-4" />
-                Unduh
+                <Download className="h-3.5 w-3.5" />
+                Ekspor HTML
               </Button>
             </div>
           </div>
-          {showPreview && (
-            <Card className="overflow-hidden border-2 min-h-[500px] bg-white">
+          <div className="bg-slate-100 dark:bg-slate-900 p-4 flex justify-center items-start min-h-[500px]">
+            <Card className={`overflow-hidden border-2 bg-white transition-all duration-300 shadow-xl ${previewMode === 'mobile' ? 'w-[375px] h-[667px]' : 'w-full h-[600px]'}`}>
               <iframe
                 key={previewKey}
                 ref={iframeRef}
                 srcDoc={generateFullHtml()}
-                style={{
-                  width: '100%',
-                  height: '500px',
-                  border: 'none',
-                }}
+                className="w-full h-full border-none"
                 title="Page Preview"
                 sandbox="allow-scripts allow-same-origin"
               />
             </Card>
-          )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

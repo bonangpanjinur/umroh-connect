@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Plus, Pencil, Trash2, Upload, Loader2, Eye, EyeOff, Copy, 
   Lock, Unlock, Search, FileText, Image as ImageIcon, 
-  Code, ExternalLink, Settings, Info, AlertCircle
+  Code, ExternalLink, Settings, Info, AlertCircle, Layout
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHtmlEditor } from './PageHtmlEditor';
@@ -37,6 +37,17 @@ interface Page {
   updated_at: string;
 }
 
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'color': [] }, { 'background': [] }],
+    ['link', 'image'],
+    ['clean']
+  ],
+};
+
 export const PagesManagement = () => {
   const [pages, setPages] = useState<Page[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +58,7 @@ export const PagesManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSlugLocked, setIsSlugLocked] = useState(true);
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
+  const [showStandardPreview, setShowStandardPreview] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -111,6 +123,7 @@ export const PagesManagement = () => {
     setEditingPage(null);
     setActiveTab('content');
     setIsSlugLocked(true);
+    setShowStandardPreview(false);
   };
 
   const generateSlug = (title: string) => {
@@ -164,6 +177,7 @@ export const PagesManagement = () => {
     setActiveTab('content');
     setIsSlugLocked(true);
     setIsDialogOpen(true);
+    setShowStandardPreview(false);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,20 +344,8 @@ ${jsContent}
 
   const getCharCountColor = (current: number, min: number, max: number) => {
     if (current === 0) return 'text-muted-foreground';
-    if (current < min) return 'text-amber-500';
-    if (current <= max) return 'text-green-500';
-    return 'text-destructive';
-  };
-
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      [{ 'color': [] }, { 'background': [] }],
-      ['link', 'image'],
-      ['clean']
-    ],
+    if (current >= min && current <= max) return 'text-green-600';
+    return 'text-amber-600';
   };
 
   return (
@@ -372,97 +374,105 @@ ${jsContent}
                 Halaman Baru
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingPage ? 'Edit Halaman' : 'Buat Halaman Baru'}</DialogTitle>
               </DialogHeader>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="content" className="gap-2">
-                    <FileText className="h-4 w-4" /> Konten
+                    <Layout className="h-4 w-4" /> Editor Konten
                   </TabsTrigger>
-                  <TabsTrigger value="seo" className="gap-2">
-                    <Settings className="h-4 w-4" /> SEO
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="gap-2">
-                    <ImageIcon className="h-4 w-4" /> Media
-                  </TabsTrigger>
-                  <TabsTrigger value="preview" className="gap-2">
-                    <Eye className="h-4 w-4" /> Preview
+                  <TabsTrigger value="settings" className="gap-2">
+                    <Settings className="h-4 w-4" /> Pengaturan & SEO
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="content" className="space-y-4 mt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Judul Halaman</Label>
-                      <Input
-                        id="title"
-                        placeholder="Masukkan judul halaman"
-                        value={formData.title}
-                        onChange={handleTitleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="slug" className="flex items-center justify-between">
-                        URL (Slug)
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6" 
-                          onClick={() => setIsSlugLocked(!isSlugLocked)}
-                        >
-                          {isSlugLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                        </Button>
-                      </Label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">/</span>
-                          <Input
-                            id="slug"
-                            placeholder="url-halaman"
-                            className="pl-6"
-                            value={formData.slug}
-                            onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
-                            disabled={isSlugLocked}
-                          />
-                        </div>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-base font-bold">Metode Editor</Label>
+                        <Badge variant="secondary" className="font-normal">
+                          {formData.page_type === 'standard' ? 'Visual Editor' : 'Code Builder'}
+                        </Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground">Pilih tipe konten yang ingin Anda buat</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {formData.page_type === 'standard' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setShowStandardPreview(!showStandardPreview)}
+                          className="gap-2"
+                        >
+                          {showStandardPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showStandardPreview ? 'Tutup Preview' : 'Lihat Preview'}
+                        </Button>
+                      )}
+                      <Select 
+                        value={formData.page_type} 
+                        onValueChange={(value: any) => setFormData(prev => ({ ...prev, page_type: value }))}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Pilih tipe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Rich Text (Mudah)</SelectItem>
+                          <SelectItem value="builder">HTML Builder (Custom)</SelectItem>
+                          <SelectItem value="landing">Full Landing Page</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-                    <div className="space-y-0.5">
-                      <Label>Tipe Editor</Label>
-                      <p className="text-xs text-muted-foreground">Pilih metode pembuatan konten</p>
-                    </div>
-                    <Select 
-                      value={formData.page_type} 
-                      onValueChange={(value: any) => setFormData(prev => ({ ...prev, page_type: value }))}
-                    >
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Pilih tipe" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Rich Text (Mudah)</SelectItem>
-                        <SelectItem value="builder">HTML Builder (Custom)</SelectItem>
-                        <SelectItem value="landing">Full Landing Page</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Konten Halaman</Label>
+                  <div className="space-y-4">
                     {formData.page_type === 'standard' ? (
-                      <div className="bg-white dark:bg-slate-950 rounded-md border min-h-[300px]">
-                        <ReactQuill
-                          theme="snow"
-                          value={formData.content}
-                          onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-                          modules={quillModules}
-                          className="h-[250px] mb-12"
-                        />
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className={showStandardPreview ? 'hidden md:block' : 'block'}>
+                          <div className="bg-white dark:bg-slate-950 rounded-md border min-h-[400px]">
+                            <ReactQuill
+                              theme="snow"
+                              value={formData.content}
+                              onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                              modules={quillModules}
+                              className="h-[350px] mb-12"
+                            />
+                          </div>
+                        </div>
+                        
+                        {showStandardPreview && (
+                          <div className="border rounded-lg bg-white dark:bg-slate-950 min-h-[400px] overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                            <div className="bg-muted/50 p-2 border-b flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="flex gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                                  <div className="w-3 h-3 rounded-full bg-amber-400" />
+                                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                                </div>
+                                <span className="text-xs font-medium ml-2">Live Preview</span>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => setShowStandardPreview(false)}>
+                                <EyeOff className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                            <div className="p-8 max-h-[500px] overflow-y-auto">
+                              <article className="prose prose-sm dark:prose-invert max-w-none">
+                                <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
+                                {formData.image_url && (
+                                  <img
+                                    src={formData.image_url}
+                                    alt={formData.title}
+                                    className="w-full h-64 object-cover rounded-xl mb-8"
+                                  />
+                                )}
+                                <div dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Belum ada konten...</p>' }} />
+                              </article>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <PageHtmlEditor
@@ -475,147 +485,156 @@ ${jsContent}
                       />
                     )}
                   </div>
-
-                  <div className="flex items-center gap-2 pt-2">
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                    />
-                    <Label htmlFor="is_active">Aktifkan halaman ini</Label>
-                  </div>
                 </TabsContent>
 
-                <TabsContent value="seo" className="space-y-4 mt-4">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 flex gap-3">
-                    <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      Optimalkan SEO agar halaman Anda lebih mudah ditemukan di mesin pencari seperti Google.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label htmlFor="meta_title">Meta Title</Label>
-                      <span className={`text-xs font-medium ${getCharCountColor(formData.meta_title?.length || 0, 50, 60)}`}>
-                        {formData.meta_title?.length || 0}/60
-                      </span>
-                    </div>
-                    <Input
-                      id="meta_title"
-                      placeholder="Judul untuk search engine"
-                      value={formData.meta_title || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <Label htmlFor="meta_description">Meta Description</Label>
-                      <span className={`text-xs font-medium ${getCharCountColor(formData.meta_description?.length || 0, 150, 160)}`}>
-                        {formData.meta_description?.length || 0}/160
-                      </span>
-                    </div>
-                    <Textarea
-                      id="meta_description"
-                      placeholder="Deskripsi singkat untuk hasil pencarian"
-                      rows={4}
-                      value={formData.meta_description || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="meta_keywords">Keywords</Label>
-                    <Input
-                      id="meta_keywords"
-                      placeholder="umroh, paket hemat, travel (pisahkan dengan koma)"
-                      value={formData.meta_keywords || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, meta_keywords: e.target.value }))}
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="image" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>Thumbnail Halaman</Label>
-                    {formData.image_url ? (
-                      <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group border">
-                        <img
-                          src={formData.image_url}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Hapus
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg bg-muted/30 text-muted-foreground">
-                        <ImageIcon className="h-12 w-12 mb-3 opacity-20" />
-                        <p className="text-sm font-medium">Belum ada gambar terpilih</p>
-                        <p className="text-xs mt-1">Disarankan ukuran 1200x630px</p>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2 mt-4">
-                      <div className="flex-1">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          disabled={isUploading}
-                          className="cursor-pointer"
-                        />
-                      </div>
-                      {isUploading && (
-                        <Button disabled variant="outline">
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          Proses...
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="preview" className="mt-4">
-                  <div className="border rounded-lg bg-white dark:bg-slate-950 min-h-[400px] overflow-hidden">
-                    <div className="bg-muted/50 p-2 border-b flex items-center gap-2">
-                      <div className="flex gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-red-400" />
-                        <div className="w-3 h-3 rounded-full bg-amber-400" />
-                        <div className="w-3 h-3 rounded-full bg-green-400" />
-                      </div>
-                      <div className="bg-background text-[10px] px-3 py-1 rounded border flex-1 text-center truncate">
-                        arahumroh.id/{formData.slug || 'url-halaman'}
-                      </div>
-                    </div>
-                    <div className="p-6 max-h-[500px] overflow-y-auto">
-                      {formData.page_type === 'standard' ? (
-                        <article className="prose prose-sm dark:prose-invert max-w-none">
-                          <h1 className="text-3xl font-bold mb-4">{formData.title || 'Judul Halaman'}</h1>
-                          {formData.image_url && (
-                            <img
-                              src={formData.image_url}
-                              alt={formData.title}
-                              className="w-full h-48 object-cover rounded-lg mb-6"
+                <TabsContent value="settings" className="space-y-6 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-base font-bold">Informasi Dasar</Label>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="title">Judul Halaman</Label>
+                            <Input
+                              id="title"
+                              placeholder="Masukkan judul halaman"
+                              value={formData.title}
+                              onChange={handleTitleChange}
                             />
-                          )}
-                          <div dangerouslySetInnerHTML={{ __html: formData.content || '<p class="text-muted-foreground italic">Konten kosong...</p>' }} />
-                        </article>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                          <Code className="h-12 w-12 mb-4 opacity-20" />
-                          <p>Preview untuk tipe HTML Builder tersedia di tab Konten.</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="slug" className="flex items-center justify-between">
+                              URL (Slug)
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={() => setIsSlugLocked(!isSlugLocked)}
+                              >
+                                {isSlugLocked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                              </Button>
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">/</span>
+                              <Input
+                                id="slug"
+                                placeholder="url-halaman"
+                                className="pl-6"
+                                value={formData.slug}
+                                onChange={(e) => setFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                                disabled={isSlugLocked}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 pt-2">
+                            <Switch
+                              id="is_active"
+                              checked={formData.is_active}
+                              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+                            />
+                            <Label htmlFor="is_active">Publikasikan halaman ini</Label>
+                          </div>
                         </div>
-                      )}
+                      </div>
+
+                      <div className="space-y-2 pt-4 border-t">
+                        <Label className="text-base font-bold">Thumbnail & Media</Label>
+                        <div className="space-y-3">
+                          {formData.image_url ? (
+                            <div className="relative aspect-video bg-muted rounded-lg overflow-hidden group border">
+                              <img
+                                src={formData.image_url}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => setFormData(prev => ({ ...prev, image_url: '' }))}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Hapus
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center aspect-video border-2 border-dashed rounded-lg bg-muted/30 text-muted-foreground">
+                              <ImageIcon className="h-10 w-10 mb-2 opacity-20" />
+                              <p className="text-xs font-medium">Belum ada thumbnail</p>
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-2">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={isUploading}
+                              className="cursor-pointer text-xs"
+                            />
+                            {isUploading && (
+                              <Button disabled variant="outline" size="sm">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-base font-bold">Optimasi SEO</Label>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800 flex gap-2">
+                        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                          Informasi ini akan muncul di hasil pencarian Google dan saat halaman dibagikan di media sosial.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label htmlFor="meta_title" className="text-xs">Meta Title</Label>
+                          <span className={`text-[10px] font-medium ${getCharCountColor(formData.meta_title?.length || 0, 50, 60)}`}>
+                            {formData.meta_title?.length || 0}/60
+                          </span>
+                        </div>
+                        <Input
+                          id="meta_title"
+                          placeholder="Judul untuk search engine"
+                          value={formData.meta_title || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <Label htmlFor="meta_description" className="text-xs">Meta Description</Label>
+                          <span className={`text-[10px] font-medium ${getCharCountColor(formData.meta_description?.length || 0, 150, 160)}`}>
+                            {formData.meta_description?.length || 0}/160
+                          </span>
+                        </div>
+                        <Textarea
+                          id="meta_description"
+                          placeholder="Deskripsi singkat untuk hasil pencarian"
+                          rows={3}
+                          value={formData.meta_description || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="meta_keywords" className="text-xs">Keywords</Label>
+                        <Input
+                          id="meta_keywords"
+                          placeholder="umroh, paket hemat, travel"
+                          value={formData.meta_keywords || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, meta_keywords: e.target.value }))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
@@ -668,7 +687,7 @@ ${jsContent}
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
