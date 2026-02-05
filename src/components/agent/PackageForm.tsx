@@ -31,7 +31,7 @@ import { CalendarIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuthContext as useAuth } from "@/contexts/AuthContext";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { ImageUpload } from "@/components/common/ImageUpload";
 
 const packageSchema = z.object({
@@ -57,7 +57,7 @@ interface PackageFormProps {
 }
 
 export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<string[]>(
