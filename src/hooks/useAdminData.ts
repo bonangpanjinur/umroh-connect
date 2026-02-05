@@ -560,3 +560,44 @@ export const useUpdateTravelAdmin = () => {
     }
   });
 };
+
+// Fetch all agent website settings for URL management
+export const useAllAgentWebsiteSettings = () => {
+  return useQuery({
+    queryKey: ['admin-agent-website-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_website_settings')
+        .select(`
+          *,
+          profile:profiles(id, full_name, phone)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+};
+
+// Update agent website settings (approve/reject slug)
+export const useUpdateAgentWebsiteSettings = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ user_id, ...updates }: { user_id: string } & any) => {
+      const { data, error } = await supabase
+        .from('agent_website_settings')
+        .update(updates)
+        .eq('user_id', user_id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-agent-website-settings'] });
+    }
+  });
+};
