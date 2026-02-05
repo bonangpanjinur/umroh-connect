@@ -12,6 +12,8 @@ export interface Page {
   meta_description: string | null;
   meta_keywords: string | null;
   is_active: boolean;
+  page_type: 'standard' | 'builder' | 'landing';
+  layout_data: any;
   created_at: string;
   updated_at: string;
 }
