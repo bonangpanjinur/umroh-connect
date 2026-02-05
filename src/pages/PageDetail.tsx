@@ -1,30 +1,32 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { usePage } from '@/hooks/usePages';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { BottomNav } from "@/components/layout/BottomNav";
 
-const PageDetail = () => {
-  const { slug } = useParams<{ slug: string }>();
+export default function PageDetail() {
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const { data: page, isLoading, error } = usePage(slug || '');
 
-  useEffect(() => {
-    if (page) {
-      document.title = `${page.meta_title || page.title} | Arah Umroh`;
+  const { data: page, isLoading, error } = useQuery({
+    queryKey: ["page", slug],
+    queryFn: async () => {
+      if (!slug) throw new Error("No slug provided");
       
-      // Update meta tags if they exist
-      if (page.meta_description) {
-        let metaDesc = document.querySelector('meta[name="description"]');
-        if (!metaDesc) {
-          metaDesc = document.createElement('meta');
-          metaDesc.setAttribute('name', 'description');
-          document.head.appendChild(metaDesc);
-        }
-        metaDesc.setAttribute('content', page.meta_description);
-      }
-    }
-  }, [page]);
+      const { data, error } = await supabase
+        .from("static_pages" as any)
+        .select("*")
+        .eq("slug", slug)
+        .eq("is_active", true)
+        .maybeSingle(); 
+
+      if (error) throw error;
+      return data;
+    },
+    retry: 1, 
+  });
 
   if (isLoading) {
     return (
@@ -34,12 +36,19 @@ const PageDetail = () => {
     );
   }
 
-  if (error || !page || !page.is_active) {
+  // Tampilkan UI Not Found yang bagus jika data null
+  if (error || !page) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-muted-foreground mb-6">Halaman tidak ditemukan atau telah dinonaktifkan.</p>
-        <Button onClick={() => navigate('/')}>Kembali ke Beranda</Button>
+      <div className="min-h-screen flex flex-col bg-background">
+        <AppHeader />
+        <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+          <h1 className="text-9xl font-black text-muted-foreground/20 mb-4">404</h1>
+          <h2 className="text-2xl font-bold mb-2">Halaman Tidak Ditemukan</h2>
+          <Button onClick={() => navigate("/")} variant="default" size="lg">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Beranda
+          </Button>
+        </div>
+        <BottomNav />
       </div>
     );
   }
@@ -58,7 +67,6 @@ const PageDetail = () => {
           sandbox="allow-scripts allow-same-origin allow-forms"
           style={{ display: 'block' }}
         />
-        {/* Floating back button for custom landing pages */}
         <Button
           variant="outline"
           size="icon"
@@ -73,19 +81,9 @@ const PageDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold truncate">{page.title}</h1>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader />
+      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         {page.image_url && (
           <div className="mb-8 rounded-xl overflow-hidden aspect-video shadow-sm">
             <img
@@ -105,13 +103,7 @@ const PageDetail = () => {
           />
         </div>
       </main>
-
-      {/* Footer simple */}
-      <footer className="py-8 text-center text-muted-foreground text-sm border-t mt-12">
-        <p>&copy; {new Date().getFullYear()} Arah Umroh. All rights reserved.</p>
-      </footer>
+      <BottomNav />
     </div>
   );
-};
-
-export default PageDetail;
+}
