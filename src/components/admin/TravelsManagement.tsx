@@ -206,6 +206,7 @@ export const TravelsManagement = () => {
                 <TableHead>Owner</TableHead>
                 <TableHead>Kontak</TableHead>
                 <TableHead>Rating</TableHead>
+                <TableHead>URL Custom</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Terdaftar</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -259,6 +260,20 @@ export const TravelsManagement = () => {
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                         <span>{travel.rating || 0}</span>
                         <span className="text-muted-foreground">({travel.review_count || 0})</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {travel.is_custom_url_enabled_by_admin ? (
+                          <>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Aktif</Badge>
+                            {travel.admin_approved_slug && (
+                              <span className="text-[10px] font-mono text-muted-foreground">/{travel.admin_approved_slug}</span>
+                            )}
+                          </>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground w-fit">Nonaktif</Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

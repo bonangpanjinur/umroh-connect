@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -23,6 +23,8 @@ const formSchema = z.object({
   description: z.string().optional(),
   verified: z.boolean().default(false),
   owner_id: z.string().optional(),
+  admin_approved_slug: z.string().regex(/^[a-z0-9-]+$/, 'Slug hanya boleh berisi huruf kecil, angka, dan tanda hubung').optional().or(z.literal('')),
+  is_custom_url_enabled_by_admin: z.boolean().default(false),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -52,6 +54,8 @@ export const EditTravelForm = ({ travel, open, onOpenChange }: EditTravelFormPro
       description: travel.description || '',
       verified: travel.verified || false,
       owner_id: travel.owner?.id || 'none',
+      admin_approved_slug: travel.admin_approved_slug || '',
+      is_custom_url_enabled_by_admin: travel.is_custom_url_enabled_by_admin || false,
     },
   });
 
@@ -66,6 +70,8 @@ export const EditTravelForm = ({ travel, open, onOpenChange }: EditTravelFormPro
       description: travel.description || '',
       verified: travel.verified || false,
       owner_id: travel.owner?.id || 'none',
+      admin_approved_slug: travel.admin_approved_slug || '',
+      is_custom_url_enabled_by_admin: travel.is_custom_url_enabled_by_admin || false,
     });
     setLogoUrl(travel.logo_url || null);
   }, [travel, form]);
@@ -83,6 +89,8 @@ export const EditTravelForm = ({ travel, open, onOpenChange }: EditTravelFormPro
         verified: data.verified,
         owner_id: data.owner_id === 'none' ? null : data.owner_id || null,
         logo_url: logoUrl,
+        admin_approved_slug: data.admin_approved_slug || null,
+        is_custom_url_enabled_by_admin: data.is_custom_url_enabled_by_admin,
       });
       toast.success('Travel berhasil diupdate');
       onOpenChange(false);
@@ -221,6 +229,51 @@ export const EditTravelForm = ({ travel, open, onOpenChange }: EditTravelFormPro
                 </FormItem>
               )}
             />
+
+            <div className="border-t pt-4 mt-4">
+              <h3 className="text-sm font-semibold mb-3">Pengaturan URL Website</h3>
+              
+              <FormField
+                control={form.control}
+                name="is_custom_url_enabled_by_admin"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-3 mb-4">
+                    <div className="space-y-0.5">
+                      <FormLabel>Aktifkan URL Kustom</FormLabel>
+                      <FormDescription>
+                        Izinkan travel ini menggunakan URL kustom
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="admin_approved_slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug URL Disetujui</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">/</span>
+                        <Input placeholder="nama-travel" {...field} disabled={!form.watch('is_custom_url_enabled_by_admin')} />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      URL yang akan digunakan oleh website agen
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
