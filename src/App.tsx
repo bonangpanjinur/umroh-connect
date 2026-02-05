@@ -14,11 +14,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AgentDashboard from "./pages/AgentDashboard";
 import AgentPublicProfile from "./pages/AgentPublicProfile";
 import PageDetail from "./pages/PageDetail";
-import { InstallPWA } from "./components/pwa/PWAInstallPrompt";
-import { SplashScreen } from "./components/pwa/SplashScreen";
+import InstallPWA from "./components/pwa/PWAInstallPrompt";
+import SplashScreen from "./components/pwa/SplashScreen";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
 import { OfflineBanner } from "./components/pwa/OfflineBanner";
-import { OfflineManagerView } from "./components/offline/OfflineManagerView";
+import OfflineManagerView from "./components/offline/OfflineManagerView";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient({
@@ -41,7 +41,7 @@ const App = () => {
   }, []);
 
   if (showSplash) {
-    return <SplashScreen />;
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
   return (

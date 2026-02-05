@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { BottomNav } from "@/components/layout/BottomNav";
+import AppHeader from "@/components/layout/AppHeader";
+import BottomNav from "@/components/layout/BottomNav";
 
 export default function PageDetail() {
   const { slug } = useParams();
@@ -40,7 +40,7 @@ export default function PageDetail() {
   if (error || !page) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
-        <AppHeader />
+        <AppHeader onSOSClick={() => {}} />
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
           <h1 className="text-9xl font-black text-muted-foreground/20 mb-4">404</h1>
           <h2 className="text-2xl font-bold mb-2">Halaman Tidak Ditemukan</h2>
@@ -48,7 +48,7 @@ export default function PageDetail() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Beranda
           </Button>
         </div>
-        <BottomNav />
+        <BottomNav activeTab="home" onTabChange={() => navigate('/')} />
       </div>
     );
   }
@@ -82,7 +82,7 @@ export default function PageDetail() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <AppHeader />
+      <AppHeader onSOSClick={() => {}} />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
         {page.image_url && (
           <div className="mb-8 rounded-xl overflow-hidden aspect-video shadow-sm">
@@ -103,7 +103,7 @@ export default function PageDetail() {
           />
         </div>
       </main>
-      <BottomNav />
+      <BottomNav activeTab="home" onTabChange={() => navigate('/')} />
     </div>
   );
 }

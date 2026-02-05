@@ -31,7 +31,7 @@ import { CalendarIcon, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthContext as useAuth } from "@/contexts/AuthContext";
 import { ImageUpload } from "@/components/common/ImageUpload";
 
 const packageSchema = z.object({
@@ -372,3 +372,5 @@ export function PackageForm({ onSuccess, initialData }: PackageFormProps) {
     </Form>
   );
 }
+
+export default PackageForm;
