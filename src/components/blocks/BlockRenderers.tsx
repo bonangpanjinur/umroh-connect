@@ -1,6 +1,17 @@
 // Block renderers that generate HTML from block data
 
-import { BlockData, HeroBlockContent, FeaturesBlockContent, TestimonialsBlockContent, PackagesBlockContent, FAQBlockContent, ContactBlockContent, RichTextBlockContent } from '@/types/blocks';
+import { 
+  BlockData, 
+  HeroBlockContent, 
+  FeaturesBlockContent, 
+  TestimonialsBlockContent, 
+  PackagesBlockContent, 
+  FAQBlockContent, 
+  ContactBlockContent, 
+  RichTextBlockContent,
+  GalleryBlockContent,
+  VideoBlockContent
+} from '@/types/blocks';
 
 export function renderHeroBlock(block: BlockData): string {
   const content = block.content as HeroBlockContent;
@@ -192,26 +203,114 @@ export function renderRichTextBlock(block: BlockData): string {
   `;
 }
 
+export function renderGalleryBlock(block: BlockData): string {
+  const content = block.content as GalleryBlockContent;
+  const cols = content.columns || 3;
+  const colClass = `grid-cols-2 md:grid-cols-${cols}`;
+
+  return `
+    <section class="py-16 px-4 md:py-24 bg-white">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold mb-4">${escapeHtml(content.title)}</h2>
+          ${content.subtitle ? `<p class="text-lg text-gray-600">${escapeHtml(content.subtitle)}</p>` : ''}
+        </div>
+        <div class="grid ${colClass} gap-4">
+          ${content.images.map(img => `
+            <div class="group relative aspect-square overflow-hidden rounded-xl bg-gray-100">
+              <img src="${img.url}" alt="${escapeHtml(img.caption || '')}" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              ${img.caption ? `
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                  <p class="text-white text-sm font-medium">${escapeHtml(img.caption)}</p>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+export function renderVideoBlock(block: BlockData): string {
+  const content = block.content as VideoBlockContent;
+  let embedUrl = '';
+  
+  if (content.platform === 'youtube') {
+    const videoId = content.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
+    embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${content.autoplay ? 1 : 0}&loop=${content.loop ? 1 : 0}${content.loop ? `&playlist=${videoId}` : ''}`;
+  } else {
+    const videoId = content.videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
+    embedUrl = `https://player.vimeo.com/video/${videoId}?autoplay=${content.autoplay ? 1 : 0}&loop=${content.loop ? 1 : 0}`;
+  }
+
+  return `
+    <section class="py-16 px-4 md:py-24 bg-white">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold mb-4">${escapeHtml(content.title)}</h2>
+          ${content.subtitle ? `<p class="text-lg text-gray-600">${escapeHtml(content.subtitle)}</p>` : ''}
+        </div>
+        <div class="aspect-video rounded-2xl overflow-hidden shadow-2xl bg-black">
+          <iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 // Main renderer function
 export function renderBlock(block: BlockData): string {
+  if (block.settings?.isVisible === false) return '';
+
+  let html = '';
   switch (block.type) {
     case 'hero':
-      return renderHeroBlock(block);
+      html = renderHeroBlock(block);
+      break;
     case 'features':
-      return renderFeaturesBlock(block);
+      html = renderFeaturesBlock(block);
+      break;
     case 'testimonials':
-      return renderTestimonialsBlock(block);
+      html = renderTestimonialsBlock(block);
+      break;
     case 'packages':
-      return renderPackagesBlock(block);
+      html = renderPackagesBlock(block);
+      break;
     case 'faq':
-      return renderFAQBlock(block);
+      html = renderFAQBlock(block);
+      break;
     case 'contact':
-      return renderContactBlock(block);
+      html = renderContactBlock(block);
+      break;
     case 'richtext':
-      return renderRichTextBlock(block);
+      html = renderRichTextBlock(block);
+      break;
+    case 'gallery':
+      html = renderGalleryBlock(block);
+      break;
+    case 'video':
+      html = renderVideoBlock(block);
+      break;
     default:
-      return '';
+      html = '';
   }
+
+  const s = block.settings;
+  if (s) {
+    const paddingClasses = `${s.paddingTop || 'py-16'} ${s.paddingBottom || 'py-16'}`;
+    const bgStyle = s.backgroundColor ? `background-color: ${s.backgroundColor};` : '';
+    
+    // We need to strip the original section wrapper's padding if we apply it to the outer div
+    // But for simplicity, we wrap the rendered HTML
+    return `
+      <div class="${paddingClasses} ${s.customClass || ''}" style="${bgStyle}">
+        ${html}
+      </div>
+    `;
+  }
+
+  return html;
 }
 
 // Generate complete HTML from blocks
@@ -234,6 +333,9 @@ export function generatePageHTML(blocks: BlockData[], title: string, metaDescrip
     .text-primary { color: var(--primary); }
     .border-primary { border-color: var(--primary); }
     .focus\\:ring-primary:focus { --tw-ring-color: var(--primary); }
+    
+    /* Reset section padding when wrapped by settings div */
+    div > section { padding-top: 0 !important; padding-bottom: 0 !important; background-color: transparent !important; }
   </style>
 </head>
 <body class="bg-white text-gray-900">
@@ -250,6 +352,7 @@ export function generatePageHTML(blocks: BlockData[], title: string, metaDescrip
 
 // Utility function to escape HTML
 function escapeHtml(text: string): string {
+  if (!text) return '';
   const map: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',

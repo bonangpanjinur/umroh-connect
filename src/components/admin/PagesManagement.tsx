@@ -255,6 +255,7 @@ export const PagesManagement = () => {
     
     // If using builder, generate HTML from blocks
     if (formData.page_type === 'builder') {
+      // Pass the actual blocks to ensure any last-minute changes are captured
       finalContent = generatePageHTML(blocks, formData.title, formData.meta_description || '');
     } 
     // If using landing (manual HTML), combine HTML, CSS, and JavaScript
