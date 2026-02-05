@@ -186,8 +186,8 @@ export const AgentDashboardSidebar = ({
                           'w-full flex items-center gap-3 rounded-xl transition-all duration-200 relative group',
                           isCollapsed ? 'justify-center p-3' : 'px-3 py-2.5',
                           isActive
-                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80'
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-[1.02]'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 hover:translate-x-1'
                         )}
                       >
                         <div className={cn(
@@ -202,7 +202,7 @@ export const AgentDashboardSidebar = ({
                             <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
                             {item.badge && item.badge > 0 && (
                               <span className={cn(
-                                'flex-shrink-0 min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center text-[10px] font-bold',
+                                'flex-shrink-0 min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-sm',
                                 isActive ? 'bg-white text-primary' : 'bg-destructive text-white'
                               )}>
                                 {item.badge > 9 ? '9+' : item.badge}

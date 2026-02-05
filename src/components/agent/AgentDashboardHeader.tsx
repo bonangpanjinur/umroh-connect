@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Bell, Settings, ChevronDown, User, LogOut, 
-  Search, Plus, Home, ChevronRight 
+  Search, Plus, Home, ChevronRight, Package, Users, MessageSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,10 +80,34 @@ export const AgentDashboardHeader = ({
       {/* Right Section: Actions & User */}
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Quick Action Button */}
-        <Button size="sm" className="hidden sm:flex gap-2 h-9 px-4 rounded-full shadow-sm">
-          <Plus className="h-4 w-4" />
-          <span>Quick Action</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="hidden sm:flex gap-2 h-9 px-4 rounded-full shadow-sm">
+              <Plus className="h-4 w-4" />
+              <span>Quick Action</span>
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem className="cursor-pointer">
+              <Package className="w-4 h-4 mr-2 text-primary" />
+              Buat Paket Baru
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <Users className="w-4 h-4 mr-2 text-blue-500" />
+              Tambah Jamaah
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <MessageSquare className="w-4 h-4 mr-2 text-green-500" />
+              Kirim Broadcast
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="w-4 h-4 mr-2" />
+              Pengaturan Travel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="flex items-center gap-1 border-l border-border ml-2 pl-2 lg:ml-4 lg:pl-4">
           {/* Notifications */}

@@ -117,18 +117,21 @@ const AgentDashboard = () => {
         {/* Bento Grid Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Main Stat: Revenue */}
-          <Card className="lg:col-span-2 overflow-hidden border-none shadow-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-            <CardContent className="p-6">
+          <Card className="lg:col-span-2 overflow-hidden border-none shadow-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground group">
+            <CardContent className="p-6 relative">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                <DollarSign className="h-24 w-24" />
+              </div>
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-white/20 rounded-lg">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                   <DollarSign className="h-6 w-6" />
                 </div>
-                <Badge className="bg-white/20 text-white border-none">
+                <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
                   <ArrowUpRight className="h-3 w-3 mr-1" /> +12.5%
                 </Badge>
               </div>
               <p className="text-primary-foreground/80 text-sm font-medium">Total Pendapatan</p>
-              <h3 className="text-3xl font-bold mt-1">Rp {totalRevenue.toLocaleString('id-ID')}</h3>
+              <h3 className="text-3xl lg:text-4xl font-black mt-1">Rp {totalRevenue.toLocaleString('id-ID')}</h3>
               <div className="mt-6 flex items-center gap-4 text-xs text-primary-foreground/60">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" /> 30 Hari Terakhir
@@ -141,33 +144,41 @@ const AgentDashboard = () => {
           </Card>
 
           {/* Stat: Bookings */}
-          <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+          <Card className="border-none shadow-md hover:shadow-xl transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+                <div className="p-2 bg-blue-500/10 rounded-lg text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
                   <ClipboardList className="h-6 w-6" />
+                </div>
+                <div className="h-8 w-8 rounded-full bg-secondary/50 flex items-center justify-center">
+                  <ArrowUpRight className="h-4 w-4 text-green-600" />
                 </div>
               </div>
               <p className="text-muted-foreground text-sm font-medium">Total Booking</p>
               <h3 className="text-2xl font-bold mt-1">{totalBookings}</h3>
               <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                <ArrowUpRight className="h-3 w-3" /> 5 booking baru minggu ini
+                <Sparkles className="h-3 w-3" /> 5 booking baru minggu ini
               </p>
             </CardContent>
           </Card>
 
           {/* Stat: Leads */}
-          <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+          <Card className="border-none shadow-md hover:shadow-xl transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600">
+                <div className="p-2 bg-amber-500/10 rounded-lg text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-colors duration-300">
                   <Users className="h-6 w-6" />
                 </div>
+                {inquiryStats?.pending > 0 && (
+                  <Badge variant="destructive" className="animate-pulse">
+                    {inquiryStats.pending} Baru
+                  </Badge>
+                )}
               </div>
               <p className="text-muted-foreground text-sm font-medium">Lead Masuk</p>
               <h3 className="text-2xl font-bold mt-1">{totalLeads}</h3>
               <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                <Clock className="h-3 w-3" /> {inquiryStats?.pending || 0} perlu direspon
+                <Clock className="h-3 w-3" /> {inquiryStats?.pending || 0} perlu direspon segera
               </p>
             </CardContent>
           </Card>
@@ -177,36 +188,76 @@ const AgentDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
-            <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+              <Card className="border-none shadow-md">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Konversi Lead
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="relative w-32 h-32">
+                    <svg className="w-full h-full" viewBox="0 0 36 36">
+                      <path
+                        className="text-secondary stroke-current"
+                        strokeWidth="3"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className="text-primary stroke-current"
+                        strokeWidth="3"
+                        strokeDasharray="65, 100"
+                        strokeLinecap="round"
+                        fill="none"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold">65%</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">Rate</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Performa konversi Anda meningkat 12% dari bulan lalu. Pertahankan!</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
           
           <div className="space-y-6">
             {/* Quick Links Bento Card */}
-            <Card className="border-none shadow-md">
-              <CardHeader className="pb-2">
+            <Card className="border-none shadow-md overflow-hidden">
+              <CardHeader className="pb-2 bg-secondary/10">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Zap className="h-5 w-5 text-amber-500" />
                   Aksi Cepat
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-3 p-4">
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => {
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-primary hover:text-white transition-all duration-300 group" onClick={() => {
                   setEditingPackage(null);
                   setShowPackageForm(true);
                 }}>
-                  <Plus className="w-5 h-5 text-primary" />
+                  <Plus className="w-5 h-5 text-primary group-hover:text-white" />
                   <span className="text-xs">Paket Baru</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('website')}>
-                  <Globe className="w-5 h-5 text-blue-500" />
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-blue-500 hover:text-white transition-all duration-300 group" onClick={() => setActiveTab('website')}>
+                  <Globe className="w-5 h-5 text-blue-500 group-hover:text-white" />
                   <span className="text-xs">Edit Website</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('chat')}>
-                  <MessageSquare className="w-5 h-5 text-green-500" />
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-green-500 hover:text-white transition-all duration-300 group" onClick={() => setActiveTab('chat')}>
+                  <div className="relative">
+                    <MessageSquare className="w-5 h-5 text-green-500 group-hover:text-white" />
+                    {chatUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full" />
+                    )}
+                  </div>
                   <span className="text-xs">Buka Chat</span>
                 </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-secondary/50" onClick={() => setActiveTab('analytics')}>
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-purple-500 hover:text-white transition-all duration-300 group" onClick={() => setActiveTab('analytics')}>
+                  <BarChart3 className="w-5 h-5 text-purple-500 group-hover:text-white" />
                   <span className="text-xs">Analitik</span>
                 </Button>
               </CardContent>
@@ -215,7 +266,7 @@ const AgentDashboard = () => {
             <AgentMembershipCard travelId={travel?.id || ''} />
             
             {/* Website Status Card */}
-            <Card className="border-none shadow-md bg-secondary/20">
+            <Card className="border-none shadow-md bg-secondary/20 overflow-hidden">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-bold text-sm">Status Website</h4>
