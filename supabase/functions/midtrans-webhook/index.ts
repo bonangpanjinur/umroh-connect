@@ -75,6 +75,17 @@ serve(async (req) => {
             });
         }
       }
+
+      // 5. Aktivasi Fitur Website Pro (Jika Sukses)
+      if (isSuccess && transaction.transaction_type === 'website_pro') {
+        await supabase.from('agent_website_settings')
+          .update({
+            is_pro_active: true,
+            is_custom_url_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', transaction.agent_id);
+      }
     }
 
     return new Response(JSON.stringify({ status: "OK" }), { headers: { "Content-Type": "application/json" } });
