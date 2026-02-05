@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -25,6 +25,7 @@ import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCenter';
 import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
 import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
+import { AgentWebsiteManager } from '@/components/agent/AgentWebsiteManager';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -178,7 +179,7 @@ const AgentDashboard = () => {
 
               {/* Tabs for different sections */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-10 gap-0.5">
+                <TabsList className="grid w-full grid-cols-11 gap-0.5">
                   <TabsTrigger value="overview" className="text-[10px] px-1">Overview</TabsTrigger>
                   <TabsTrigger value="membership" className="text-[10px] px-1">
                     <Crown className="w-3 h-3" />
@@ -222,6 +223,9 @@ const AgentDashboard = () => {
                       </span>
                     )}
                   </TabsTrigger>
+                  <TabsTrigger value="website" className="text-[10px] px-1">
+                    <Globe className="w-3 h-3" />
+                  </TabsTrigger>
                   <TabsTrigger value="featured" className="text-[10px] px-1">
                     <Sparkles className="w-3 h-3" />
                   </TabsTrigger>
@@ -235,139 +239,150 @@ const AgentDashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="membership" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <Crown className="w-4 h-4 text-amber-500" />
-                      Keanggotaan & Langganan
-                    </h3>
-                  </div>
-                  <AgentMembershipCard travelId={travel.id} />
+                  <AgentMembershipCard travelId={travel.id} showFull />
                 </TabsContent>
 
                 <TabsContent value="analytics" className="mt-4">
-                  <AnalyticsDashboard travelId={travel?.id} />
+                  <AnalyticsDashboard travelId={travel.id} />
                 </TabsContent>
 
                 <TabsContent value="credits" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-amber-500" />
-                      Kredit & Pembelian
-                    </h3>
-                  </div>
-                  <AgentCreditsManager travelId={travel.id} />
+                  <AgentCreditsManager />
                 </TabsContent>
 
-                <TabsContent value="packages" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <Package className="w-4 h-4 text-primary" />
-                      Paket Umroh & Haji
-                    </h3>
-                    <Button size="sm" onClick={() => setShowPackageForm(true)}>
-                      <Plus className="w-4 h-4 mr-1" /> Tambah
+                <TabsContent value="packages" className="mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold">Daftar Paket</h3>
+                    <Button size="sm" onClick={() => {
+                      setEditingPackage(null);
+                      setShowPackageForm(true);
+                    }}>
+                      <Plus className="w-3 h-3 mr-1" /> Tambah Paket
                     </Button>
                   </div>
-
+                  
                   {packagesLoading ? (
                     <div className="flex justify-center py-12">
-                      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
                     </div>
                   ) : packages && packages.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {packages.map((pkg) => (
-                        <PackageCardAgent
-                          key={pkg.id}
-                          package={pkg}
-                          onEdit={() => setEditingPackage(pkg)}
+                        <PackageCardAgent 
+                          key={pkg.id} 
+                          pkg={pkg} 
+                          onEdit={() => {
+                            setEditingPackage(pkg);
+                            setShowPackageForm(true);
+                          }} 
                         />
                       ))}
                     </div>
                   ) : (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="bg-card rounded-2xl border-2 border-dashed border-border p-8 text-center"
-                    >
-                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                      <h4 className="font-medium mb-1">Belum Ada Paket</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Mulai buat paket umroh atau haji pertama Anda
-                      </p>
-                      <Button onClick={() => setShowPackageForm(true)}>
-                        <Plus className="w-4 h-4 mr-2" /> Buat Paket
-                      </Button>
-                    </motion.div>
+                    <div className="text-center py-12 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
+                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-20" />
+                      <p className="text-sm text-muted-foreground">Belum ada paket umroh</p>
+                    </div>
                   )}
                 </TabsContent>
 
                 <TabsContent value="bookings" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <ClipboardList className="w-4 h-4 text-primary" />
-                      Kelola Booking
-                    </h3>
-                  </div>
-                  <BookingsManagement travelId={travel?.id} />
+                  <BookingsManagement travelId={travel.id} />
                 </TabsContent>
 
                 <TabsContent value="chat" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-primary" />
-                      Chat dengan Jamaah
-                    </h3>
-                  </div>
-                  <ChatManagement />
-                </TabsContent>
-
-                <TabsContent value="featured" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      Paket Unggulan
-                    </h3>
-                  </div>
-                  <FeaturedPackageManager travelId={travel?.id} />
+                  <ChatManagement travelId={travel.id} />
                 </TabsContent>
 
                 <TabsContent value="haji" className="mt-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-foreground flex items-center gap-2">
-                      <Users className="w-4 h-4 text-amber-600" />
-                      Pendaftaran Haji
-                    </h3>
+                    <h3 className="font-bold">Manajemen Pendaftaran Haji</h3>
                   </div>
                   <HajiManagement travelId={travel?.id} />
                 </TabsContent>
 
                 <TabsContent value="inquiries" className="mt-4">
-                  <InquiriesManagement />
+                  <InquiriesManagement travelId={travel.id} />
+                </TabsContent>
+
+                <TabsContent value="website" className="mt-4">
+                  <AgentWebsiteManager />
+                </TabsContent>
+
+                <TabsContent value="featured" className="mt-4">
+                  <FeaturedPackageManager travelId={travel.id} />
                 </TabsContent>
               </Tabs>
             </>
           )}
         </main>
 
-        {/* Modals */}
+        {/* Bottom Navigation for Quick Access (Mobile) */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border px-6 py-3 z-50 flex justify-center">
+          <div className="w-full max-w-md flex items-center justify-around">
+            <button 
+              onClick={() => setActiveTab('overview')}
+              className={`flex flex-col items-center gap-1 ${activeTab === 'overview' ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Stats</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('packages')}
+              className={`flex flex-col items-center gap-1 ${activeTab === 'packages' ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              <Package className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Paket</span>
+            </button>
+            <button 
+              onClick={() => {
+                setEditingPackage(null);
+                setShowPackageForm(true);
+              }}
+              className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center -mt-8 shadow-lg shadow-primary/30 border-4 border-background"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => setActiveTab('bookings')}
+              className={`flex flex-col items-center gap-1 ${activeTab === 'bookings' ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              <ClipboardList className="w-5 h-5" />
+              <span className="text-[10px] font-medium">Booking</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('chat')}
+              className={`flex flex-col items-center gap-1 ${activeTab === 'chat' ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              <div className="relative">
+                <MessageSquare className="w-5 h-5" />
+                {chatUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary text-white text-[8px] rounded-full flex items-center justify-center">
+                    {chatUnreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-medium">Chat</span>
+            </button>
+          </div>
+        </nav>
+
+        {/* Forms Modals */}
         <AnimatePresence>
           {showTravelForm && (
-            <TravelForm
-              travel={travel}
-              onClose={() => setShowTravelForm(false)}
+            <TravelForm 
+              travel={travel} 
+              onClose={() => setShowTravelForm(false)} 
             />
           )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {(showPackageForm || editingPackage) && travel && (
-            <PackageForm
-              travelId={travel.id}
-              package={editingPackage}
+          {showPackageForm && (
+            <PackageForm 
+              travelId={travel?.id}
+              pkg={editingPackage} 
               onClose={() => {
                 setShowPackageForm(false);
                 setEditingPackage(null);
-              }}
+              }} 
             />
           )}
         </AnimatePresence>

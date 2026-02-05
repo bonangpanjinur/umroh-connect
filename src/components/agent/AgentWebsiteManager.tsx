@@ -1,0 +1,334 @@
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, AlertCircle } from 'lucide-react';
+import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
+import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+export const AgentWebsiteManager = () => {
+  const { user } = useAuthContext();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+
+  // Local state for editor
+  const [htmlContent, setHtmlContent] = useState('');
+  const [cssContent, setCssContent] = useState('');
+  const [jsContent, setJsContent] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      fetchSettings();
+    }
+  }, [user]);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('agent_website_settings')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setSettings(data);
+        // Parse bundled content if exists
+        if (data.html_content) {
+          extractBundledContent(data.html_content);
+        }
+      } else {
+        // Default settings if none exist
+        const defaultSettings = {
+          user_id: user?.id,
+          slug: `travel-${user?.id?.substring(0, 8)}`,
+          is_builder_active: false,
+          is_custom_url_active: false,
+          is_pro_active: false,
+        };
+        setSettings(defaultSettings);
+      }
+    } catch (error: any) {
+      toast.error('Gagal mengambil pengaturan: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const extractBundledContent = (fullHtml: string) => {
+    // Basic extraction logic (similar to how it was bundled)
+    const styleMatch = fullHtml.match(/<style>([\s\S]*?)<\/style>/);
+    const bodyMatch = fullHtml.match(/<body>([\s\S]*?)<script>/);
+    const scriptMatch = fullHtml.match(/<script>([\s\S]*?)<\/script>/);
+
+    if (styleMatch) setCssContent(styleMatch[1].trim());
+    if (bodyMatch) setHtmlContent(bodyMatch[1].trim());
+    if (scriptMatch) setJsContent(scriptMatch[1].trim());
+    
+    // Fallback if structure is different
+    if (!bodyMatch) setHtmlContent(fullHtml);
+  };
+
+  const bundleContent = () => {
+    return `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+${cssContent}
+  </style>
+</head>
+<body>
+${htmlContent}
+<script>
+${jsContent}
+</script>
+</body>
+</html>`;
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const finalHtml = settings.is_builder_active ? bundleContent() : null;
+      
+      const { error } = await supabase
+        .from('agent_website_settings')
+        .upsert({
+          ...settings,
+          html_content: finalHtml,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      toast.success('Pengaturan berhasil disimpan');
+    } catch (error: any) {
+      toast.error('Gagal menyimpan: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
+        body: { 
+          item_details: [{ id: 'marketing_pro', price: 150000, name: 'Marketing Suite' }] 
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Handle Midtrans redirect or popup
+      if (data?.redirect_url) {
+        window.open(data.redirect_url, '_blank');
+      } else {
+        toast.info('Simulasi: Pembayaran dipicu');
+      }
+    } catch (error: any) {
+      toast.error('Gagal memproses pembayaran: ' + error.message);
+    }
+  };
+
+  if (loading) return <div className="p-8 text-center">Memuat pengaturan...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Globe className="h-6 w-6 text-primary" />
+            Website Agen
+          </h2>
+          <p className="text-muted-foreground">Kelola website white-label Anda</p>
+        </div>
+        <Button onClick={handleSave} disabled={saving}>
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+        </Button>
+      </div>
+
+      <Tabs defaultValue="config" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="config" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" /> Konfigurasi
+          </TabsTrigger>
+          <TabsTrigger value="editor" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> Editor
+          </TabsTrigger>
+          <TabsTrigger value="marketing" className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4" /> Marketing
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="config" className="pt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Domain & URL</CardTitle>
+              <CardDescription>Atur alamat website publik Anda</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="slug">Website URL</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">umrohconnect.id/agent/</span>
+                    <Input
+                      id="slug"
+                      className="pl-[145px]"
+                      value={settings.slug}
+                      onChange={(e) => setSettings({ ...settings, slug: e.target.value })}
+                      disabled={!settings.is_custom_url_active}
+                    />
+                  </div>
+                  <Button variant="outline" asChild>
+                    <a href={`/agent/${settings.slug}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
+                {!settings.is_custom_url_active && (
+                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                    <Lock className="h-3 w-3" /> Upgrade ke Premium untuk kustomisasi URL
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-4 border-t space-y-3">
+                <Label>Metode Tampilan</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant={!settings.is_builder_active ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-4 gap-2"
+                    onClick={() => setSettings({ ...settings, is_builder_active: false })}
+                  >
+                    <Layout className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-bold text-sm">Template Otomatis</p>
+                      <p className="text-[10px] opacity-80">Banner + Grid Paket</p>
+                    </div>
+                  </Button>
+                  <Button
+                    variant={settings.is_builder_active ? 'default' : 'outline'}
+                    className="flex flex-col h-auto py-4 gap-2"
+                    onClick={() => setSettings({ ...settings, is_builder_active: true })}
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-bold text-sm">Custom HTML</p>
+                      <p className="text-[10px] opacity-80">Desain bebas & kreatif</p>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="editor" className="pt-4">
+          {!settings.is_builder_active ? (
+            <Card className="bg-muted/50 border-dashed">
+              <CardContent className="py-12 text-center space-y-4">
+                <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto border shadow-sm">
+                  <Layout className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <div className="max-w-xs mx-auto">
+                  <h3 className="font-bold">Mode Template Aktif</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Website Anda saat ini menggunakan template standar yang menampilkan banner travel dan daftar paket umroh Anda secara otomatis.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setSettings({ ...settings, is_builder_active: true })}>
+                  Pindah ke Custom HTML
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <PageHtmlEditor
+              html={htmlContent}
+              css={cssContent}
+              javascript={jsContent}
+              onHtmlChange={setHtmlContent}
+              onCssChange={setCssContent}
+              onJavaScriptChange={setJsContent}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="marketing" className="pt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                Marketing Tools
+                {!settings.is_pro_active && (
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Lock className="h-2.5 w-2.5" /> Premium Only
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription>Integrasi tracking dan optimasi SEO</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="pixel">Facebook Pixel ID</Label>
+                <Input
+                  id="pixel"
+                  placeholder="Contoh: 1234567890"
+                  value={settings.fb_pixel_id || ''}
+                  onChange={(e) => setSettings({ ...settings, fb_pixel_id: e.target.value })}
+                  disabled={!settings.is_pro_active}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="m_title">SEO Title</Label>
+                <Input
+                  id="m_title"
+                  placeholder="Judul saat link dibagikan"
+                  value={settings.meta_title || ''}
+                  onChange={(e) => setSettings({ ...settings, meta_title: e.target.value })}
+                  disabled={!settings.is_pro_active}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="m_desc">SEO Description</Label>
+                <Input
+                  id="m_desc"
+                  placeholder="Deskripsi singkat untuk Google/WhatsApp"
+                  value={settings.meta_description || ''}
+                  onChange={(e) => setSettings({ ...settings, meta_description: e.target.value })}
+                  disabled={!settings.is_pro_active}
+                />
+              </div>
+
+              {!settings.is_pro_active && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3">
+                  <div className="flex gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-amber-900">Buka Fitur Premium</p>
+                      <p className="text-xs text-amber-700">
+                        Dapatkan akses ke Facebook Pixel, Custom SEO, dan hapus branding "Powered by Umroh Connect" hanya dengan Rp 150.000.
+                      </p>
+                    </div>
+                  </div>
+                  <Button className="w-full bg-amber-600 hover:bg-amber-700" onClick={handleUpgrade}>
+                    Upgrade Sekarang
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
