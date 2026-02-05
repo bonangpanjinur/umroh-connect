@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
-import { PackageCard } from '@/components/paket/PackageCard';
+import PackageCard from '@/components/paket/PackageCard';
 import { Button } from '@/components/ui/button';
 import { Building2, Phone, Mail, MapPin, MessageSquare, AlertCircle } from 'lucide-react';
 import { PackageWithDetails } from '@/types/database';
@@ -182,7 +182,11 @@ const AgentPublicProfile = () => {
         {packages.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {packages.map((pkg) => (
-              <PackageCard key={pkg.id} pkg={pkg} />
+              <PackageCard 
+                key={pkg.id} 
+                pkg={pkg} 
+                onClick={() => navigate(`/paket/${pkg.id}`)} 
+              />
             ))}
           </div>
         ) : (
