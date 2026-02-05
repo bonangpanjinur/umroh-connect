@@ -5,14 +5,117 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BlockData, HeroBlockContent, FeaturesBlockContent, TestimonialsBlockContent, PackagesBlockContent, FAQBlockContent, ContactBlockContent, RichTextBlockContent } from '@/types/blocks';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { 
+  BlockData, 
+  HeroBlockContent, 
+  FeaturesBlockContent, 
+  TestimonialsBlockContent, 
+  PackagesBlockContent, 
+  FAQBlockContent, 
+  ContactBlockContent, 
+  RichTextBlockContent,
+  GalleryBlockContent,
+  VideoBlockContent
+} from '@/types/blocks';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Image as ImageIcon, Video as VideoIcon, Settings } from 'lucide-react';
 
 interface BlockEditorProps {
   block: BlockData;
   onChange: (block: BlockData) => void;
+}
+
+export function AdvancedSettingsEditor({ block, onChange }: BlockEditorProps) {
+  const settings = block.settings || {
+    paddingTop: 'py-16',
+    paddingBottom: 'py-16',
+    backgroundColor: '',
+    customClass: '',
+    isVisible: true,
+  };
+
+  const handleChange = (key: string, value: any) => {
+    onChange({
+      ...block,
+      settings: { ...settings, [key]: value },
+    });
+  };
+
+  return (
+    <div className="space-y-4 py-2">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="isVisible">Tampilkan Blok</Label>
+        <Switch
+          id="isVisible"
+          checked={settings.isVisible !== false}
+          onCheckedChange={(checked) => handleChange('isVisible', checked)}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Padding Atas</Label>
+          <Select value={settings.paddingTop || 'py-16'} onValueChange={(v) => handleChange('paddingTop', v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="py-0">None</SelectItem>
+              <SelectItem value="py-8">Small</SelectItem>
+              <SelectItem value="py-16">Medium</SelectItem>
+              <SelectItem value="py-24">Large</SelectItem>
+              <SelectItem value="py-32">XL</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Padding Bawah</Label>
+          <Select value={settings.paddingBottom || 'py-16'} onValueChange={(v) => handleChange('paddingBottom', v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="py-0">None</SelectItem>
+              <SelectItem value="py-8">Small</SelectItem>
+              <SelectItem value="py-16">Medium</SelectItem>
+              <SelectItem value="py-24">Large</SelectItem>
+              <SelectItem value="py-32">XL</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>Warna Latar Belakang (Hex)</Label>
+        <div className="flex gap-2">
+          <input
+            type="color"
+            value={settings.backgroundColor || '#ffffff'}
+            onChange={(e) => handleChange('backgroundColor', e.target.value)}
+            className="w-12 h-10 rounded cursor-pointer"
+          />
+          <Input
+            value={settings.backgroundColor || ''}
+            onChange={(e) => handleChange('backgroundColor', e.target.value)}
+            placeholder="#ffffff"
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>Custom CSS Class</Label>
+        <Input
+          value={settings.customClass || ''}
+          onChange={(e) => handleChange('customClass', e.target.value)}
+          placeholder="my-custom-class"
+        />
+      </div>
+    </div>
+  );
 }
 
 export function HeroBlockEditor({ block, onChange }: BlockEditorProps) {
@@ -385,7 +488,7 @@ export function FAQBlockEditor({ block, onChange }: BlockEditorProps) {
   const addFAQ = () => {
     handleChange('faqs', [
       ...content.faqs,
-      { question: 'Pertanyaan baru?', answer: 'Jawaban Anda di sini' },
+      { question: 'Pertanyaan baru?', answer: 'Jawaban Anda di sini.' },
     ]);
   };
 
@@ -414,7 +517,7 @@ export function FAQBlockEditor({ block, onChange }: BlockEditorProps) {
 
       <div className="border-t pt-4">
         <div className="flex justify-between items-center mb-4">
-          <Label className="text-base font-semibold">FAQ Items</Label>
+          <Label className="text-base font-semibold">Daftar FAQ</Label>
           <Button size="sm" onClick={addFAQ}>
             <Plus className="h-4 w-4 mr-2" />
             Tambah FAQ
@@ -425,7 +528,7 @@ export function FAQBlockEditor({ block, onChange }: BlockEditorProps) {
           {content.faqs.map((faq, idx) => (
             <div key={idx} className="border rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-start">
-                <span className="font-medium">FAQ {idx + 1}</span>
+                <span className="font-medium text-sm">FAQ {idx + 1}</span>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -435,20 +538,20 @@ export function FAQBlockEditor({ block, onChange }: BlockEditorProps) {
                 </Button>
               </div>
               <div>
-                <Label className="text-sm">Pertanyaan</Label>
+                <Label className="text-xs">Pertanyaan</Label>
                 <Input
                   value={faq.question}
                   onChange={(e) => handleFAQChange(idx, 'question', e.target.value)}
-                  placeholder="Pertanyaan"
+                  placeholder="Masukkan pertanyaan"
                 />
               </div>
               <div>
-                <Label className="text-sm">Jawaban</Label>
+                <Label className="text-xs">Jawaban</Label>
                 <Textarea
                   value={faq.answer}
                   onChange={(e) => handleFAQChange(idx, 'answer', e.target.value)}
-                  placeholder="Jawaban"
-                  rows={3}
+                  placeholder="Masukkan jawaban"
+                  rows={2}
                 />
               </div>
             </div>
@@ -494,8 +597,8 @@ export function ContactBlockEditor({ block, onChange }: BlockEditorProps) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="form">Form Saja</SelectItem>
-            <SelectItem value="whatsapp">WhatsApp Saja</SelectItem>
+            <SelectItem value="form">Formulir Kontak</SelectItem>
+            <SelectItem value="whatsapp">WhatsApp Only</SelectItem>
             <SelectItem value="both">Keduanya</SelectItem>
           </SelectContent>
         </Select>
@@ -557,24 +660,226 @@ export function RichTextBlockEditor({ block, onChange }: BlockEditorProps) {
   );
 }
 
+export function GalleryBlockEditor({ block, onChange }: BlockEditorProps) {
+  const content = block.content as GalleryBlockContent;
+
+  const handleChange = (key: string, value: any) => {
+    onChange({
+      ...block,
+      content: { ...content, [key]: value },
+    });
+  };
+
+  const handleImageChange = (idx: number, key: string, value: string) => {
+    const images = [...content.images];
+    images[idx] = { ...images[idx], [key]: value };
+    handleChange('images', images);
+  };
+
+  const addImage = () => {
+    handleChange('images', [
+      ...content.images,
+      { url: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa', caption: 'Masjidil Haram' },
+    ]);
+  };
+
+  const removeImage = (idx: number) => {
+    handleChange('images', content.images.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Judul</Label>
+        <Input
+          value={content.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          placeholder="Galeri Kami"
+        />
+      </div>
+      <div>
+        <Label>Subtitle</Label>
+        <Input
+          value={content.subtitle || ''}
+          onChange={(e) => handleChange('subtitle', e.target.value)}
+          placeholder="Subtitle (opsional)"
+        />
+      </div>
+      <div>
+        <Label>Jumlah Kolom</Label>
+        <Select value={String(content.columns || 3)} onValueChange={(v) => handleChange('columns', parseInt(v))}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="2">2 Kolom</SelectItem>
+            <SelectItem value="3">3 Kolom</SelectItem>
+            <SelectItem value="4">4 Kolom</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="flex justify-between items-center mb-4">
+          <Label className="text-base font-semibold">Daftar Gambar</Label>
+          <Button size="sm" onClick={addImage}>
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah Gambar
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {content.images.map((img, idx) => (
+            <div key={idx} className="border rounded-lg p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <span className="font-medium text-sm">Gambar {idx + 1}</span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => removeImage(idx)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+              <div>
+                <Label className="text-xs">URL Gambar</Label>
+                <Input
+                  value={img.url}
+                  onChange={(e) => handleImageChange(idx, 'url', e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Caption</Label>
+                <Input
+                  value={img.caption || ''}
+                  onChange={(e) => handleImageChange(idx, 'caption', e.target.value)}
+                  placeholder="Keterangan gambar"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function VideoBlockEditor({ block, onChange }: BlockEditorProps) {
+  const content = block.content as VideoBlockContent;
+
+  const handleChange = (key: string, value: any) => {
+    onChange({
+      ...block,
+      content: { ...content, [key]: value },
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Judul</Label>
+        <Input
+          value={content.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          placeholder="Video Perjalanan"
+        />
+      </div>
+      <div>
+        <Label>Subtitle</Label>
+        <Input
+          value={content.subtitle || ''}
+          onChange={(e) => handleChange('subtitle', e.target.value)}
+          placeholder="Subtitle (opsional)"
+        />
+      </div>
+      <div>
+        <Label>Platform</Label>
+        <Select value={content.platform} onValueChange={(v) => handleChange('platform', v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="youtube">YouTube</SelectItem>
+            <SelectItem value="vimeo">Vimeo</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>URL Video</Label>
+        <Input
+          value={content.videoUrl}
+          onChange={(e) => handleChange('videoUrl', e.target.value)}
+          placeholder="https://www.youtube.com/watch?v=..."
+        />
+      </div>
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={content.autoplay || false}
+            onChange={(e) => handleChange('autoplay', e.target.checked)}
+          />
+          <span className="text-sm">Autoplay</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={content.loop || false}
+            onChange={(e) => handleChange('loop', e.target.checked)}
+          />
+          <span className="text-sm">Loop</span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
 // Main editor component dispatcher
 export function BlockEditor({ block, onChange }: BlockEditorProps) {
-  switch (block.type) {
-    case 'hero':
-      return <HeroBlockEditor block={block} onChange={onChange} />;
-    case 'features':
-      return <FeaturesBlockEditor block={block} onChange={onChange} />;
-    case 'testimonials':
-      return <TestimonialsBlockEditor block={block} onChange={onChange} />;
-    case 'packages':
-      return <PackagesBlockEditor block={block} onChange={onChange} />;
-    case 'faq':
-      return <FAQBlockEditor block={block} onChange={onChange} />;
-    case 'contact':
-      return <ContactBlockEditor block={block} onChange={onChange} />;
-    case 'richtext':
-      return <RichTextBlockEditor block={block} onChange={onChange} />;
-    default:
-      return <div>Unknown block type</div>;
-  }
+  return (
+    <Tabs defaultValue="content" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger value="content" className="flex items-center gap-2">
+          <ImageIcon className="h-4 w-4" />
+          Konten
+        </TabsTrigger>
+        <TabsTrigger value="settings" className="flex items-center gap-2">
+          <Settings className="h-4 w-4" />
+          Pengaturan
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="content" className="mt-0">
+        {(() => {
+          switch (block.type) {
+            case 'hero':
+              return <HeroBlockEditor block={block} onChange={onChange} />;
+            case 'features':
+              return <FeaturesBlockEditor block={block} onChange={onChange} />;
+            case 'testimonials':
+              return <TestimonialsBlockEditor block={block} onChange={onChange} />;
+            case 'packages':
+              return <PackagesBlockEditor block={block} onChange={onChange} />;
+            case 'faq':
+              return <FAQBlockEditor block={block} onChange={onChange} />;
+            case 'contact':
+              return <ContactBlockEditor block={block} onChange={onChange} />;
+            case 'richtext':
+              return <RichTextBlockEditor block={block} onChange={onChange} />;
+            case 'gallery':
+              return <GalleryBlockEditor block={block} onChange={onChange} />;
+            case 'video':
+              return <VideoBlockEditor block={block} onChange={onChange} />;
+            default:
+              return <div>Unknown block type</div>;
+          }
+        })()}
+      </TabsContent>
+      
+      <TabsContent value="settings" className="mt-0">
+        <AdvancedSettingsEditor block={block} onChange={onChange} />
+      </TabsContent>
+    </Tabs>
+  );
 }

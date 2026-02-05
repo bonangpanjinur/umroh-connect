@@ -1,12 +1,19 @@
 // Block types and interfaces for Visual Block Builder
 
-export type BlockType = 'hero' | 'features' | 'testimonials' | 'packages' | 'faq' | 'contact' | 'richtext';
+export type BlockType = 'hero' | 'features' | 'testimonials' | 'packages' | 'faq' | 'contact' | 'richtext' | 'gallery' | 'video';
 
 export interface BlockData {
   id: string;
   type: BlockType;
   content: Record<string, any>;
   order: number;
+  settings?: {
+    paddingTop?: string;
+    paddingBottom?: string;
+    backgroundColor?: string;
+    customClass?: string;
+    isVisible?: boolean;
+  };
 }
 
 // Hero Block
@@ -83,6 +90,27 @@ export interface ContactBlockContent {
 // Rich Text Block
 export interface RichTextBlockContent {
   html: string;
+}
+
+// Gallery Block
+export interface GalleryBlockContent {
+  title: string;
+  subtitle?: string;
+  images: Array<{
+    url: string;
+    caption?: string;
+  }>;
+  columns?: 2 | 3 | 4;
+}
+
+// Video Block
+export interface VideoBlockContent {
+  title: string;
+  subtitle?: string;
+  videoUrl: string;
+  platform: 'youtube' | 'vimeo';
+  autoplay?: boolean;
+  loop?: boolean;
 }
 
 // Block Definition
@@ -216,6 +244,36 @@ export const BLOCK_REGISTRY: Record<BlockType, BlockDefinition> = {
     defaultContent: {
       html: '<div class="prose max-w-none"><h2>Konten Anda di Sini</h2><p>Gunakan editor untuk menambahkan konten yang Anda inginkan.</p></div>',
     } as RichTextBlockContent,
+  },
+  gallery: {
+    type: 'gallery',
+    label: 'Gallery',
+    description: 'Grid gambar dengan lightbox',
+    icon: 'Image',
+    defaultContent: {
+      title: 'Galeri Kami',
+      subtitle: 'Dokumentasi perjalanan jamaah',
+      images: [
+        { url: 'https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa', caption: 'Masjidil Haram' },
+        { url: 'https://images.unsplash.com/photo-1542810634-71277d95dcbb', caption: 'Masjid Nabawi' },
+        { url: 'https://images.unsplash.com/photo-1564769662533-4f00a87b4056', caption: 'Ka\'bah' },
+      ],
+      columns: 3,
+    } as GalleryBlockContent,
+  },
+  video: {
+    type: 'video',
+    label: 'Video',
+    description: 'Embed video YouTube atau Vimeo',
+    icon: 'Video',
+    defaultContent: {
+      title: 'Video Perjalanan',
+      subtitle: 'Lihat bagaimana perjalanan kami berlangsung',
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      platform: 'youtube',
+      autoplay: false,
+      loop: false,
+    } as VideoBlockContent,
   },
 };
 
