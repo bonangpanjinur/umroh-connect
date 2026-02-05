@@ -28,6 +28,7 @@ interface AgentDashboardSidebarProps {
   inquiryPendingCount?: number;
   isCollapsed?: boolean;
   setIsCollapsed?: (collapsed: boolean) => void;
+  onCreatePackage?: () => void;
 }
 
 export const AgentDashboardSidebar = ({
@@ -39,6 +40,7 @@ export const AgentDashboardSidebar = ({
   inquiryPendingCount = 0,
   isCollapsed = false,
   setIsCollapsed,
+  onCreatePackage,
 }: AgentDashboardSidebarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['bisnis']);
@@ -253,7 +255,7 @@ export const AgentDashboardSidebar = ({
         <div className="px-4 mt-4">
           <Button 
             className="w-full gap-2 shadow-md" 
-            onClick={() => handleTabChange('packages')}
+            onClick={onCreatePackage}
           >
             <PlusCircle className="h-4 w-4" />
             <span>Paket Baru</span>
