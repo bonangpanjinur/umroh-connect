@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
+import { Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, AlertCircle, CheckCircle, Palette, BookOpen } from 'lucide-react';
 import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -185,6 +185,9 @@ ${jsContent}
           <TabsTrigger value="editor" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" /> Editor
           </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Palette className="h-4 w-4" /> Template
+          </TabsTrigger>
           <TabsTrigger value="marketing" className="flex items-center gap-2">
             <Megaphone className="h-4 w-4" /> Marketing
           </TabsTrigger>
@@ -294,8 +297,66 @@ ${jsContent}
           )}
         </TabsContent>
 
-        <TabsContent value="marketing" className="pt-4 space-y-4">
+            <TabsContent value="templates" className="pt-4 space-y-4">
           <Card>
+            <CardHeader>
+              <CardTitle>Template Website</CardTitle>
+              <CardDescription>Pilih tampilan website yang sesuai dengan brand travel Anda</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { id: 'modern', name: 'Modern Clean', desc: 'Tampilan bersih dengan fokus pada gambar paket.', color: 'bg-blue-500' },
+                  { id: 'elegant', name: 'Elegant Gold', desc: 'Nuansa premium dengan aksen emas dan font serif.', color: 'bg-amber-600' },
+                  { id: 'vibrant', name: 'Vibrant Green', desc: 'Segar dan energik, cocok untuk target jamaah muda.', color: 'bg-emerald-500' },
+                  { id: 'minimal', name: 'Minimalist', desc: 'Sangat sederhana, mengutamakan kemudahan navigasi.', color: 'bg-slate-700' }
+                ].map((tpl) => (
+                  <div 
+                    key={tpl.id}
+                    className={cn(
+                      "group relative border rounded-xl p-4 cursor-pointer transition-all hover:border-primary hover:shadow-md",
+                      settings?.template_id === tpl.id ? "border-primary bg-primary/5" : "border-border"
+                    )}
+                    onClick={() => setSettings({ ...settings, template_id: tpl.id, is_builder_active: false })}
+                  >
+                    <div className="flex gap-4 items-center">
+                      <div className={cn("w-16 h-16 rounded-lg flex items-center justify-center text-white", tpl.color)}>
+                        <Layout className="h-8 w-8" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-sm">{tpl.name}</h4>
+                        <p className="text-xs text-muted-foreground">{tpl.desc}</p>
+                      </div>
+                      {settings?.template_id === tpl.id && (
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 p-4 bg-muted/50 rounded-lg border border-dashed">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-sm">Panduan Kustomisasi</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ingin tampilan yang benar-benar unik? Gunakan <strong>Editor HTML</strong> untuk memasukkan kode kustom Anda sendiri. Kami mendukung Tailwind CSS untuk kemudahan styling.
+                    </p>
+                    <Button variant="link" className="h-auto p-0 text-xs mt-2" asChild>
+                      <a href="#" onClick={(e) => { e.preventDefault(); toast.info('Dokumentasi sedang disiapkan'); }}>
+                        Baca dokumentasi editor &rarr;
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="marketing" className="pt-4">
+          <Card><Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Marketing Tools
