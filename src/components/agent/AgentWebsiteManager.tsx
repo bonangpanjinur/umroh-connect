@@ -4,14 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, AlertCircle } from 'lucide-react';
+import { Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, AlertCircle, CheckCircle } from 'lucide-react';
 import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAgentTravel } from '@/hooks/useAgentData';
 import { toast } from 'sonner';
 
 export const AgentWebsiteManager = () => {
   const { user } = useAuthContext();
+  const { data: travel } = useAgentTravel();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<any>(null);
@@ -153,6 +155,12 @@ ${jsContent}
 
   if (loading) return <div className="p-8 text-center">Memuat pengaturan...</div>;
 
+  // Check if admin has approved custom URL
+  const hasApprovedCustomUrl = travel?.is_custom_url_enabled_by_admin && travel?.admin_approved_slug;
+  const websiteUrl = hasApprovedCustomUrl 
+    ? `${window.location.origin}/agent/${travel.admin_approved_slug}`
+    : `${window.location.origin}/agent/${settings?.slug || 'default'}`;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -186,32 +194,42 @@ ${jsContent}
           <Card>
             <CardHeader>
               <CardTitle>Domain & URL</CardTitle>
-              <CardDescription>Atur alamat website publik Anda</CardDescription>
+              <CardDescription>Lihat alamat website publik Anda</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="slug">Website URL</Label>
+                <Label>Website URL</Label>
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">umrohconnect.id/agent/</span>
                     <Input
-                      id="slug"
-                      className="pl-[145px]"
-                      value={settings.slug}
-                      onChange={(e) => setSettings({ ...settings, slug: e.target.value })}
-                      disabled={!settings.is_custom_url_active}
+                      value={websiteUrl}
+                      readOnly
+                      className="font-mono text-sm"
                     />
                   </div>
                   <Button variant="outline" asChild>
-                    <a href={`/agent/${settings.slug}`} target="_blank" rel="noreferrer">
+                    <a href={websiteUrl} target="_blank" rel="noreferrer">
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>
                 </div>
-                {!settings.is_custom_url_active && (
-                  <p className="text-xs text-amber-600 flex items-center gap-1">
-                    <Lock className="h-3 w-3" /> Upgrade ke Premium untuk kustomisasi URL
-                  </p>
+
+                {hasApprovedCustomUrl ? (
+                  <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-green-700">
+                      <p className="font-semibold">URL Kustom Disetujui Admin</p>
+                      <p className="text-xs opacity-90">Admin telah menyetujui URL kustom untuk website Anda. Anda tidak dapat mengubahnya.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-amber-700">
+                      <p className="font-semibold">URL Kustom Belum Disetujui</p>
+                      <p className="text-xs opacity-90">Hubungi admin untuk meminta persetujuan URL kustom untuk website Anda.</p>
+                    </div>
+                  </div>
                 )}
               </div>
 

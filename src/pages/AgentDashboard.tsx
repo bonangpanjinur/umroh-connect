@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
@@ -26,6 +25,7 @@ import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCen
 import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
 import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
 import { AgentWebsiteManager } from '@/components/agent/AgentWebsiteManager';
+import { AgentDashboardSidebar } from '@/components/agent/AgentDashboardSidebar';
 import { Package as PackageType } from '@/types/database';
 
 const AgentDashboard = () => {
@@ -56,7 +56,7 @@ const AgentDashboard = () => {
   if (authLoading || travelLoading) {
     return (
       <div className="min-h-screen bg-secondary/30 flex justify-center">
-        <div className="w-full max-w-md bg-background min-h-screen flex items-center justify-center">
+        <div className="w-full max-w-7xl bg-background min-h-screen flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       </div>
@@ -67,7 +67,7 @@ const AgentDashboard = () => {
   if (profile && profile.role !== 'agent' && profile.role !== 'admin') {
     return (
       <div className="min-h-screen bg-secondary/30 flex justify-center">
-        <div className="w-full max-w-md bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-full max-w-7xl bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="w-16 h-16 text-destructive mb-4" />
           <h2 className="text-xl font-bold mb-2">Akses Ditolak</h2>
           <p className="text-muted-foreground mb-6">
@@ -83,11 +83,87 @@ const AgentDashboard = () => {
     setActiveTab(tab);
   };
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-4">
+            <AgentMembershipCard travelId={travel?.id || ''} />
+            <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
+            <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
+          </div>
+        );
+      case 'analytics':
+        return <AnalyticsDashboard travelId={travel?.id || ''} />;
+      case 'packages':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-lg">Daftar Paket</h3>
+              <Button size="sm" onClick={() => {
+                setEditingPackage(null);
+                setShowPackageForm(true);
+              }}>
+                <Plus className="w-3 h-3 mr-1" /> Tambah Paket
+              </Button>
+            </div>
+            
+            {packagesLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : packages && packages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {packages.map((pkg) => (
+                  <PackageCardAgent 
+                    key={pkg.id} 
+                    pkg={pkg} 
+                    onEdit={() => {
+                      setEditingPackage(pkg);
+                      setShowPackageForm(true);
+                    }} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
+                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-20" />
+                <p className="text-sm text-muted-foreground">Belum ada paket umroh</p>
+              </div>
+            )}
+          </div>
+        );
+      case 'bookings':
+        return <BookingsManagement travelId={travel?.id || ''} />;
+      case 'chat':
+        return <ChatManagement travelId={travel?.id || ''} />;
+      case 'haji':
+        return (
+          <div className="space-y-4">
+            <h3 className="font-bold text-lg">Manajemen Pendaftaran Haji</h3>
+            <HajiManagement travelId={travel?.id} />
+          </div>
+        );
+      case 'inquiries':
+        return <InquiriesManagement travelId={travel?.id || ''} />;
+      case 'website':
+        return <AgentWebsiteManager />;
+      case 'featured':
+        return <FeaturedPackageManager travelId={travel?.id || ''} />;
+      case 'membership':
+        return <AgentMembershipCard travelId={travel?.id || ''} showFull />;
+      case 'credits':
+        return <AgentCreditsManager />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-secondary/30 flex justify-center">
-      <div className="w-full max-w-md bg-background min-h-screen relative">
+      <div className="w-full max-w-7xl bg-background min-h-screen flex flex-col lg:flex-row relative">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:col-span-full">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
@@ -108,8 +184,18 @@ const AgentDashboard = () => {
           )}
         </header>
 
-        <main className="p-4 pb-24 space-y-4">
-          {/* Travel Card */}
+        {/* Sidebar Navigation */}
+        <AgentDashboardSidebar 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          chatUnreadCount={chatUnreadCount}
+          bookingOverdueCount={bookingStats.overduePayments}
+          hajiPendingCount={hajiStats?.pending || 0}
+          inquiryPendingCount={inquiryStats?.pending || 0}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
           {!travel ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -133,7 +219,7 @@ const AgentDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-primary"
+                className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-primary mb-6"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -177,195 +263,18 @@ const AgentDashboard = () => {
                 </div>
               </motion.div>
 
-              {/* Tabs for different sections */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-                <TabsList className="grid w-full grid-cols-11 gap-0.5">
-                  <TabsTrigger value="overview" className="text-[10px] px-1">Overview</TabsTrigger>
-                  <TabsTrigger value="membership" className="text-[10px] px-1">
-                    <Crown className="w-3 h-3" />
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="text-[10px] px-1">
-                    <TrendingUp className="w-3 h-3" />
-                  </TabsTrigger>
-                  <TabsTrigger value="credits" className="text-[10px] px-1">
-                    <Zap className="w-3 h-3" />
-                  </TabsTrigger>
-                  <TabsTrigger value="packages" className="text-[10px] px-1">Paket</TabsTrigger>
-                  <TabsTrigger value="bookings" className="relative text-[10px] px-1">
-                    Booking
-                    {bookingStats.overduePayments > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-[10px] rounded-full flex items-center justify-center">
-                        {bookingStats.overduePayments}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="chat" className="relative text-[10px] px-1">
-                    <MessageSquare className="w-3 h-3" />
-                    {chatUnreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center">
-                        {chatUnreadCount}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="haji" className="relative text-[10px] px-1">
-                    Haji
-                    {hajiStats && hajiStats.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                        {hajiStats.pending}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="inquiries" className="relative text-[10px] px-1">
-                    Inquiry
-                    {inquiryStats && inquiryStats.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
-                        {inquiryStats.pending}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="website" className="text-[10px] px-1">
-                    <Globe className="w-3 h-3" />
-                  </TabsTrigger>
-                  <TabsTrigger value="featured" className="text-[10px] px-1">
-                    <Sparkles className="w-3 h-3" />
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="mt-4 space-y-4">
-                  {/* Membership Status Quick View */}
-                  <AgentMembershipCard travelId={travel.id} />
-                  <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
-                  <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
-                </TabsContent>
-
-                <TabsContent value="membership" className="mt-4">
-                  <AgentMembershipCard travelId={travel.id} showFull />
-                </TabsContent>
-
-                <TabsContent value="analytics" className="mt-4">
-                  <AnalyticsDashboard travelId={travel.id} />
-                </TabsContent>
-
-                <TabsContent value="credits" className="mt-4">
-                  <AgentCreditsManager />
-                </TabsContent>
-
-                <TabsContent value="packages" className="mt-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold">Daftar Paket</h3>
-                    <Button size="sm" onClick={() => {
-                      setEditingPackage(null);
-                      setShowPackageForm(true);
-                    }}>
-                      <Plus className="w-3 h-3 mr-1" /> Tambah Paket
-                    </Button>
-                  </div>
-                  
-                  {packagesLoading ? (
-                    <div className="flex justify-center py-12">
-                      <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                    </div>
-                  ) : packages && packages.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4">
-                      {packages.map((pkg) => (
-                        <PackageCardAgent 
-                          key={pkg.id} 
-                          pkg={pkg} 
-                          onEdit={() => {
-                            setEditingPackage(pkg);
-                            setShowPackageForm(true);
-                          }} 
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
-                      <Package className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-20" />
-                      <p className="text-sm text-muted-foreground">Belum ada paket umroh</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="bookings" className="mt-4">
-                  <BookingsManagement travelId={travel.id} />
-                </TabsContent>
-
-                <TabsContent value="chat" className="mt-4">
-                  <ChatManagement travelId={travel.id} />
-                </TabsContent>
-
-                <TabsContent value="haji" className="mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold">Manajemen Pendaftaran Haji</h3>
-                  </div>
-                  <HajiManagement travelId={travel?.id} />
-                </TabsContent>
-
-                <TabsContent value="inquiries" className="mt-4">
-                  <InquiriesManagement travelId={travel.id} />
-                </TabsContent>
-
-                <TabsContent value="website" className="mt-4">
-                  <AgentWebsiteManager />
-                </TabsContent>
-
-                <TabsContent value="featured" className="mt-4">
-                  <FeaturedPackageManager travelId={travel.id} />
-                </TabsContent>
-              </Tabs>
+              {/* Content Area */}
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderContent()}
+              </motion.div>
             </>
           )}
         </main>
-
-        {/* Bottom Navigation for Quick Access (Mobile) */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border px-6 py-3 z-50 flex justify-center">
-          <div className="w-full max-w-md flex items-center justify-around">
-            <button 
-              onClick={() => setActiveTab('overview')}
-              className={`flex flex-col items-center gap-1 ${activeTab === 'overview' ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              <BarChart3 className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Stats</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('packages')}
-              className={`flex flex-col items-center gap-1 ${activeTab === 'packages' ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              <Package className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Paket</span>
-            </button>
-            <button 
-              onClick={() => {
-                setEditingPackage(null);
-                setShowPackageForm(true);
-              }}
-              className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center -mt-8 shadow-lg shadow-primary/30 border-4 border-background"
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-            <button 
-              onClick={() => setActiveTab('bookings')}
-              className={`flex flex-col items-center gap-1 ${activeTab === 'bookings' ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              <ClipboardList className="w-5 h-5" />
-              <span className="text-[10px] font-medium">Booking</span>
-            </button>
-            <button 
-              onClick={() => setActiveTab('chat')}
-              className={`flex flex-col items-center gap-1 ${activeTab === 'chat' ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              <div className="relative">
-                <MessageSquare className="w-5 h-5" />
-                {chatUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-primary text-white text-[8px] rounded-full flex items-center justify-center">
-                    {chatUnreadCount}
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-medium">Chat</span>
-            </button>
-          </div>
-        </nav>
 
         {/* Forms Modals */}
         <AnimatePresence>
