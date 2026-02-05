@@ -27,9 +27,27 @@ export const usePublicPaymentConfig = () => {
   return useQuery({
     queryKey: ['public-payment-config'],
     queryFn: async (): Promise<PublicPaymentConfig> => {
-      const { data, error } = await supabase.functions.invoke('payment-config');
-      if (error) throw error;
-      return data as PublicPaymentConfig;
+      try {
+        const { data, error } = await supabase.functions.invoke('payment-config');
+        if (error) {
+          console.error('Supabase function error:', error);
+          return {
+            provider: 'manual',
+            isTestMode: true,
+            paymentMethods: [],
+            qrisImageUrl: '',
+          } as PublicPaymentConfig;
+        }
+        return data as PublicPaymentConfig;
+      } catch (err) {
+        console.error('Failed to fetch payment config:', err);
+        return {
+          provider: 'manual',
+          isTestMode: true,
+          paymentMethods: [],
+          qrisImageUrl: '',
+        } as PublicPaymentConfig;
+      }
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,

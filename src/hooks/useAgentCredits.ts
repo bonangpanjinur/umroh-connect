@@ -16,7 +16,10 @@ export const useAgentCredits = (travelId: string | undefined) => {
         .eq('travel_id', travelId)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching credits:', error);
+        return null;
+      }
       const typedData = data as PackageCredits | null;
       if (typedData) {
         return {
