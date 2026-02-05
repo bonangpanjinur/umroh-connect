@@ -15,7 +15,7 @@ const AgentPublicProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<AgentWebsiteSettings | null>(null);
+  const [settings, setSettings] = useState<AgentWebsiteSettings | any>(null);
   const [travel, setTravel] = useState<any>(null);
   const [packages, setPackages] = useState<PackageWithDetails[]>([]);
 
@@ -48,7 +48,7 @@ const AgentPublicProfile = () => {
         return;
       }
 
-      setSettings(settingsData as AgentWebsiteSettings);
+      setSettings(settingsData);
 
       // 2. Fetch travel profile
       const { data: travelData, error: travelError } = await supabase
@@ -170,12 +170,12 @@ const AgentPublicProfile = () => {
   const primaryColor = settings.primary_color || '#0284c7';
   const heroTitle = settings.hero_title || `Wujudkan Ibadah Suci Bersama ${travel?.name || 'Kami'}`;
   const heroDesc = settings.hero_description || travel?.description || 'Kami berkomitmen memberikan pelayanan terbaik untuk perjalanan ibadah Umroh dan Haji Anda dengan fasilitas premium dan pembimbing berpengalaman.';
-  const heroImage = settings.hero_image_url || packages[0]?.images[0] || "https://images.unsplash.com/photo-1565552629477-087529670247?w=1200";
+  const heroImage = settings.hero_image_url || (packages.length > 0 && packages[0].images && packages[0].images.length > 0 ? packages[0].images[0] : "https://images.unsplash.com/photo-1565552629477-087529670247?w=1200");
   
   const defaultFeatures = [
-    { icon: ShieldCheck, title: "Resmi & Terpercaya", desc: "Terdaftar resmi di Kementrian Agama dengan track record keberangkatan 100%." },
-    { icon: Users, title: "Pembimbing Berpengalaman", desc: "Didampingi oleh Muthawif dan pembimbing ibadah yang kompeten dan sabar." },
-    { icon: Calendar, title: "Jadwal Pasti", desc: "Kepastian tanggal keberangkatan dan maskapai terbaik untuk kenyamanan Anda." }
+    { title: "Resmi & Terpercaya", description: "Terdaftar resmi di Kementrian Agama dengan track record keberangkatan 100%." },
+    { title: "Pembimbing Berpengalaman", description: "Didampingi oleh Muthawif dan pembimbing ibadah yang kompeten dan sabar." },
+    { title: "Jadwal Pasti", description: "Kepastian tanggal keberangkatan dan maskapai terbaik untuk kenyamanan Anda." }
   ];
 
   const features = settings.features_json ? (Array.isArray(settings.features_json) ? settings.features_json : defaultFeatures) : defaultFeatures;
@@ -235,15 +235,15 @@ const AgentPublicProfile = () => {
                 <ShieldCheck className="w-3.5 h-3.5" />
                 Travel Umroh & Haji Terpercaya
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]" style={{ color: primaryColor }}>
                 {heroTitle}
               </h1>
               <p className="text-lg text-muted-foreground mb-10 max-w-xl leading-relaxed">
                 {heroDesc}
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" className="rounded-full px-8 h-14 text-base shadow-xl shadow-primary/20" asChild>
-                  <a href="#paket">Lihat Paket Tersedia <ArrowRight className="ml-2 w-5 h-5" /></a>
+                <Button size="lg" className="rounded-full px-8 h-14 text-base shadow-xl shadow-primary/20" style={{ backgroundColor: primaryColor }} asChild>
+                  <a href="#paket">Lihat Paket <ArrowRight className="ml-2 w-5 h-5" /></a>
                 </Button>
                 {travel?.phone && (
                   <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-base" asChild>
@@ -321,7 +321,7 @@ const AgentPublicProfile = () => {
                 return (
                   <div key={i} className="bg-background p-8 rounded-3xl border border-border hover:shadow-xl transition-shadow group">
                     <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <Icon className="w-7 h-7 text-primary" />
+                      <Icon className="w-7 h-7 text-primary" style={{ color: primaryColor }} />
                     </div>
                     <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{feature.description || feature.desc}</p>
@@ -384,7 +384,7 @@ const AgentPublicProfile = () => {
               <div className="space-y-8">
                 <div className="flex gap-6">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                    <MapPin className="w-6 h-6 text-primary" />
+                    <MapPin className="w-6 h-6 text-primary" style={{ color: primaryColor }} />
                   </div>
                   <div>
                     <div className="text-sm text-white/60 mb-1">Alamat Kantor</div>
@@ -393,7 +393,7 @@ const AgentPublicProfile = () => {
                 </div>
                 <div className="flex gap-6">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                    <Phone className="w-6 h-6 text-primary" />
+                    <Phone className="w-6 h-6 text-primary" style={{ color: primaryColor }} />
                   </div>
                   <div>
                     <div className="text-sm text-white/60 mb-1">Telepon / WhatsApp</div>
@@ -402,7 +402,7 @@ const AgentPublicProfile = () => {
                 </div>
                 <div className="flex gap-6">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                    <Mail className="w-6 h-6 text-primary" />
+                    <Mail className="w-6 h-6 text-primary" style={{ color: primaryColor }} />
                   </div>
                   <div>
                     <div className="text-sm text-white/60 mb-1">Email Support</div>
@@ -442,7 +442,7 @@ const AgentPublicProfile = () => {
                     <label className="text-sm font-medium">Pesan Anda</label>
                     <textarea className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[120px]" placeholder="Tanyakan sesuatu tentang paket kami..." />
                   </div>
-                  <Button className="w-full h-14 rounded-xl text-base font-bold">Kirim Pesan Sekarang</Button>
+                  <Button className="w-full h-14 rounded-xl text-base font-bold" style={{ backgroundColor: primaryColor }}>Kirim Pesan Sekarang</Button>
                 </form>
               </div>
             )}
