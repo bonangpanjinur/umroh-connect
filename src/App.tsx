@@ -62,8 +62,6 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/offline" element={<OfflineManagerView />} />
-                      {/* Placeholder Route untuk Kemitraan (mencegah 404 jika halaman belum dibuat) */}
-                      <Route path="/kemitraan" element={<Index />} /> 
 
                       {/* === LEVEL 2: PROTECTED ROUTES (Admin & Agent) === */}
                       {/* Harus diletakkan SEBELUM rute dinamis */}

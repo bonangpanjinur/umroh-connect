@@ -56,7 +56,7 @@ const quillModules = {
 
 const RESERVED_SLUGS = [
   "admin", "auth", "login", "register", "agent", "dashboard",
-  "profile", "settings", "api", "u", "p", "404", "offline", "kemitraan"
+  "profile", "settings", "api", "u", "p", "404", "offline"
 ];
 
 export const PagesManagement = () => {
