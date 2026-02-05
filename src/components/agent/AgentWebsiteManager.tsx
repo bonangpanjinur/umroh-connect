@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { 
   Globe, Save, Sparkles, Layout, Megaphone, Lock, ExternalLink, 
   AlertCircle, CheckCircle, Palette, BookOpen, Share2, Copy, 
-  Eye, Settings2, Rocket, Smartphone, Monitor, Clock, XCircle
+  Eye, Settings2, Rocket, Smartphone, Monitor, Clock, XCircle,
+  Loader2
 } from 'lucide-react';
 import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
