@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, X, Image as ImageIcon } from "lucide-react";
 import { useCreatePackage, useUpdatePackage } from "@/hooks/useAgentData";
+import { useHotels, useAirlines } from "@/hooks/useMasterData";
 import { ImageUpload } from "@/components/common/ImageUpload";
 import { Package } from "@/types/database";
 import { Label } from "@/components/ui/label";
@@ -32,9 +33,12 @@ const packageSchema = z.object({
   duration_days: z.coerce.number().min(1, "Durasi minimal 1 hari"),
   package_type: z.enum(['umroh', 'haji_reguler', 'haji_plus', 'haji_furoda']),
   hotel_makkah: z.string().optional(),
+  hotel_makkah_id: z.string().optional(),
   hotel_madinah: z.string().optional(),
+  hotel_madinah_id: z.string().optional(),
   hotel_star: z.coerce.number().min(1).max(5),
   airline: z.string().optional(),
+  airline_id: z.string().optional(),
   flight_type: z.enum(['direct', 'transit']),
   meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
   is_active: z.boolean().default(true),
@@ -51,6 +55,10 @@ interface PackageFormProps {
 export function PackageForm({ onSuccess, initialData, travelId }: PackageFormProps) {
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
+  const { data: makkahHotels } = useHotels('Makkah');
+  const { data: madinahHotels } = useHotels('Madinah');
+  const { data: airlines } = useAirlines();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
 
@@ -62,14 +70,50 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
       duration_days: initialData?.duration_days || 9,
       package_type: initialData?.package_type || "umroh",
       hotel_makkah: initialData?.hotel_makkah || "",
+      hotel_makkah_id: initialData?.hotel_makkah_id || undefined,
       hotel_madinah: initialData?.hotel_madinah || "",
+      hotel_madinah_id: initialData?.hotel_madinah_id || undefined,
       hotel_star: initialData?.hotel_star || 3,
       airline: initialData?.airline || "",
+      airline_id: initialData?.airline_id || undefined,
       flight_type: initialData?.flight_type || "direct",
       meal_type: initialData?.meal_type || "fullboard",
       is_active: initialData?.is_active ?? true,
     },
   });
+
+  // Update text fields when master data is selected
+  const selectedMakkahId = form.watch("hotel_makkah_id");
+  const selectedMadinahId = form.watch("hotel_madinah_id");
+  const selectedAirlineId = form.watch("airline_id");
+
+  useEffect(() => {
+    if (selectedMakkahId && makkahHotels) {
+      const hotel = makkahHotels.find(h => h.id === selectedMakkahId);
+      if (hotel) {
+        form.setValue("hotel_makkah", hotel.name);
+        form.setValue("hotel_star", hotel.star_rating);
+      }
+    }
+  }, [selectedMakkahId, makkahHotels, form]);
+
+  useEffect(() => {
+    if (selectedMadinahId && madinahHotels) {
+      const hotel = madinahHotels.find(h => h.id === selectedMadinahId);
+      if (hotel) {
+        form.setValue("hotel_madinah", hotel.name);
+      }
+    }
+  }, [selectedMadinahId, madinahHotels, form]);
+
+  useEffect(() => {
+    if (selectedAirlineId && airlines) {
+      const airline = airlines.find(a => a.id === selectedAirlineId);
+      if (airline) {
+        form.setValue("airline", airline.name);
+      }
+    }
+  }, [selectedAirlineId, airlines, form]);
 
   const onSubmit = async (data: PackageFormValues) => {
     if (!travelId && !initialData?.travel_id) return;
@@ -261,13 +305,24 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <FormField
             control={form.control}
-            name="hotel_makkah"
+            name="hotel_makkah_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Hotel Makkah</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nama Hotel" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Hotel Makkah" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {makkahHotels?.map((hotel) => (
+                      <SelectItem key={hotel.id} value={hotel.id}>
+                        {hotel.name} ({hotel.star_rating}★)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -275,13 +330,24 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
 
           <FormField
             control={form.control}
-            name="hotel_madinah"
+            name="hotel_madinah_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Hotel Madinah</FormLabel>
-                <FormControl>
-                  <Input placeholder="Nama Hotel" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih Hotel Madinah" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {madinahHotels?.map((hotel) => (
+                      <SelectItem key={hotel.id} value={hotel.id}>
+                        {hotel.name} ({hotel.star_rating}★)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -293,7 +359,7 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Bintang Hotel *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value.toString()}>
+                <Select onValueChange={field.onChange} value={field.value.toString()}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih bintang" />
@@ -313,13 +379,24 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
 
         <FormField
           control={form.control}
-          name="airline"
+          name="airline_id"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Maskapai</FormLabel>
-              <FormControl>
-                <Input placeholder="Contoh: Saudi Arabian Airlines" {...field} />
-              </FormControl>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih Maskapai" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {airlines?.map((airline) => (
+                    <SelectItem key={airline.id} value={airline.id}>
+                      {airline.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
