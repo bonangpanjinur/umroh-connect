@@ -287,6 +287,14 @@ export interface AgentWebsiteSettings {
   meta_title: string | null;
   meta_description: string | null;
   meta_image_url: string | null;
+  primary_color?: string | null;
+  hero_title?: string | null;
+  hero_description?: string | null;
+  hero_image_url?: string | null;
+  show_stats?: boolean;
+  show_features?: boolean;
+  show_contact_form?: boolean;
+  features_json?: any;
   created_at: string;
   updated_at: string;
 }

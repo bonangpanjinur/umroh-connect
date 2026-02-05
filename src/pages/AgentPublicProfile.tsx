@@ -7,7 +7,7 @@ import {
   Building2, Phone, Mail, MapPin, MessageSquare, AlertCircle, Loader2, 
   Star, ShieldCheck, Users, Calendar, ArrowRight, Facebook, Instagram, Twitter
 } from 'lucide-react';
-import { PackageWithDetails } from '@/types/database';
+import { PackageWithDetails, AgentWebsiteSettings } from '@/types/database';
 import { motion } from 'framer-motion';
 
 const AgentPublicProfile = () => {
@@ -15,7 +15,7 @@ const AgentPublicProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<AgentWebsiteSettings | null>(null);
   const [travel, setTravel] = useState<any>(null);
   const [packages, setPackages] = useState<PackageWithDetails[]>([]);
 
@@ -48,7 +48,7 @@ const AgentPublicProfile = () => {
         return;
       }
 
-      setSettings(settingsData);
+      setSettings(settingsData as AgentWebsiteSettings);
 
       // 2. Fetch travel profile
       const { data: travelData, error: travelError } = await supabase
@@ -166,9 +166,23 @@ const AgentPublicProfile = () => {
     );
   }
 
+  // Dynamic values from settings
+  const primaryColor = settings.primary_color || '#0284c7';
+  const heroTitle = settings.hero_title || `Wujudkan Ibadah Suci Bersama ${travel?.name || 'Kami'}`;
+  const heroDesc = settings.hero_description || travel?.description || 'Kami berkomitmen memberikan pelayanan terbaik untuk perjalanan ibadah Umroh dan Haji Anda dengan fasilitas premium dan pembimbing berpengalaman.';
+  const heroImage = settings.hero_image_url || packages[0]?.images[0] || "https://images.unsplash.com/photo-1565552629477-087529670247?w=1200";
+  
+  const defaultFeatures = [
+    { icon: ShieldCheck, title: "Resmi & Terpercaya", desc: "Terdaftar resmi di Kementrian Agama dengan track record keberangkatan 100%." },
+    { icon: Users, title: "Pembimbing Berpengalaman", desc: "Didampingi oleh Muthawif dan pembimbing ibadah yang kompeten dan sabar." },
+    { icon: Calendar, title: "Jadwal Pasti", desc: "Kepastian tanggal keberangkatan dan maskapai terbaik untuk kenyamanan Anda." }
+  ];
+
+  const features = settings.features_json ? (Array.isArray(settings.features_json) ? settings.features_json : defaultFeatures) : defaultFeatures;
+
   // Render Standard Template Mode
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/10">
+    <div className="min-h-screen bg-background selection:bg-primary/10" style={{ '--primary': primaryColor } as any}>
       {/* Navigation / Top Bar */}
       <nav className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -222,10 +236,10 @@ const AgentPublicProfile = () => {
                 Travel Umroh & Haji Terpercaya
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-                Wujudkan Ibadah Suci Bersama <span className="text-primary">{travel?.name || 'Kami'}</span>
+                {heroTitle}
               </h1>
               <p className="text-lg text-muted-foreground mb-10 max-w-xl leading-relaxed">
-                {travel?.description || 'Kami berkomitmen memberikan pelayanan terbaik untuk perjalanan ibadah Umroh dan Haji Anda dengan fasilitas premium dan pembimbing berpengalaman.'}
+                {heroDesc}
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button size="lg" className="rounded-full px-8 h-14 text-base shadow-xl shadow-primary/20" asChild>
@@ -239,22 +253,24 @@ const AgentPublicProfile = () => {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-8 mt-16 pt-8 border-t border-border">
-                <div>
-                  <div className="text-3xl font-bold text-foreground mb-1">1000+</div>
-                  <div className="text-sm text-muted-foreground">Jamaah Puas</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-foreground mb-1">10+</div>
-                  <div className="text-sm text-muted-foreground">Tahun Pengalaman</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-foreground mb-1">{travel?.rating || '4.9'}</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    Rating <Star className="w-3 h-3 fill-accent text-accent" />
+              {settings.show_stats !== false && (
+                <div className="grid grid-cols-3 gap-8 mt-16 pt-8 border-t border-border">
+                  <div>
+                    <div className="text-3xl font-bold text-foreground mb-1">1000+</div>
+                    <div className="text-sm text-muted-foreground">Jamaah Puas</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-foreground mb-1">10+</div>
+                    <div className="text-sm text-muted-foreground">Tahun Pengalaman</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-foreground mb-1">{travel?.rating || '4.9'}</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
+                      Rating <Star className="w-3 h-3 fill-accent text-accent" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </motion.div>
 
             <motion.div
@@ -265,7 +281,7 @@ const AgentPublicProfile = () => {
             >
               <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-8 border-background relative z-10">
                 <img 
-                  src={packages[0]?.images[0] || "https://images.unsplash.com/photo-1565552629477-087529670247?w=1200"} 
+                  src={heroImage} 
                   alt="Hero" 
                   className="w-full h-full object-cover"
                 />
@@ -292,29 +308,30 @@ const AgentPublicProfile = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-secondary/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold mb-4">Mengapa Memilih Kami?</h2>
-            <p className="text-muted-foreground">Kami memberikan jaminan kenyamanan dan keamanan untuk setiap langkah perjalanan ibadah Anda.</p>
+      {settings.show_features !== false && (
+        <section className="py-24 bg-secondary/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <h2 className="text-3xl font-bold mb-4">Mengapa Memilih Kami?</h2>
+              <p className="text-muted-foreground">Kami memberikan jaminan kenyamanan dan keamanan untuk setiap langkah perjalanan ibadah Anda.</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {features.map((feature: any, i: number) => {
+                const Icon = i === 0 ? ShieldCheck : i === 1 ? Users : Calendar;
+                return (
+                  <div key={i} className="bg-background p-8 rounded-3xl border border-border hover:shadow-xl transition-shadow group">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Icon className="w-7 h-7 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{feature.description || feature.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: ShieldCheck, title: "Resmi & Terpercaya", desc: "Terdaftar resmi di Kementrian Agama dengan track record keberangkatan 100%." },
-              { icon: Users, title: "Pembimbing Berpengalaman", desc: "Didampingi oleh Muthawif dan pembimbing ibadah yang kompeten dan sabar." },
-              { icon: Calendar, title: "Jadwal Pasti", desc: "Kepastian tanggal keberangkatan dan maskapai terbaik untuk kenyamanan Anda." }
-            ].map((feature, i) => (
-              <div key={i} className="bg-background p-8 rounded-3xl border border-border hover:shadow-xl transition-shadow group">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Package Grid */}
       <section id="paket" className="py-24">
@@ -407,26 +424,28 @@ const AgentPublicProfile = () => {
               </div>
             </div>
 
-            <div className="bg-white text-foreground p-8 sm:p-10 rounded-[40px] shadow-2xl">
-              <h3 className="text-2xl font-bold mb-6">Kirim Pesan</h3>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nama Lengkap</label>
-                    <input type="text" className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Masukkan nama" />
+            {settings.show_contact_form !== false && (
+              <div className="bg-white text-foreground p-8 sm:p-10 rounded-[40px] shadow-2xl">
+                <h3 className="text-2xl font-bold mb-6">Kirim Pesan</h3>
+                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Nama Lengkap</label>
+                      <input type="text" className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="Masukkan nama" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Nomor WhatsApp</label>
+                      <input type="tel" className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="0812..." />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Nomor WhatsApp</label>
-                    <input type="tel" className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" placeholder="0812..." />
+                    <label className="text-sm font-medium">Pesan Anda</label>
+                    <textarea className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[120px]" placeholder="Tanyakan sesuatu tentang paket kami..." />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pesan Anda</label>
-                  <textarea className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary/20 outline-none transition-all min-h-[120px]" placeholder="Tanyakan sesuatu tentang paket kami..." />
-                </div>
-                <Button className="w-full h-14 rounded-xl text-base font-bold">Kirim Pesan Sekarang</Button>
-              </form>
-            </div>
+                  <Button className="w-full h-14 rounded-xl text-base font-bold">Kirim Pesan Sekarang</Button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </section>
