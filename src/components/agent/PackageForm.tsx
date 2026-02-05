@@ -24,6 +24,7 @@ const packageSchema = z.object({
   airline: z.string().optional(),
   flight_type: z.enum(['direct', 'transit']),
   meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
+  base_price: z.coerce.number().min(0, 'Harga tidak boleh negatif').optional(),
   facilities: z.string().optional(),
 });
 
@@ -61,6 +62,7 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
       airline: pkg?.airline || '',
       flight_type: pkg?.flight_type || 'direct',
       meal_type: pkg?.meal_type || 'fullboard',
+      base_price: pkg?.base_price || undefined,
       facilities: pkg?.facilities?.join(', ') || '',
     },
   });
@@ -132,6 +134,32 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="base_price">Harga Dasar (Mulai Dari) *</Label>
+              <Input
+                id="base_price"
+                type="number"
+                placeholder="30000000"
+                {...register('base_price')}
+                className={errors.base_price ? 'border-destructive' : ''}
+              />
+              {errors.base_price && <p className="text-xs text-destructive">{errors.base_price.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration_days">Durasi (Hari) *</Label>
+              <Input
+                id="duration_days"
+                type="number"
+                min={1}
+                max={60}
+                {...register('duration_days')}
+                className={errors.duration_days ? 'border-destructive' : ''}
+              />
+              {errors.duration_days && <p className="text-xs text-destructive">{errors.duration_days.message}</p>}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Deskripsi</Label>
             <Textarea
@@ -154,35 +182,21 @@ const PackageForm = ({ travelId, package: pkg, onClose, onSuccess }: PackageForm
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="duration_days">Durasi (Hari) *</Label>
-              <Input
-                id="duration_days"
-                type="number"
-                min={1}
-                max={60}
-                {...register('duration_days')}
-                className={errors.duration_days ? 'border-destructive' : ''}
-              />
-              {errors.duration_days && <p className="text-xs text-destructive">{errors.duration_days.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Bintang Hotel *</Label>
-              <Select
-                value={String(watch('hotel_star'))}
-                onValueChange={(val) => setValue('hotel_star', Number(val))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">⭐⭐⭐ Bintang 3</SelectItem>
-                  <SelectItem value="4">⭐⭐⭐⭐ Bintang 4</SelectItem>
-                  <SelectItem value="5">⭐⭐⭐⭐⭐ Bintang 5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Bintang Hotel *</Label>
+            <Select
+              value={String(watch('hotel_star'))}
+              onValueChange={(val) => setValue('hotel_star', Number(val))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">⭐⭐⭐ Bintang 3</SelectItem>
+                <SelectItem value="4">⭐⭐⭐⭐ Bintang 4</SelectItem>
+                <SelectItem value="5">⭐⭐⭐⭐⭐ Bintang 5</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

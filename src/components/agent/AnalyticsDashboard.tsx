@@ -1,11 +1,17 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, DollarSign, Users, 
   Package, MessageSquare, Target,
   ArrowUpRight, ArrowDownRight, BarChart3, PieChart,
-  Clock, CheckCircle2, XCircle, AlertTriangle, Wallet
+  Clock, CheckCircle2, XCircle, AlertTriangle, Wallet,
+  Calendar as CalendarIcon, Download, ChevronDown
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -103,13 +109,64 @@ const StatCard = ({
 };
 
 const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
-  const { data: bookings } = useAgentBookings(travelId);
-  const { data: inquiries } = useAgentInquiries(travelId);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+
+  const { data: allBookings } = useAgentBookings(travelId);
+  const { data: allInquiries } = useAgentInquiries(travelId);
   const { data: inquiryStats } = useInquiryStats(travelId);
   const { data: packageStats } = usePackageStats(travelId);
   const { data: trendData } = useInterestTrend(travelId, 30);
   const { data: hajiStats } = useHajiStats(travelId);
   const paymentStats = usePaymentStats(travelId);
+
+  // Filter data based on date range
+  const bookings = useMemo(() => {
+    if (!allBookings || !dateRange?.from) return allBookings;
+    return allBookings.filter(b => {
+      const date = new Date(b.created_at);
+      return date >= dateRange.from! && (!dateRange.to || date <= dateRange.to);
+    });
+  }, [allBookings, dateRange]);
+
+  const inquiries = useMemo(() => {
+    if (!allInquiries || !dateRange?.from) return allInquiries;
+    return allInquiries.filter(i => {
+      const date = new Date(i.created_at);
+      return date >= dateRange.from! && (!dateRange.to || date <= dateRange.to);
+    });
+  }, [allInquiries, dateRange]);
+
+  const handleExport = () => {
+    if (!bookings) return;
+    
+    const headers = ['ID', 'Jamaah', 'Paket', 'Status', 'Total Bayar', 'Tanggal'];
+    const csvData = bookings.map(b => [
+      b.id,
+      b.jamaah_name || '-',
+      b.package_name || '-',
+      b.status,
+      b.paid_amount || 0,
+      format(new Date(b.created_at), 'yyyy-MM-dd HH:mm')
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `laporan-analitik-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Calculate booking metrics
   const bookingMetrics = useMemo(() => {
@@ -265,6 +322,69 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Filters & Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
+        <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn(
+                "justify-start text-left font-normal w-[240px]",
+                !dateRange && "text-muted-foreground"
+              )}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Pilih rentang tanggal</span>
+                )}
+                <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs h-8"
+              onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
+            >
+              7 Hari
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs h-8"
+              onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
+            >
+              30 Hari
+            </Button>
+          </div>
+        </div>
+
+        <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+          <Download className="h-4 w-4" />
+          Ekspor CSV
+        </Button>
+      </div>
+
       {/* Key Metrics */}
       <div>
         <h3 className="font-bold text-foreground mb-3 flex items-center gap-2">
