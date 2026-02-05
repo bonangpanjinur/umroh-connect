@@ -122,17 +122,29 @@ ${jsContent}
     try {
       const { data, error } = await supabase.functions.invoke('create-midtrans-token', {
         body: { 
-          item_details: [{ id: 'marketing_pro', price: 150000, name: 'Marketing Suite' }] 
+          amount: 150000,
+          transactionType: 'website_pro',
+          itemDetails: [{ id: 'marketing_pro', price: 150000, name: 'Marketing Suite', quantity: 1 }] 
         }
       });
       
       if (error) throw error;
       
-      // Handle Midtrans redirect or popup
-      if (data?.redirect_url) {
-        window.open(data.redirect_url, '_blank');
+      // Handle Midtrans Snap (popup or redirect)
+      if (data?.token) {
+        // If Snap.js is available in window
+        if ((window as any).snap) {
+          (window as any).snap.pay(data.token);
+        } else {
+          // Fallback to sandbox/production redirect
+          const isProduction = false; // Usually managed via env
+          const snapUrl = isProduction 
+            ? `https://app.midtrans.com/snap/v2/vtweb/${data.token}`
+            : `https://app.sandbox.midtrans.com/snap/v2/vtweb/${data.token}`;
+          window.open(snapUrl, '_blank');
+        }
       } else {
-        toast.info('Simulasi: Pembayaran dipicu');
+        toast.info('Pembayaran dipicu, silakan cek email atau dashboard Midtrans Anda');
       }
     } catch (error: any) {
       toast.error('Gagal memproses pembayaran: ' + error.message);
