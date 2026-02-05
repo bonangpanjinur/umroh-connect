@@ -65,6 +65,7 @@ export const AgentWebsiteManager = () => {
           is_builder_active: false,
           is_custom_url_active: false,
           is_pro_active: false,
+          is_published: false,
           slug_status: 'pending'
         };
         setSettings(defaultSettings);
@@ -267,6 +268,17 @@ ${jsContent}
                   <Switch 
                     checked={settings?.is_builder_active} 
                     onCheckedChange={(checked) => setSettings({...settings, is_builder_active: checked})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-xl border border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Publikasikan Website</Label>
+                    <p className="text-xs text-muted-foreground">Aktifkan agar website Anda dapat diakses oleh publik</p>
+                  </div>
+                  <Switch 
+                    checked={settings?.is_published} 
+                    onCheckedChange={(checked) => setSettings({...settings, is_published: checked})}
                   />
                 </div>
                 
