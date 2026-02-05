@@ -56,7 +56,7 @@ const AgentDashboard = () => {
   if (authLoading || travelLoading) {
     return (
       <div className="min-h-screen bg-secondary/30 flex justify-center">
-        <div className="w-full max-w-7xl bg-background min-h-screen flex items-center justify-center">
+        <div className="w-full bg-background min-h-screen flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       </div>
@@ -67,7 +67,7 @@ const AgentDashboard = () => {
   if (profile && profile.role !== 'agent' && profile.role !== 'admin') {
     return (
       <div className="min-h-screen bg-secondary/30 flex justify-center">
-        <div className="w-full max-w-7xl bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-full bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="w-16 h-16 text-destructive mb-4" />
           <h2 className="text-xl font-bold mb-2">Akses Ditolak</h2>
           <p className="text-muted-foreground mb-6">
@@ -161,7 +161,7 @@ const AgentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-secondary/30 flex justify-center">
-      <div className="w-full max-w-7xl bg-background min-h-screen flex flex-col lg:flex-row relative">
+      <div className="w-full bg-background min-h-screen flex flex-col lg:flex-row relative">
         {/* Header */}
         <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:col-span-full">
           <div className="flex items-center gap-3">
