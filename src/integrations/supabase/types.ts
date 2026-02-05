@@ -107,6 +107,63 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_website_settings: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          css_content: string | null
+          custom_slug: string | null
+          fb_pixel_id: string | null
+          google_analytics_id: string | null
+          html_content: string | null
+          is_builder_active: boolean | null
+          is_pro_active: boolean | null
+          js_content: string | null
+          meta_description: string | null
+          meta_title: string | null
+          slug: string | null
+          slug_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          css_content?: string | null
+          custom_slug?: string | null
+          fb_pixel_id?: string | null
+          google_analytics_id?: string | null
+          html_content?: string | null
+          is_builder_active?: boolean | null
+          is_pro_active?: boolean | null
+          js_content?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string | null
+          slug_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          css_content?: string | null
+          custom_slug?: string | null
+          fb_pixel_id?: string | null
+          google_analytics_id?: string | null
+          html_content?: string | null
+          is_builder_active?: boolean | null
+          is_pro_active?: boolean | null
+          js_content?: string | null
+          meta_description?: string | null
+          meta_title?: string | null
+          slug?: string | null
+          slug_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       airlines: {
         Row: {
           code: string | null
@@ -1666,6 +1723,47 @@ export type Database = {
         }
         Relationships: []
       }
+      page_versions: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string | null
+          design_data: Json | null
+          id: string
+          layout_data: Json | null
+          page_id: string | null
+          version_name: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          design_data?: Json | null
+          id?: string
+          layout_data?: Json | null
+          page_id?: string | null
+          version_name?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          design_data?: Json | null
+          id?: string
+          layout_data?: Json | null
+          page_id?: string | null
+          version_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_versions_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "static_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_notification_logs: {
         Row: {
           body: string
@@ -2107,6 +2205,57 @@ export type Database = {
           name?: string
           name_arabic?: string | null
           priority?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      static_pages: {
+        Row: {
+          content: string | null
+          created_at: string
+          design_data: Json | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          layout_data: Json | null
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
+          page_type: string | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          design_data?: Json | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          layout_data?: Json | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          page_type?: string | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          design_data?: Json | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          layout_data?: Json | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          page_type?: string | null
+          slug?: string
+          title?: string
           updated_at?: string
         }
         Relationships: []

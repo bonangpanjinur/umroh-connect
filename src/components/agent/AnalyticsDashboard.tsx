@@ -145,8 +145,8 @@ const AnalyticsDashboard = ({ travelId }: AnalyticsDashboardProps) => {
     const headers = ['ID', 'Jamaah', 'Paket', 'Status', 'Total Bayar', 'Tanggal'];
     const csvData = bookings.map(b => [
       b.id,
-      b.jamaah_name || '-',
-      b.package_name || '-',
+      b.contact_name || '-',
+      b.package_id || '-',
       b.status,
       b.paid_amount || 0,
       format(new Date(b.created_at), 'yyyy-MM-dd HH:mm')

@@ -35,8 +35,8 @@ export function DynamicPackages({ content }: DynamicPackagesProps) {
       {displayPackages.map((pkg) => (
         <div key={pkg.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-all bg-white">
           <div className="aspect-video bg-gray-100 relative">
-            {pkg.image_url ? (
-              <img src={pkg.image_url} alt={pkg.name} className="w-full h-full object-cover" />
+            {pkg.images && pkg.images[0] ? (
+              <img src={pkg.images[0]} alt={pkg.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
                 No Image
@@ -44,7 +44,7 @@ export function DynamicPackages({ content }: DynamicPackagesProps) {
             )}
             <div className="absolute top-2 right-2">
               <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded uppercase">
-                {pkg.category || 'Umroh'}
+                {pkg.package_type || 'Umroh'}
               </span>
             </div>
           </div>
@@ -54,14 +54,14 @@ export function DynamicPackages({ content }: DynamicPackagesProps) {
             
             <div className="flex items-center justify-between mt-auto">
               <div>
-                {content.showPrice && (
+                {content.showPrice && pkg.departures && pkg.departures.length > 0 && (
                   <p className="text-primary font-bold">
-                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(pkg.price_start_from || 0)}
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.min(...pkg.departures.map(d => d.price)))}
                   </p>
                 )}
-                {content.showRating && (
-                  <div className="flex text-yellow-400 text-xs mt-1">
-                    ★★★★★
+                {content.showRating && pkg.travel && (
+                  <div className="flex items-center text-yellow-400 text-xs mt-1">
+                    ★★★★★ <span className="text-muted-foreground ml-1">({pkg.travel.review_count || 0})</span>
                   </div>
                 )}
               </div>

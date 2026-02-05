@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,8 +55,9 @@ export const NavigationManager = () => {
 
       if (error) throw error;
 
-      if (data?.value?.main_navigation) {
-        setItems(data.value.main_navigation);
+      const valueData = data?.value as { main_navigation?: NavigationItem[] } | null;
+      if (valueData?.main_navigation) {
+        setItems(valueData.main_navigation);
       } else {
         setItems([]);
       }
@@ -79,7 +80,7 @@ export const NavigationManager = () => {
 
       const navigationData = {
         main_navigation: items,
-      };
+      } as any;
 
       if (existing) {
         await supabase
@@ -89,11 +90,11 @@ export const NavigationManager = () => {
       } else {
         await supabase
           .from('platform_settings')
-          .insert({
+          .insert([{
             key: 'main_navigation',
             value: navigationData,
             description: 'Main navigation menu items',
-          });
+          }] as any);
       }
 
       toast.success('Navigasi berhasil disimpan');
