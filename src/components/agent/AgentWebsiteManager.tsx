@@ -10,6 +10,7 @@ import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel } from '@/hooks/useAgentData';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export const AgentWebsiteManager = () => {
   const { user } = useAuthContext();
@@ -153,7 +154,21 @@ ${jsContent}
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Memuat pengaturan...</div>;
+  if (loading) return (
+    <div className="p-8 text-center space-y-4">
+      <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+      <p className="text-muted-foreground">Memuat pengaturan website...</p>
+    </div>
+  );
+
+  if (!settings && !loading) return (
+    <div className="p-8 text-center space-y-4">
+      <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
+      <p className="text-lg font-bold">Gagal memuat pengaturan</p>
+      <p className="text-muted-foreground">Terjadi kesalahan saat mengambil data dari server.</p>
+      <Button onClick={fetchSettings}>Coba Lagi</Button>
+    </div>
+  );
 
   // Check if admin has approved custom URL
   const hasApprovedCustomUrl = travel?.is_custom_url_enabled_by_admin && travel?.admin_approved_slug;
