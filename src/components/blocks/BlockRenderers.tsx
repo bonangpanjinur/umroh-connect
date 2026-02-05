@@ -14,6 +14,7 @@ import {
   DesignSettings,
   DEFAULT_DESIGN_SETTINGS
 } from '@/types/blocks';
+import { getOptimizedImageUrl } from '@/services/imageOptimization';
 
 export function renderHeroBlock(block: BlockData): string {
   const content = block.content as HeroBlockContent;
@@ -24,7 +25,7 @@ export function renderHeroBlock(block: BlockData): string {
   return `
     <section class="relative py-24 px-4 md:py-32 overflow-hidden" style="background-color: ${bgColor}; color: ${textColor};">
       <div class="absolute inset-0 opacity-10">
-        ${content.backgroundImage ? `<img src="${content.backgroundImage}" alt="Background" class="w-full h-full object-cover" />` : ''}
+        ${content.backgroundImage ? `<img src="${getOptimizedImageUrl(content.backgroundImage, { width: 1920, quality: 80 })}" alt="Background" class="w-full h-full object-cover" />` : ''}
       </div>
       <div class="relative max-w-4xl mx-auto ${alignment}">
         <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight">
@@ -220,7 +221,7 @@ export function renderGalleryBlock(block: BlockData): string {
         <div class="grid ${colClass} gap-4">
           ${content.images.map(img => `
             <div class="group relative aspect-square overflow-hidden rounded-xl bg-gray-100">
-              <img src="${img.url}" alt="${escapeHtml(img.caption || '')}" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+              <img src="${getOptimizedImageUrl(img.url, { width: 800, quality: 80 })}" alt="${escapeHtml(img.caption || '')}" class="w-full h-full object-cover transition-transform group-hover:scale-110" loading="lazy" />
               ${img.caption ? `
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                   <p class="text-white text-sm font-medium">${escapeHtml(img.caption)}</p>
@@ -338,7 +339,12 @@ export function generatePageHTML(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="${escapeHtml(metaDescription)}">
+  <meta property="og:title" content="${escapeHtml(title)} | Arah Umroh">
+  <meta property="og:description" content="${escapeHtml(metaDescription)}">
+  <meta property="og:type" content="website">
   <title>${escapeHtml(title)} | Arah Umroh</title>
+  
+  <!-- Critical CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
   <style>
@@ -348,6 +354,9 @@ export function generatePageHTML(
     }
     body {
       font-family: ${design.fontFamily};
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
     }
     .bg-primary { background-color: var(--primary); }
     .text-primary { color: var(--primary); }
@@ -360,21 +369,32 @@ export function generatePageHTML(
     
     /* Reset section padding when wrapped by settings div */
     div > section { padding-top: 0 !important; padding-bottom: 0 !important; background-color: transparent !important; }
+    
+    /* SSR Optimization: Hide elements before AOS init to prevent flash */
+    [data-aos] { opacity: 0; transition-property: opacity, transform; }
+    [data-aos].aos-animate { opacity: 1; }
   </style>
 </head>
 <body class="bg-white text-gray-900">
-  ${blocksHTML}
+  <main id="content">
+    ${blocksHTML}
+  </main>
   
   <footer class="bg-gray-900 text-white py-8 px-4">
     <div class="max-w-6xl mx-auto text-center">
       <p>&copy; ${new Date().getFullYear()} Arah Umroh. All rights reserved.</p>
     </div>
   </footer>
+  
+  <!-- Non-critical JS -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script>
-    AOS.init({
-      once: true,
-      offset: 120,
+    document.addEventListener('DOMContentLoaded', function() {
+      AOS.init({
+        once: true,
+        offset: 120,
+        duration: 800,
+      });
     });
   </script>
 </body>

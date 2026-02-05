@@ -305,6 +305,23 @@ ${jsContent}
           .eq('id', editingPage.id);
 
         if (error) throw error;
+        
+        // Phase 6: Versioning & Recovery
+        // Save a snapshot to page_versions table
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          await supabase.from('page_versions' as any).insert([{
+            page_id: editingPage.id,
+            content: finalContent,
+            layout_data: layoutData,
+            design_data: designSettings,
+            version_name: `Versi ${new Date().toLocaleString('id-ID')}`,
+            created_by: userData.user?.id
+          }]);
+        } catch (vError) {
+          console.warn('Failed to save version snapshot:', vError);
+        }
+        
         toast.success('Halaman berhasil diperbarui');
       } else {
         const { error } = await supabase
