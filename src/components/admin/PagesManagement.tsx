@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -234,13 +234,14 @@ export const PagesManagement = () => {
   const checkSlugUniqueness = async (slug: string, id?: string) => {
     if (!slug) return true;
     const { data, error } = await supabase
-      .from('static_pages' as any)
+      .from('static_pages')
       .select('id')
       .eq('slug', slug)
       .maybeSingle();
     
     if (error) return true;
-    if (data && data.id !== id) return false;
+    const pageData = data as { id: string } | null;
+    if (pageData && pageData.id !== id) return false;
     return true;
   };
 

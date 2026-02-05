@@ -35,7 +35,7 @@ const DynamicSlugHandler = () => {
 
       // 2. Check if it's a static page slug
       const { data: pageData, error: pageError } = await supabase
-        .from('pages')
+        .from('static_pages')
         .select('id')
         .eq('slug', slug)
         .eq('is_active', true)
