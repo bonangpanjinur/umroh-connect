@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BlockData, BLOCK_REGISTRY, createBlock } from '@/types/blocks';
+import { BlockData, BLOCK_REGISTRY, createBlock, DesignSettings, DEFAULT_DESIGN_SETTINGS } from '@/types/blocks';
 import { BlockEditor } from './BlockEditors';
 import { renderBlock } from './BlockRenderers';
 import { Button } from '@/components/ui/button';
@@ -9,14 +9,44 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Plus, Trash2, Copy, Eye, EyeOff, GripVertical, ChevronUp, ChevronDown,
   Zap, Grid, MessageSquare, Package, HelpCircle, Mail, Type, Image as ImageIcon, Video as VideoIcon,
-  Monitor, Tablet, Smartphone, Undo2, Redo2, Layout, Save
+  Monitor, Tablet, Smartphone, Undo2, Redo2, Layout, Save, Settings2, MoreVertical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DynamicPackages } from './DynamicPackages';
 
+// dnd-kit imports
+import {
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Context Menu components
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 interface VisualBlockBuilderProps {
   blocks: BlockData[];
   onBlocksChange: (blocks: BlockData[]) => void;
+  designSettings?: DesignSettings;
+  onDesignSettingsChange?: (settings: DesignSettings) => void;
 }
 
 const BLOCK_ICONS: Record<string, React.ReactNode> = {
@@ -31,12 +61,141 @@ const BLOCK_ICONS: Record<string, React.ReactNode> = {
   video: <VideoIcon className="h-4 w-4" />,
 };
 
-export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilderProps) {
+// Sortable Item Component
+interface SortableBlockItemProps {
+  block: BlockData;
+  idx: number;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggleVisibility: (id: string, e: React.MouseEvent) => void;
+  onMove: (id: string, direction: 'up' | 'down', e: React.MouseEvent) => void;
+  onDuplicate: (id: string, e: React.MouseEvent) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+  onMoveToTop: (id: string) => void;
+  onMoveToBottom: (id: string) => void;
+}
+
+function SortableBlockItem({ 
+  block, idx, isSelected, onSelect, onToggleVisibility, 
+  onMove, onDuplicate, onDelete, onMoveToTop, onMoveToBottom 
+}: SortableBlockItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+    position: 'relative' as const,
+  };
+
+  const definition = BLOCK_REGISTRY[block.type];
+  const isVisible = block.settings?.isVisible !== false;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={() => onSelect(block.id)}
+      className={`group flex items-center gap-2 p-2 border rounded-lg cursor-default transition-all ${
+        isSelected
+          ? 'bg-primary/5 border-primary ring-1 ring-primary/20'
+          : 'bg-card hover:bg-muted/50 border-border'
+      } ${!isVisible ? 'opacity-60 grayscale' : ''} ${isDragging ? 'shadow-lg ring-2 ring-primary/50 opacity-50' : ''}`}
+    >
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground opacity-40 group-hover:opacity-100" />
+      </div>
+      
+      <div className="flex-1 min-w-0 cursor-pointer">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-muted-foreground w-4">
+            {idx + 1}
+          </span>
+          {BLOCK_ICONS[block.type]}
+          <span className="font-medium text-xs truncate">{definition.label}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={(e) => onToggleVisibility(block.id, e)}
+          title={isVisible ? "Sembunyikan" : "Tampilkan"}
+        >
+          {isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-destructive" />}
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7">
+              <MoreVertical className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem onClick={(e) => onDuplicate(block.id, e as any)}>
+              <Copy className="h-3.5 w-3.5 mr-2" />
+              Duplikasi
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onMoveToTop(block.id)}>
+              <ChevronUp className="h-3.5 w-3.5 mr-2" />
+              Ke Atas Sendiri
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onMoveToBottom(block.id)}>
+              <ChevronDown className="h-3.5 w-3.5 mr-2" />
+              Ke Bawah Sendiri
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-destructive focus:text-destructive"
+              onClick={(e) => onDelete(block.id, e as any)}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-2" />
+              Hapus
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+export function VisualBlockBuilder({ 
+  blocks, 
+  onBlocksChange, 
+  designSettings = DEFAULT_DESIGN_SETTINGS,
+  onDesignSettingsChange 
+}: VisualBlockBuilderProps) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [history, setHistory] = useState<BlockData[][]>([blocks]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  
+  const globalDesign = designSettings;
+  const setGlobalDesign = (newDesign: DesignSettings) => {
+    if (onDesignSettingsChange) {
+      onDesignSettingsChange(newDesign);
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const selectedBlock = blocks.find(b => b.id === selectedBlockId);
 
@@ -102,7 +261,7 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
   };
 
   const deleteBlock = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (confirm('Apakah Anda yakin ingin menghapus blok ini?')) {
       const updatedBlocks = blocks.filter(b => b.id !== id);
       handleBlocksChange(updatedBlocks);
@@ -114,7 +273,7 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
   };
 
   const duplicateBlock = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     const blockToDuplicate = blocks.find(b => b.id === id);
     if (blockToDuplicate) {
       const newBlock: BlockData = {
@@ -130,7 +289,7 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
   };
 
   const moveBlock = (id: string, direction: 'up' | 'down', e: React.MouseEvent) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     const index = blocks.findIndex(b => b.id === id);
     if ((direction === 'up' && index === 0) || (direction === 'down' && index === blocks.length - 1)) {
       return;
@@ -148,33 +307,51 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
     handleBlocksChange(updatedBlocks);
   };
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (!draggedId || draggedId === targetId) return;
-
-    const draggedIndex = blocks.findIndex(b => b.id === draggedId);
-    const targetIndex = blocks.findIndex(b => b.id === targetId);
-
+  const moveToTop = (id: string) => {
+    const index = blocks.findIndex(b => b.id === id);
+    if (index === 0) return;
+    
     const updatedBlocks = [...blocks];
-    const item = updatedBlocks.splice(draggedIndex, 1)[0];
-    updatedBlocks.splice(targetIndex, 0, item);
-
+    const item = updatedBlocks.splice(index, 1)[0];
+    updatedBlocks.unshift(item);
+    
     updatedBlocks.forEach((block, idx) => {
       block.order = idx;
     });
-
+    
     handleBlocksChange(updatedBlocks);
-    setDraggedId(null);
+    toast.info('Pindah ke atas');
+  };
+
+  const moveToBottom = (id: string) => {
+    const index = blocks.findIndex(b => b.id === id);
+    if (index === blocks.length - 1) return;
+    
+    const updatedBlocks = [...blocks];
+    const item = updatedBlocks.splice(index, 1)[0];
+    updatedBlocks.push(item);
+    
+    updatedBlocks.forEach((block, idx) => {
+      block.order = idx;
+    });
+    
+    handleBlocksChange(updatedBlocks);
+    toast.info('Pindah ke bawah');
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = blocks.findIndex((b) => b.id === active.id);
+      const newIndex = blocks.findIndex((b) => b.id === over.id);
+
+      const newBlocks = arrayMove(blocks, oldIndex, newIndex);
+      newBlocks.forEach((block, idx) => {
+        block.order = idx;
+      });
+      handleBlocksChange(newBlocks);
+    }
   };
 
   const getPreviewSize = () => {
@@ -236,129 +413,153 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[600px]">
         {/* Left Column: Editor Controls */}
         <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
-          {/* Add Blocks */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Tambah Blok
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(BLOCK_REGISTRY).map(([key, definition]) => (
-                  <Button
-                    key={key}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addBlock(key as any)}
-                    className="flex flex-col items-center gap-1 h-auto py-3 px-1"
-                  >
-                    {BLOCK_ICONS[key]}
-                    <span className="text-[10px] text-center leading-tight">{definition.label}</span>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Blocks List */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layout className="h-4 w-4" />
-                Struktur Halaman
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3">
-              {blocks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                  <p className="text-sm">Belum ada blok.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {blocks.map((block, idx) => {
-                    const definition = BLOCK_REGISTRY[block.type];
-                    const isSelected = selectedBlockId === block.id;
-                    const isVisible = block.settings?.isVisible !== false;
-
-                    return (
-                      <div
-                        key={block.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, block.id)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, block.id)}
-                        onClick={() => setSelectedBlockId(block.id)}
-                        className={`group flex items-center gap-2 p-2 border rounded-lg cursor-move transition-all ${
-                          isSelected
-                            ? 'bg-primary/5 border-primary ring-1 ring-primary/20'
-                            : 'hover:bg-muted/50 border-border'
-                        } ${!isVisible ? 'opacity-60 grayscale' : ''}`}
+          <Tabs defaultValue="structure" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="structure" className="flex items-center gap-2">
+                <Layout className="h-4 w-4" /> Struktur
+              </TabsTrigger>
+              <TabsTrigger value="design" className="flex items-center gap-2">
+                <Settings2 className="h-4 w-4" /> Desain Global
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="structure" className="space-y-6 mt-4">
+              {/* Add Blocks */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Tambah Blok
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Object.entries(BLOCK_REGISTRY).map(([key, definition]) => (
+                      <Button
+                        key={key}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addBlock(key as any)}
+                        className="flex flex-col items-center gap-1 h-auto py-3 px-1"
                       >
-                        <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0 opacity-40 group-hover:opacity-100" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-muted-foreground w-4">
-                              {idx + 1}
-                            </span>
-                            {BLOCK_ICONS[block.type]}
-                            <span className="font-medium text-xs truncate">{definition.label}</span>
-                          </div>
-                        </div>
+                        {BLOCK_ICONS[key]}
+                        <span className="text-[10px] text-center leading-tight">{definition.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => toggleVisibility(block.id, e)}
-                            title={isVisible ? "Sembunyikan" : "Tampilkan"}
-                          >
-                            {isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-destructive" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => moveBlock(block.id, 'up', e)}
-                            disabled={idx === 0}
-                          >
-                            <ChevronUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => moveBlock(block.id, 'down', e)}
-                            disabled={idx === blocks.length - 1}
-                          >
-                            <ChevronDown className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => duplicateBlock(block.id, e)}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => deleteBlock(block.id, e)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+              {/* Blocks List */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Layout className="h-4 w-4" />
+                    Struktur Halaman
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-3">
+                  {blocks.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <p className="text-sm">Belum ada blok.</p>
+                    </div>
+                  ) : (
+                    <DndContext 
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext 
+                        items={blocks.map(b => b.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="space-y-2">
+                          {blocks.map((block, idx) => (
+                            <SortableBlockItem
+                              key={block.id}
+                              block={block}
+                              idx={idx}
+                              isSelected={selectedBlockId === block.id}
+                              onSelect={setSelectedBlockId}
+                              onToggleVisibility={toggleVisibility}
+                              onMove={moveBlock}
+                              onDuplicate={duplicateBlock}
+                              onDelete={deleteBlock}
+                              onMoveToTop={moveToTop}
+                              onMoveToBottom={moveToBottom}
+                            />
+                          ))}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="design" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Pengaturan Gaya Global</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Warna Utama Brand</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="color" 
+                        value={globalDesign.primaryColor}
+                        onChange={(e) => setGlobalDesign({...globalDesign, primaryColor: e.target.value})}
+                        className="h-10 w-10 rounded border p-1"
+                      />
+                      <input 
+                        type="text" 
+                        value={globalDesign.primaryColor}
+                        onChange={(e) => setGlobalDesign({...globalDesign, primaryColor: e.target.value})}
+                        className="flex-1 px-3 py-2 border rounded-md text-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Jenis Font</label>
+                    <select 
+                      value={globalDesign.fontFamily}
+                      onChange={(e) => setGlobalDesign({...globalDesign, fontFamily: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    >
+                      <option value="sans-serif">Sans Serif (Default)</option>
+                      <option value="serif">Serif</option>
+                      <option value="mono">Monospace</option>
+                      <option value="'Inter', sans-serif">Inter</option>
+                      <option value="'Poppins', sans-serif">Poppins</option>
+                    </select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Radius Sudut (Border Radius)</label>
+                    <div className="flex items-center gap-4">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="24" 
+                        value={parseInt(globalDesign.borderRadius)}
+                        onChange={(e) => setGlobalDesign({...globalDesign, borderRadius: `${e.target.value}px`})}
+                        className="flex-1"
+                      />
+                      <span className="text-sm font-mono w-12 text-right">{globalDesign.borderRadius}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <p className="text-[10px] text-muted-foreground italic">
+                      * Pengaturan ini akan diterapkan secara otomatis ke seluruh blok yang mendukung gaya global.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
           {/* Selected Block Editor */}
           {selectedBlock ? (
@@ -378,7 +579,7 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
                 <BlockEditor block={selectedBlock} onChange={updateBlock} />
               </CardContent>
             </Card>
-          ) : (
+          ) : activeTab === 'content' && (
             <div className="h-32 flex items-center justify-center border-2 border-dashed rounded-lg text-muted-foreground text-sm">
               Pilih blok untuk mulai mengedit
             </div>
@@ -398,7 +599,14 @@ export function VisualBlockBuilder({ blocks, onBlocksChange }: VisualBlockBuilde
           </div>
           
           <div className="flex-1 overflow-auto bg-white rounded-lg shadow-inner border relative">
-            <div className={`mx-auto transition-all duration-300 ${getPreviewSize()} bg-white min-h-full`}>
+            <div 
+              className={`mx-auto transition-all duration-300 ${getPreviewSize()} bg-white min-h-full`}
+              style={{ 
+                fontFamily: globalDesign.fontFamily,
+                '--primary': globalDesign.primaryColor,
+                '--radius': globalDesign.borderRadius,
+              } as React.CSSProperties}
+            >
               {blocks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-2">
                   <Layout className="h-8 w-8 opacity-20" />
