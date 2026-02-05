@@ -356,7 +356,7 @@ ${jsContent}
         </TabsContent>
 
         <TabsContent value="marketing" className="pt-4">
-          <Card><Card>
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Marketing Tools
