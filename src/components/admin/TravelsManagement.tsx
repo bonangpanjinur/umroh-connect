@@ -264,15 +264,12 @@ export const TravelsManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
-                        {travel.is_custom_url_enabled_by_admin ? (
+                        {travel.status === 'verified' ? (
                           <>
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Aktif</Badge>
-                            {travel.admin_approved_slug && (
-                              <span className="text-[10px] font-mono text-muted-foreground">/{travel.admin_approved_slug}</span>
-                            )}
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">Terverifikasi</Badge>
                           </>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground w-fit">Nonaktif</Badge>
+                          <Badge variant="outline" className="text-muted-foreground w-fit">Pending</Badge>
                         )}
                       </div>
                     </TableCell>

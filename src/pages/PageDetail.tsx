@@ -1,10 +1,19 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
 import BottomNav from "@/components/layout/BottomNav";
+
+interface StaticPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string | null;
+  image_url: string | null;
+  is_active: boolean;
+}
 
 export default function PageDetail() {
   const { slug } = useParams();
@@ -16,14 +25,14 @@ export default function PageDetail() {
       if (!slug) throw new Error("No slug provided");
       
       const { data, error } = await supabase
-        .from("static_pages" as any)
+        .from("static_pages")
         .select("*")
         .eq("slug", slug)
         .eq("is_active", true)
         .maybeSingle(); 
 
       if (error) throw error;
-      return data;
+      return data as StaticPage | null;
     },
     retry: 1, 
   });
