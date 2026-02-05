@@ -72,8 +72,8 @@ const App = () => {
                       <Route path="/u/:username" element={<AgentPublicProfile />} />
                       <Route path="/u/:username/:packageSlug" element={<AgentPublicProfile />} />
 
-                      {/* Menangkap URL bebas seperti /tentang-kami. HANYA jalan jika route diatas tidak match */}
-                      <Route path="/:slug" element={<PageDetail />} />
+                      {/* Menangkap URL bebas seperti /tentang-kami atau /travel-slug. HANYA jalan jika route diatas tidak match */}
+                      <Route path="/:slug" element={<DynamicSlugHandler />} />
 
                       {/* === LEVEL 5: FALLBACK (404) === */}
                       <Route path="*" element={<NotFound />} />

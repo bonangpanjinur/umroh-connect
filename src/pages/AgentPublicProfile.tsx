@@ -43,7 +43,8 @@ const AgentPublicProfile = () => {
       }
 
       // Check if website is published
-      if (settingsData.is_published === false) {
+      // If is_published is null or undefined, we treat it as false (not published)
+      if (settingsData.is_published === false || settingsData.is_published === null) {
         setError('Website ini belum dipublikasikan oleh pemiliknya');
         return;
       }
