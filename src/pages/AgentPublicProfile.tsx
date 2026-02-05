@@ -42,6 +42,12 @@ const AgentPublicProfile = () => {
         return;
       }
 
+      // Check if website is published
+      if (settingsData.is_published === false) {
+        setError('Website ini belum dipublikasikan oleh pemiliknya');
+        return;
+      }
+
       setSettings(settingsData);
 
       // 2. Fetch travel profile

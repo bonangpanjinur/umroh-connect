@@ -279,6 +279,7 @@ export interface AgentWebsiteSettings {
   html_content: string | null;
   is_custom_url_active: boolean;
   is_pro_active: boolean;
+  is_published: boolean;
   fb_pixel_id: string | null;
   meta_title: string | null;
   meta_description: string | null;
