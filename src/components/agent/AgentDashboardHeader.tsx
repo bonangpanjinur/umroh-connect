@@ -26,6 +26,8 @@ interface AgentDashboardHeaderProps {
   userAvatar?: string;
   onLogout?: () => void;
   unreadNotifications?: number;
+  onCreatePackage?: () => void;
+  onEditTravel?: () => void;
 }
 
 export const AgentDashboardHeader = ({
@@ -39,6 +41,8 @@ export const AgentDashboardHeader = ({
   userAvatar,
   onLogout,
   unreadNotifications = 0,
+  onCreatePackage,
+  onEditTravel,
 }: AgentDashboardHeaderProps) => {
   
   const getBreadcrumb = (tab: string) => {
@@ -89,7 +93,7 @@ export const AgentDashboardHeader = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={onCreatePackage}>
               <Package className="w-4 h-4 mr-2 text-primary" />
               Buat Paket Baru
             </DropdownMenuItem>
@@ -102,7 +106,7 @@ export const AgentDashboardHeader = ({
               Kirim Broadcast
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={onEditTravel}>
               <Settings className="w-4 h-4 mr-2" />
               Pengaturan Travel
             </DropdownMenuItem>

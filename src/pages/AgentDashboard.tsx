@@ -6,7 +6,7 @@ import {
   BarChart3, MessageSquare, Users, Sparkles, ClipboardList, 
   TrendingUp, Zap, Crown, Globe, Bell, Settings, LayoutDashboard, 
   Share2, ExternalLink, Star, DollarSign, MousePointer2, 
-  ArrowUpRight, ArrowDownRight, Calendar, Clock
+  ArrowUpRight, ArrowDownRight, Calendar, Clock, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -330,7 +330,7 @@ const AgentDashboard = () => {
                         {packages.map((pkg) => (
                           <PackageCardAgent 
                             key={pkg.id} 
-                            pkg={pkg} 
+                            package={pkg} 
                             onEdit={() => {
                               setEditingPackage(pkg);
                               setShowPackageForm(true);
@@ -405,6 +405,11 @@ const AgentDashboard = () => {
         userAvatar={profile?.avatar_url || undefined}
         onLogout={() => navigate('/auth')}
         unreadNotifications={0}
+        onCreatePackage={() => {
+          setEditingPackage(null);
+          setShowPackageForm(true);
+        }}
+        onEditTravel={() => setShowTravelForm(true)}
       />
 
       <div className="flex-1 flex flex-col lg:flex-row w-full relative">
@@ -417,6 +422,10 @@ const AgentDashboard = () => {
           inquiryPendingCount={inquiryStats?.pending || 0}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
+          onCreatePackage={() => {
+            setEditingPackage(null);
+            setShowPackageForm(true);
+          }}
         />
 
         <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden bg-secondary/10">
@@ -474,18 +483,44 @@ const AgentDashboard = () => {
       </div>
 
       {/* Modals */}
-      <TravelForm 
-        open={showTravelForm} 
-        onOpenChange={setShowTravelForm}
-        initialData={travel || undefined}
-      />
+      <AnimatePresence>
+        {showTravelForm && (
+          <TravelForm 
+            travel={travel}
+            onClose={() => setShowTravelForm(false)}
+          />
+        )}
+      </AnimatePresence>
       
-      <PackageForm
-        open={showPackageForm}
-        onOpenChange={setShowPackageForm}
-        editingPackage={editingPackage || undefined}
-        travelId={travel?.id}
-      />
+      <AnimatePresence>
+        {showPackageForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowPackageForm(false)}>
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card w-full max-w-4xl rounded-2xl shadow-float max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <h2 className="font-bold text-lg">{editingPackage ? 'Edit Paket' : 'Buat Paket Baru'}</h2>
+                <button onClick={() => setShowPackageForm(false)} className="p-2 hover:bg-secondary rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto">
+                <PackageForm
+                  initialData={editingPackage || undefined}
+                  onSuccess={() => {
+                    setShowPackageForm(false);
+                    setEditingPackage(null);
+                  }}
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
