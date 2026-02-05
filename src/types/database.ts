@@ -49,9 +49,12 @@ export interface Package {
   description: string | null;
   duration_days: number;
   hotel_makkah: string | null;
+  hotel_makkah_id?: string | null;
   hotel_madinah: string | null;
+  hotel_madinah_id?: string | null;
   hotel_star: number;
   airline: string | null;
+  airline_id?: string | null;
   flight_type: 'direct' | 'transit';
   meal_type: 'fullboard' | 'halfboard' | 'breakfast';
   facilities: string[];
