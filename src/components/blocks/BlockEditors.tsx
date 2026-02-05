@@ -21,7 +21,8 @@ import {
 } from '@/types/blocks';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { Trash2, Plus, Image as ImageIcon, Video as VideoIcon, Settings } from 'lucide-react';
+import { Trash2, Plus, Image as ImageIcon, Video as VideoIcon, Settings, Sparkles } from 'lucide-react';
+import { AIContentAssistant } from './AIContentAssistant';
 
 interface BlockEditorProps {
   block: BlockData;
@@ -114,6 +115,43 @@ export function AdvancedSettingsEditor({ block, onChange }: BlockEditorProps) {
           placeholder="my-custom-class"
         />
       </div>
+
+      <div className="border-t pt-4 mt-4">
+        <Label className="text-base font-semibold mb-2 block">Animasi Masuk (AOS)</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Tipe Animasi</Label>
+            <Select 
+              value={settings.animation || 'none'} 
+              onValueChange={(v) => handleChange('animation', v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Tanpa Animasi</SelectItem>
+                <SelectItem value="fade-up">Fade Up</SelectItem>
+                <SelectItem value="fade-down">Fade Down</SelectItem>
+                <SelectItem value="fade-left">Fade Left</SelectItem>
+                <SelectItem value="fade-right">Fade Right</SelectItem>
+                <SelectItem value="zoom-in">Zoom In</SelectItem>
+                <SelectItem value="zoom-out">Zoom Out</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Durasi (ms)</Label>
+            <Input 
+              type="number"
+              value={settings.animationDuration || 1000}
+              onChange={(e) => handleChange('animationDuration', parseInt(e.target.value))}
+              step={100}
+              min={0}
+              max={3000}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -131,7 +169,15 @@ export function HeroBlockEditor({ block, onChange }: BlockEditorProps) {
   return (
     <div className="space-y-4">
       <div>
-        <Label>Judul</Label>
+        <div className="flex items-center justify-between mb-2">
+          <Label>Judul</Label>
+          <AIContentAssistant 
+            label="Judul Hero"
+            currentValue={content.title}
+            onApply={(val) => handleChange('title', val)}
+            context="Ini adalah judul utama di bagian paling atas halaman travel umroh."
+          />
+        </div>
         <Input
           value={content.title}
           onChange={(e) => handleChange('title', e.target.value)}
@@ -139,7 +185,15 @@ export function HeroBlockEditor({ block, onChange }: BlockEditorProps) {
         />
       </div>
       <div>
-        <Label>Subtitle</Label>
+        <div className="flex items-center justify-between mb-2">
+          <Label>Subtitle</Label>
+          <AIContentAssistant 
+            label="Subtitle Hero"
+            currentValue={content.subtitle}
+            onApply={(val) => handleChange('subtitle', val)}
+            context={`Judulnya adalah: ${content.title}. Buatkan subtitle yang mendukung.`}
+          />
+        </div>
         <Textarea
           value={content.subtitle}
           onChange={(e) => handleChange('subtitle', e.target.value)}
