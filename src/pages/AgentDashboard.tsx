@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, BarChart3, MessageSquare, Users, Sparkles, ClipboardList, TrendingUp, Zap, Crown, Globe, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
@@ -55,9 +55,12 @@ const AgentDashboard = () => {
 
   if (authLoading || travelLoading) {
     return (
-      <div className="min-h-screen bg-secondary/30 flex justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex justify-center">
         <div className="w-full bg-background min-h-screen flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+          <div className="text-center space-y-4">
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+            <p className="text-muted-foreground">Memuat dashboard Anda...</p>
+          </div>
         </div>
       </div>
     );
@@ -66,7 +69,7 @@ const AgentDashboard = () => {
   // Check if user has agent role
   if (profile && profile.role !== 'agent' && profile.role !== 'admin') {
     return (
-      <div className="min-h-screen bg-secondary/30 flex justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex justify-center">
         <div className="w-full bg-background min-h-screen flex flex-col items-center justify-center p-6 text-center">
           <AlertCircle className="w-16 h-16 text-destructive mb-4" />
           <h2 className="text-xl font-bold mb-2">Akses Ditolak</h2>
@@ -87,7 +90,7 @@ const AgentDashboard = () => {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <AgentMembershipCard travelId={travel?.id || ''} />
             <InterestTrendChart data={trendData || []} isLoading={trendLoading} />
             <PackageStatsCard stats={packageStats || []} isLoading={statsLoading} />
@@ -97,23 +100,26 @@ const AgentDashboard = () => {
         return <AnalyticsDashboard travelId={travel?.id || ''} />;
       case 'packages':
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg">Daftar Paket</h3>
-              <Button size="sm" onClick={() => {
+              <div>
+                <h3 className="font-bold text-2xl">Daftar Paket Umroh</h3>
+                <p className="text-sm text-muted-foreground mt-1">Kelola semua paket perjalanan Anda</p>
+              </div>
+              <Button size="lg" onClick={() => {
                 setEditingPackage(null);
                 setShowPackageForm(true);
-              }}>
-                <Plus className="w-3 h-3 mr-1" /> Tambah Paket
+              }} className="gap-2">
+                <Plus className="w-4 h-4" /> Tambah Paket
               </Button>
             </div>
             
             {packagesLoading ? (
               <div className="flex justify-center py-12">
-                <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
               </div>
             ) : packages && packages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {packages.map((pkg) => (
                   <PackageCardAgent 
                     key={pkg.id} 
@@ -126,10 +132,21 @@ const AgentDashboard = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
-                <Package className="w-12 h-12 text-muted-foreground mx-auto mb-2 opacity-20" />
-                <p className="text-sm text-muted-foreground">Belum ada paket umroh</p>
-              </div>
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-16 bg-gradient-to-br from-secondary/30 to-secondary/10 rounded-2xl border-2 border-dashed border-border"
+              >
+                <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-semibold text-foreground mb-2">Belum ada paket umroh</p>
+                <p className="text-sm text-muted-foreground mb-6">Mulai buat paket pertama Anda untuk menarik pelanggan</p>
+                <Button onClick={() => {
+                  setEditingPackage(null);
+                  setShowPackageForm(true);
+                }}>
+                  <Plus className="w-4 h-4 mr-2" /> Buat Paket Pertama
+                </Button>
+              </motion.div>
             )}
           </div>
         );
@@ -139,8 +156,11 @@ const AgentDashboard = () => {
         return <ChatManagement travelId={travel?.id || ''} />;
       case 'haji':
         return (
-          <div className="space-y-4">
-            <h3 className="font-bold text-lg">Manajemen Pendaftaran Haji</h3>
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-bold text-2xl">Manajemen Pendaftaran Haji</h3>
+              <p className="text-sm text-muted-foreground mt-1">Kelola data pendaftaran haji pelanggan Anda</p>
+            </div>
             <HajiManagement travelId={travel?.id} />
           </div>
         );
@@ -151,37 +171,40 @@ const AgentDashboard = () => {
       case 'featured':
         return <FeaturedPackageManager travelId={travel?.id || ''} />;
       case 'membership':
-        return <AgentMembershipCard travelId={travel?.id || ''} showFull />;
+        return <AgentMembershipCard travelId={travel?.id || ''} />;
       case 'credits':
-        return <AgentCreditsManager />;
+        return <AgentCreditsManager travelId={travel?.id || ''} />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-secondary/30 flex justify-center">
-      <div className="w-full bg-background min-h-screen flex flex-col lg:flex-row relative">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-background">
+      <div className="w-full flex flex-col lg:flex-row relative">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:col-span-full">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex items-center justify-between lg:col-span-full backdrop-blur-md">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/')}
-              className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
+              className="w-10 h-10 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors"
+              title="Kembali ke beranda"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="font-bold text-lg">Dashboard Agent</h1>
-              <p className="text-xs text-muted-foreground">Kelola paket umroh Anda</p>
+              <h1 className="font-bold text-xl">Dashboard Agent</h1>
+              <p className="text-xs text-muted-foreground">Kelola bisnis umroh Anda dengan mudah</p>
             </div>
           </div>
-          {travel && (
-            <AgentNotificationCenter 
-              travelId={travel.id} 
-              onNavigate={handleNotificationNavigate}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            {travel && (
+              <AgentNotificationCenter 
+                travelId={travel.id} 
+                onNavigate={handleNotificationNavigate}
+              />
+            )}
+          </div>
         </header>
 
         {/* Sidebar Navigation */}
@@ -195,22 +218,22 @@ const AgentDashboard = () => {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
+        <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8">
           {!travel ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-card rounded-2xl border-2 border-dashed border-border p-6 text-center"
+              className="bg-gradient-to-br from-primary/10 via-secondary/5 to-background border-2 border-dashed border-border rounded-2xl p-8 text-center max-w-2xl mx-auto"
             >
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-8 h-8 text-primary" />
+              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
+                <Building2 className="w-10 h-10 text-primary" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Buat Travel Anda</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Anda perlu membuat profil travel terlebih dahulu sebelum bisa menambahkan paket umroh.
+              <h3 className="font-bold text-2xl mb-3">Buat Travel Anda</h3>
+              <p className="text-base text-muted-foreground mb-8 max-w-md mx-auto">
+                Anda perlu membuat profil travel terlebih dahulu sebelum bisa menambahkan paket umroh dan mulai menerima booking dari pelanggan.
               </p>
-              <Button onClick={() => setShowTravelForm(true)}>
-                <Plus className="w-4 h-4 mr-2" /> Buat Travel
+              <Button size="lg" onClick={() => setShowTravelForm(true)} className="gap-2">
+                <Plus className="w-4 h-4" /> Buat Travel Sekarang
               </Button>
             </motion.div>
           ) : (
@@ -219,46 +242,52 @@ const AgentDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-primary text-primary-foreground rounded-2xl p-4 shadow-primary mb-6"
+                className="bg-gradient-to-br from-primary via-primary/80 to-primary/60 text-primary-foreground rounded-2xl p-6 shadow-lg mb-8 border border-primary/30"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-xl bg-primary-foreground/20 flex items-center justify-center border border-primary-foreground/30">
                       {travel.logo_url ? (
                         <img src={travel.logo_url} alt={travel.name} className="w-full h-full rounded-xl object-cover" />
                       ) : (
-                        <Building2 className="w-6 h-6" />
+                        <Building2 className="w-8 h-8" />
                       )}
                     </div>
                     <div>
-                      <h2 className="font-bold text-lg">{travel.name}</h2>
-                      <p className="text-xs text-primary-foreground/80">
-                        {travel.verified ? '✓ Verified' : 'Belum Verified'}
-                      </p>
+                      <h2 className="font-bold text-2xl">{travel.name}</h2>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                          travel.verified 
+                            ? 'bg-green-500/20 text-green-100' 
+                            : 'bg-amber-500/20 text-amber-100'
+                        }`}>
+                          {travel.verified ? '✓ Verified' : '⏳ Belum Verified'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30 border-0"
+                    className="bg-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/30 border-0 gap-2"
                     onClick={() => setShowTravelForm(true)}
                   >
-                    <Edit2 className="w-3 h-3 mr-1" /> Edit
+                    <Edit2 className="w-4 h-4" /> Edit
                   </Button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                  <div className="bg-primary-foreground/10 rounded-xl p-2">
-                    <p className="text-2xl font-bold">{packages?.length || 0}</p>
-                    <p className="text-[10px] text-primary-foreground/70">Paket</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
+                    <p className="text-3xl font-bold">{packages?.length || 0}</p>
+                    <p className="text-sm text-primary-foreground/80 mt-1">Paket Aktif</p>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded-xl p-2">
-                    <p className="text-2xl font-bold">{travel.rating}</p>
-                    <p className="text-[10px] text-primary-foreground/70">Rating</p>
+                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
+                    <p className="text-3xl font-bold">{travel.rating?.toFixed(1) || '0'}</p>
+                    <p className="text-sm text-primary-foreground/80 mt-1">Rating</p>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded-xl p-2">
-                    <p className="text-2xl font-bold">{travel.review_count}</p>
-                    <p className="text-[10px] text-primary-foreground/70">Review</p>
+                  <div className="bg-primary-foreground/10 rounded-xl p-4 border border-primary-foreground/20 backdrop-blur-sm">
+                    <p className="text-3xl font-bold">{travel.review_count || 0}</p>
+                    <p className="text-sm text-primary-foreground/80 mt-1">Review</p>
                   </div>
                 </div>
               </motion.div>
