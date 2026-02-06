@@ -190,8 +190,8 @@ ${jsContent}
   );
 
   const websiteUrl = settings?.slug 
-    ? `${window.location.origin}/${settings.slug}`
-    : `${window.location.origin}/${user?.id?.substring(0, 8)}`;
+    ? `${window.location.origin}/travel/${settings.slug}`
+    : `${window.location.origin}/travel/${user?.id?.substring(0, 8)}`;
 
   return (
     <div className="space-y-6">
@@ -335,11 +335,11 @@ ${jsContent}
                   </div>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">umroh.connect/</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">/travel/</span>
                       <Input 
                         id="custom-slug"
-                        placeholder="travel-anda" 
-                        className="pl-[105px]"
+                        placeholder="nama-travel-anda" 
+                        className="pl-[60px]"
                         value={requestedSlug}
                         onChange={(e) => setRequestedSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                       />

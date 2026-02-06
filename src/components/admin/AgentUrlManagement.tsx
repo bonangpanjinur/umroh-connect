@@ -144,9 +144,9 @@ export const AgentUrlManagement = () => {
                         <div className="text-xs text-muted-foreground">{setting.profile?.phone || '-'}</div>
                       </TableCell>
                       <TableCell>
-                        {setting.custom_slug ? (
-                          <div className="flex items-center gap-1 text-primary font-mono">
-                            umroh.connect/{setting.custom_slug}
+                      {setting.custom_slug ? (
+                          <div className="flex items-center gap-1 text-primary font-mono text-xs">
+                            /travel/{setting.custom_slug}
                           </div>
                         ) : (
                           <span className="text-muted-foreground italic text-sm">Belum request</span>
@@ -154,7 +154,7 @@ export const AgentUrlManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm font-mono">
-                          {setting.slug ? `umroh.connect/${setting.slug}` : '-'}
+                          {setting.slug ? `/travel/${setting.slug}` : '-'}
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(setting.slug_status)}</TableCell>
@@ -190,7 +190,7 @@ export const AgentUrlManagement = () => {
                           )}
                           {setting.slug_status === 'approved' && (
                             <Button size="sm" variant="ghost" asChild>
-                              <a href={`/${setting.slug}`} target="_blank" rel="noreferrer">
+                              <a href={`/travel/${setting.slug}`} target="_blank" rel="noreferrer">
                                 <ExternalLink className="h-4 w-4" />
                               </a>
                             </Button>
