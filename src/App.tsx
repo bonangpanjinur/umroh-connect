@@ -69,10 +69,11 @@ const App = () => {
                       <Route path="/agent/*" element={<AgentDashboard />} />
                       
                       {/* === LEVEL 3: PUBLIC PROFILES === */}
-                      <Route path="/u/:username" element={<AgentPublicProfile />} />
-                      <Route path="/u/:username/:packageSlug" element={<AgentPublicProfile />} />
+                      {/* Agent Website: /travel/namatravel */}
+                      <Route path="/travel/:slug" element={<AgentPublicProfile />} />
+                      <Route path="/travel/:slug/:packageSlug" element={<AgentPublicProfile />} />
 
-                      {/* Menangkap URL bebas seperti /tentang-kami. HANYA jalan jika route diatas tidak match */}
+                      {/* Static Pages: /tentang-kami, etc. */}
                       <Route path="/:slug" element={<PageDetail />} />
 
                       {/* === LEVEL 5: FALLBACK (404) === */}
