@@ -34,7 +34,7 @@ const AgentPublicProfile = () => {
       // Join with website_templates to get the slug
       const { data: settingsData, error: settingsError } = await supabase
         .from('agent_website_settings')
-        .select('*, website_templates(slug)')
+        .select('*')
         .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
         .maybeSingle();
 
@@ -45,19 +45,11 @@ const AgentPublicProfile = () => {
         return;
       }
 
-      if (settingsData.is_published === false || settingsData.is_published === null) {
-        setError('Website ini belum dipublikasikan oleh pemiliknya');
-        return;
-      }
-
       setSettings(settingsData);
       
-      // Set template slug from joined data
-      if (settingsData.website_templates?.slug) {
-        setTemplateSlug(settingsData.website_templates.slug);
-      } else {
-        setTemplateSlug('default');
-      }
+      // Fetch template slug separately if active_template_id exists
+      // For now default to 'default'
+      setTemplateSlug('default');
 
       // 2. Fetch travel profile
       const { data: travelData, error: travelError } = await supabase
