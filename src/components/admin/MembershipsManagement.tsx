@@ -29,14 +29,94 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useMemberships, useUpdateMembership } from '@/hooks/useAdminData';
+import { MEMBERSHIP_PLANS, getPlanById } from '@/hooks/useAgentMembership';
 import { 
   CheckCircle2, Clock, XCircle, Building2, Search, 
   Filter, Eye, Crown, Sparkles, Shield, 
-  CreditCard, FileCheck, AlertTriangle
+  CreditCard, FileCheck, AlertTriangle,
+  Package, Globe, Zap, Users
 } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
+
+// Plan comparison component
+const PlanComparisonCards = () => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    {MEMBERSHIP_PLANS.map((plan) => {
+      const isHighlight = plan.id === 'pro';
+      return (
+        <Card key={plan.id} className={`relative overflow-hidden ${
+          plan.id === 'premium' ? 'border-amber-500/50 border-2' :
+          plan.id === 'pro' ? 'border-primary/50 border-2' : ''
+        }`}>
+          {isHighlight && (
+            <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-lg">
+              POPULER
+            </div>
+          )}
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              {plan.id === 'premium' ? <Crown className="w-5 h-5 text-amber-500" /> :
+               plan.id === 'pro' ? <Sparkles className="w-5 h-5 text-primary" /> :
+               <Shield className="w-5 h-5 text-muted-foreground" />}
+              <CardTitle className="text-lg">{plan.name}</CardTitle>
+              {plan.badge && <Badge variant="secondary" className="text-[10px]">{plan.badge}</Badge>}
+            </div>
+            <p className="text-2xl font-bold mt-2">
+              {plan.price === 0 ? 'Gratis' : `Rp ${(plan.price / 1000000).toFixed(1)} jt`}
+              {plan.price > 0 && <span className="text-xs font-normal text-muted-foreground">/bulan</span>}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span><strong>{plan.limits.maxPackages}</strong> listing paket/bulan</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>
+                  {plan.limits.hasWebsite 
+                    ? <><strong>{plan.limits.maxTemplates}</strong> template website</>
+                    : <span className="text-muted-foreground">Tanpa website</span>
+                  }
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span>
+                  {plan.limits.monthlyCredits > 0 
+                    ? <><strong>{plan.limits.monthlyCredits}</strong> kredit/bulan</>
+                    : <span className="text-muted-foreground">Tanpa kredit</span>
+                  }
+                </span>
+              </div>
+              {plan.limits.hasChat && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Chat jamaah</span>
+                </div>
+              )}
+              {plan.limits.hasVerifiedBadge && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Badge Verified</span>
+                </div>
+              )}
+              {plan.limits.hasAdvancedAnalytics && (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Analitik advanced</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      );
+    })}
+  </div>
+);
 
 export const MembershipsManagement = () => {
   const { data: memberships, isLoading } = useMemberships();
@@ -77,7 +157,7 @@ export const MembershipsManagement = () => {
       case 'premium':
         return <Crown className="w-4 h-4 text-amber-500" />;
       case 'pro':
-        return <Sparkles className="w-4 h-4 text-blue-500" />;
+        return <Sparkles className="w-4 h-4 text-primary" />;
       default:
         return <Shield className="w-4 h-4 text-muted-foreground" />;
     }
@@ -146,6 +226,9 @@ export const MembershipsManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Plan Comparison */}
+      <PlanComparisonCards />
+
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -229,6 +312,7 @@ export const MembershipsManagement = () => {
                 <TableRow className="bg-muted/50">
                   <TableHead>Travel</TableHead>
                   <TableHead>Paket</TableHead>
+                  <TableHead>Benefit</TableHead>
                   <TableHead>Jumlah</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Tanggal</TableHead>
@@ -238,60 +322,70 @@ export const MembershipsManagement = () => {
               <TableBody>
                 {filteredMemberships?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Tidak ada data membership
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredMemberships?.map((membership) => (
-                    <TableRow key={membership.id} className="hover:bg-muted/30">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-primary" />
+                  filteredMemberships?.map((membership) => {
+                    const plan = getPlanById(membership.plan_type);
+                    return (
+                      <TableRow key={membership.id} className="hover:bg-muted/30">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Building2 className="w-5 h-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{membership.travel?.name || '-'}</p>
+                              <p className="text-xs text-muted-foreground">{membership.travel?.phone}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{membership.travel?.name || '-'}</p>
-                            <p className="text-xs text-muted-foreground">{membership.travel?.phone}</p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getPlanIcon(membership.plan_type)}
+                            <span className="font-medium capitalize">{membership.plan_type}</span>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getPlanIcon(membership.plan_type)}
-                          <span className="font-medium capitalize">{membership.plan_type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-semibold">{formatCurrency(membership.amount)}</span>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(membership.status)}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <p>{format(new Date(membership.created_at), 'dd MMM yyyy', { locale: localeId })}</p>
-                          {membership.end_date && (
-                            <p className="text-xs text-muted-foreground">
-                              s.d. {format(new Date(membership.end_date), 'dd MMM yyyy', { locale: localeId })}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedMembership(membership);
-                            setAdminNotes(membership.notes || '');
-                            setShowDetailModal(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          Detail
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs space-y-0.5">
+                            <p>{plan.limits.maxPackages} listing</p>
+                            <p>{plan.limits.maxTemplates} template</p>
+                            <p>{plan.limits.monthlyCredits} kredit</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold">{formatCurrency(membership.amount)}</span>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(membership.status)}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <p>{format(new Date(membership.created_at), 'dd MMM yyyy', { locale: localeId })}</p>
+                            {membership.end_date && (
+                              <p className="text-xs text-muted-foreground">
+                                s.d. {format(new Date(membership.end_date), 'dd MMM yyyy', { locale: localeId })}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedMembership(membership);
+                              setAdminNotes(membership.notes || '');
+                              setShowDetailModal(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Detail
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -312,83 +406,116 @@ export const MembershipsManagement = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedMembership && (
-            <div className="space-y-4">
-              {/* Travel Info */}
-              <div className="bg-muted/30 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-primary" />
+          {selectedMembership && (() => {
+            const plan = getPlanById(selectedMembership.plan_type);
+            return (
+              <div className="space-y-4">
+                {/* Travel Info */}
+                <div className="bg-muted/30 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold">{selectedMembership.travel?.name}</p>
+                      <p className="text-sm text-muted-foreground">{selectedMembership.travel?.phone}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Plan Benefits Summary */}
+                <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                  <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    {getPlanIcon(selectedMembership.plan_type)}
+                    Benefit Paket {plan.name}
+                  </p>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-background rounded-lg p-2">
+                      <p className="text-lg font-bold text-primary">{plan.limits.maxPackages}</p>
+                      <p className="text-[10px] text-muted-foreground">Listing/bln</p>
+                    </div>
+                    <div className="bg-background rounded-lg p-2">
+                      <p className="text-lg font-bold text-primary">{plan.limits.maxTemplates}</p>
+                      <p className="text-[10px] text-muted-foreground">Template</p>
+                    </div>
+                    <div className="bg-background rounded-lg p-2">
+                      <p className="text-lg font-bold text-primary">{plan.limits.monthlyCredits}</p>
+                      <p className="text-[10px] text-muted-foreground">Kredit/bln</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {plan.limits.hasWebsite && <Badge variant="outline" className="text-[10px]">Website</Badge>}
+                    {plan.limits.hasChat && <Badge variant="outline" className="text-[10px]">Chat</Badge>}
+                    {plan.limits.hasPrioritySearch && <Badge variant="outline" className="text-[10px]">Prioritas</Badge>}
+                    {plan.limits.hasVerifiedBadge && <Badge variant="outline" className="text-[10px]">Verified</Badge>}
+                    {plan.limits.hasAdvancedAnalytics && <Badge variant="outline" className="text-[10px]">Analitik</Badge>}
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Jumlah Bayar</Label>
+                    <p className="font-bold text-primary">{formatCurrency(selectedMembership.amount)}</p>
                   </div>
                   <div>
-                    <p className="font-bold">{selectedMembership.travel?.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedMembership.travel?.phone}</p>
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <div className="mt-1">{getStatusBadge(selectedMembership.status)}</div>
                   </div>
-                </div>
-              </div>
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Paket</Label>
-                  <p className="font-semibold capitalize flex items-center gap-1">
-                    {getPlanIcon(selectedMembership.plan_type)}
-                    {selectedMembership.plan_type}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Jumlah</Label>
-                  <p className="font-bold text-primary">{formatCurrency(selectedMembership.amount)}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
-                  <div className="mt-1">{getStatusBadge(selectedMembership.status)}</div>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Tanggal Pengajuan</Label>
-                  <p className="font-medium">
-                    {format(new Date(selectedMembership.created_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
-                  </p>
-                </div>
-              </div>
-
-              {/* Payment Proof */}
-              {selectedMembership.payment_proof_url && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Bukti Pembayaran</Label>
-                  <div className="mt-2 border rounded-lg overflow-hidden">
-                    <img 
-                      src={selectedMembership.payment_proof_url} 
-                      alt="Bukti Pembayaran"
-                      className="w-full max-h-64 object-contain bg-muted"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
-                      }}
-                    />
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Tanggal Pengajuan</Label>
+                    <p className="font-medium text-sm">
+                      {format(new Date(selectedMembership.created_at), 'dd MMM yyyy HH:mm', { locale: localeId })}
+                    </p>
                   </div>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="p-0 h-auto mt-1"
-                    onClick={() => window.open(selectedMembership.payment_proof_url, '_blank')}
-                  >
-                    Lihat ukuran penuh
-                  </Button>
+                  {selectedMembership.end_date && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Berlaku Sampai</Label>
+                      <p className="font-medium text-sm">
+                        {format(new Date(selectedMembership.end_date), 'dd MMM yyyy', { locale: localeId })}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Admin Notes */}
-              <div>
-                <Label>Catatan Admin</Label>
-                <Textarea
-                  placeholder="Tambahkan catatan (wajib untuk penolakan)..."
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="mt-1"
-                />
+                {/* Payment Proof */}
+                {selectedMembership.payment_proof_url && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Bukti Pembayaran</Label>
+                    <div className="mt-2 border rounded-lg overflow-hidden">
+                      <img 
+                        src={selectedMembership.payment_proof_url} 
+                        alt="Bukti Pembayaran"
+                        className="w-full max-h-64 object-contain bg-muted"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="p-0 h-auto mt-1"
+                      onClick={() => window.open(selectedMembership.payment_proof_url, '_blank')}
+                    >
+                      Lihat ukuran penuh
+                    </Button>
+                  </div>
+                )}
+
+                {/* Admin Notes */}
+                <div>
+                  <Label>Catatan Admin</Label>
+                  <Textarea
+                    placeholder="Tambahkan catatan (wajib untuk penolakan)..."
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <DialogFooter className="gap-2">
             {selectedMembership?.status === 'pending' && (

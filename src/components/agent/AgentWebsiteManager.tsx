@@ -11,7 +11,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+
+// Use untyped for website_templates table
+const db = supabase as any;
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel } from '@/hooks/useAgentData';
 import { toast } from 'sonner';
@@ -46,7 +49,7 @@ export const AgentWebsiteManager = () => {
   const fetchTemplates = async () => {
     try {
       setLoadingTemplates(true);
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('website_templates')
         .select('*')
         .eq('is_active', true)
