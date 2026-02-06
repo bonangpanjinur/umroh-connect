@@ -1,6 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+
+// Use untyped supabase for website_templates (not in generated types)
+const db = supabase as any;
 import { WebsiteTemplate } from '@/types/database';
 import { 
   Plus, Edit, Trash2, Check, X, Layout, 
@@ -28,7 +31,7 @@ const WebsiteTemplatesManagement = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('website_templates')
         .select('*')
         .order('created_at', { ascending: false });
@@ -54,7 +57,7 @@ const WebsiteTemplatesManagement = () => {
       setSaving(true);
       if (editingTemplate.id) {
         // Update
-        const { error } = await supabase
+        const { error } = await db
           .from('website_templates')
           .update({
             name: editingTemplate.name,
@@ -70,7 +73,7 @@ const WebsiteTemplatesManagement = () => {
         toast.success('Template berhasil diperbarui');
       } else {
         // Create
-        const { error } = await supabase
+        const { error } = await db
           .from('website_templates')
           .insert([editingTemplate]);
 
@@ -92,7 +95,7 @@ const WebsiteTemplatesManagement = () => {
     if (!confirm('Apakah Anda yakin ingin menghapus template ini?')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await db
         .from('website_templates')
         .delete()
         .eq('id', id);
@@ -108,7 +111,7 @@ const WebsiteTemplatesManagement = () => {
 
   const toggleActive = async (template: WebsiteTemplate) => {
     try {
-      const { error } = await supabase
+      const { error } = await db
         .from('website_templates')
         .update({ is_active: !template.is_active })
         .eq('id', template.id);

@@ -213,7 +213,7 @@ const DefaultTheme = ({ data }: DefaultThemeProps) => {
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.1 }}
                 >
-                  <PackageCard pkg={pkg} />
+                  <PackageCard package={pkg} onClick={() => {}} />
                 </motion.div>
               ))}
             </div>

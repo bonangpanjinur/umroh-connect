@@ -189,7 +189,7 @@ const GoldLuxuryTheme = ({ data }: GoldLuxuryThemeProps) => {
                   transition={{ delay: idx * 0.1 }}
                   className="luxury-package-card"
                 >
-                  <PackageCard pkg={pkg} />
+                  <PackageCard package={pkg} onClick={() => {}} />
                 </motion.div>
               ))}
             </div>
