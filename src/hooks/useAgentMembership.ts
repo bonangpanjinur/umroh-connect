@@ -8,6 +8,20 @@ interface MembershipPlan {
   price: number;
   features: string[];
   badge?: string;
+  limits: {
+    maxPackages: number;
+    maxTemplates: number;
+    monthlyCredits: number;
+    hasWebsite: boolean;
+    hasPrioritySearch: boolean;
+    hasChat: boolean;
+    hasLeadStats: boolean;
+    hasVerifiedBadge: boolean;
+    hasTopListing: boolean;
+    hasJamaahData: boolean;
+    hasPrioritySupport: boolean;
+    hasAdvancedAnalytics: boolean;
+  };
 }
 
 interface AgentMembership {
@@ -24,37 +38,70 @@ interface AgentMembership {
   updated_at: string;
 }
 
-// Available membership plans
+// Available membership plans with clear limits
 export const MEMBERSHIP_PLANS: MembershipPlan[] = [
   {
     id: 'free',
     name: 'Free',
     price: 0,
     features: [
-      'Listing paket terbatas (3 paket)',
+      'Listing 3 paket per bulan',
       'Tampil standar di pencarian',
       'Akses dasar dashboard',
     ],
+    limits: {
+      maxPackages: 3,
+      maxTemplates: 0,
+      monthlyCredits: 0,
+      hasWebsite: false,
+      hasPrioritySearch: false,
+      hasChat: false,
+      hasLeadStats: false,
+      hasVerifiedBadge: false,
+      hasTopListing: false,
+      hasJamaahData: false,
+      hasPrioritySupport: false,
+      hasAdvancedAnalytics: false,
+    },
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 2000000, // 2 jt/bulan
+    price: 2000000,
     badge: 'Pro',
     features: [
-      'Paket tidak terbatas',
+      'Listing 5 paket per bulan',
+      'Website agent + 1 template',
+      '4 kredit promosi / bulan',
       'Prioritas di pencarian',
       'Bisa balas chat jamaah',
       'Statistik leads lengkap',
       'Support via chat',
     ],
+    limits: {
+      maxPackages: 5,
+      maxTemplates: 1,
+      monthlyCredits: 4,
+      hasWebsite: true,
+      hasPrioritySearch: true,
+      hasChat: true,
+      hasLeadStats: true,
+      hasVerifiedBadge: false,
+      hasTopListing: false,
+      hasJamaahData: false,
+      hasPrioritySupport: false,
+      hasAdvancedAnalytics: false,
+    },
   },
   {
     id: 'premium',
     name: 'Premium',
-    price: 7500000, // 7.5 jt/bulan
+    price: 7500000,
     badge: 'Verified ✓',
     features: [
+      'Listing 10 paket per bulan',
+      'Website agent + 3 template',
+      '10 kredit promosi / bulan',
       'Semua fitur Pro',
       'Badge "Verified" di profil',
       'Top listing / rekomendasi',
@@ -62,6 +109,20 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
       'Support prioritas 24/7',
       'Analitik advanced',
     ],
+    limits: {
+      maxPackages: 10,
+      maxTemplates: 3,
+      monthlyCredits: 10,
+      hasWebsite: true,
+      hasPrioritySearch: true,
+      hasChat: true,
+      hasLeadStats: true,
+      hasVerifiedBadge: true,
+      hasTopListing: true,
+      hasJamaahData: true,
+      hasPrioritySupport: true,
+      hasAdvancedAnalytics: true,
+    },
   },
 ];
 
@@ -98,6 +159,7 @@ export const useIsAgentPro = (travelId: string | undefined) => {
   const planType = isActive ? membership?.plan_type || 'free' : 'free';
   const isPro = isActive && (planType === 'pro' || planType === 'premium');
   const isPremium = isActive && planType === 'premium';
+  const currentPlan = MEMBERSHIP_PLANS.find(p => p.id === planType) || MEMBERSHIP_PLANS[0];
 
   return { 
     isLoading, 
@@ -106,6 +168,7 @@ export const useIsAgentPro = (travelId: string | undefined) => {
     isPro, 
     isPremium,
     isActive,
+    currentPlan,
   };
 };
 
@@ -160,4 +223,9 @@ export const getMembershipDaysRemaining = (endDate: string | null): number => {
   const now = new Date();
   const diff = end.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+};
+
+// Helper to get plan by ID
+export const getPlanById = (planId: string): MembershipPlan => {
+  return MEMBERSHIP_PLANS.find(p => p.id === planId) || MEMBERSHIP_PLANS[0];
 };

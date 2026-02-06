@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper, Fingerprint, Globe } from 'lucide-react';
+import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper, Fingerprint, Globe, Layout } from 'lucide-react';
 import { AdminStatsCards } from '@/components/admin/AdminStatsCards';
 import { AdminAnalyticsDashboard } from '@/components/admin/AdminAnalyticsDashboard';
 import { UsersManagement } from '@/components/admin/UsersManagement';
