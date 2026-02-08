@@ -1,11 +1,11 @@
-import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart, PiggyBank } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart, Wallet } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 // Consolidated menu items - removed duplicates (tracker/tracking, notifikasi/pengingat)
 const menuItems = [
   { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
-  { id: 'tabungan', label: 'Tabungan', icon: PiggyBank, color: 'text-emerald-600', audioLabel: 'Kalkulator Tabungan Umroh', isHighlight: true, highlightColor: 'emerald' },
+  { id: 'tabungan', label: 'Tabungan', icon: Wallet, color: 'text-emerald-600', audioLabel: 'Kalkulator Tabungan Umroh', isHighlight: true, highlightColor: 'emerald' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
