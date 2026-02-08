@@ -1,17 +1,17 @@
-import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart, PiggyBank } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
 // Consolidated menu items - removed duplicates (tracker/tracking, notifikasi/pengingat)
 const menuItems = [
   { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
+  { id: 'tabungan', label: 'Tabungan', icon: PiggyBank, color: 'text-emerald-600', audioLabel: 'Kalkulator Tabungan Umroh', isHighlight: true, highlightColor: 'emerald' },
   { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
   { id: 'doa', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
   { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
-
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },

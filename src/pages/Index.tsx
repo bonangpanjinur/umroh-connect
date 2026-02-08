@@ -25,6 +25,7 @@ import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import IbadahHubView from '@/components/habit/IbadahHubView';
+import SavingsCalculatorView from '@/components/savings/SavingsCalculatorView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { FeatureLock } from '@/components/common/FeatureLock';
@@ -50,6 +51,7 @@ const Index = () => {
   const [showReviews, setShowReviews] = useState(false);
   const [showQuran, setShowQuran] = useState(false);
   const [showIbadahHub, setShowIbadahHub] = useState(false);
+  const [showSavings, setShowSavings] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
   const handlePackageClick = (packageId: string) => {
@@ -119,6 +121,9 @@ const Index = () => {
       case 'ibadah':
         setShowIbadahHub(true);
         break;
+      case 'tabungan':
+        setShowSavings(true);
+        break;
       default:
         break;
     }
@@ -149,6 +154,19 @@ const Index = () => {
             }}
           />
         </div>
+      );
+    }
+
+    // Show Savings Calculator
+    if (showSavings) {
+      return (
+        <SavingsCalculatorView 
+          onBack={() => setShowSavings(false)} 
+          onViewPackages={() => {
+            setShowSavings(false);
+            handleTabChange('paket');
+          }}
+        />
       );
     }
 
@@ -257,7 +275,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && !showSavings && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
