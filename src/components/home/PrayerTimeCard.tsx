@@ -1,13 +1,93 @@
-import { MapPin, Compass, Volume2, Bell, Droplets, Palette } from 'lucide-react';
+import { MapPin, Compass, Volume2, Bell, Droplets, Palette, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useAdzanNotifications } from '@/hooks/useAdzanNotifications';
 import { useWeather } from '@/hooks/useWeather';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import QiblaModal from '@/components/modals/QiblaModal';
 import defaultMasjidImage from '@/assets/default-masjid.jpg';
+import { PrayerTimes } from '@/types';
+
+// Live countdown hook that ticks every second
+const useLiveCountdown = (times: PrayerTimes | null) => {
+  const [now, setNow] = useState(() => new Date());
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Update every second
+    intervalRef.current = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  if (!times) return { currentTime: '--:--:--', currentPrayerName: 'Sholat', currentPrayerTime: '--:--', nextPrayerName: '', nextPrayerTime: '', countdown: '' };
+
+  const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+  const prayerOrder: { key: keyof PrayerTimes; name: string }[] = [
+    { key: 'fajr', name: 'Subuh' },
+    { key: 'dhuhr', name: 'Dzuhur' },
+    { key: 'asr', name: 'Ashar' },
+    { key: 'maghrib', name: 'Maghrib' },
+    { key: 'isha', name: 'Isya' },
+  ];
+
+  const prayerSeconds = prayerOrder.map(p => {
+    const [h, m] = times[p.key].split(':').map(Number);
+    return { ...p, seconds: h * 3600 + m * 60 };
+  });
+
+  let currentPrayerName = 'Isya';
+  let currentPrayerTime = times.isha;
+  let nextPrayerName = 'Subuh';
+  let nextPrayerTime = times.fajr;
+  let nextSeconds = prayerSeconds[0].seconds + 86400;
+
+  for (let i = 0; i < prayerSeconds.length; i++) {
+    const cur = prayerSeconds[i];
+    const next = prayerSeconds[i + 1];
+    if (next) {
+      if (currentSeconds >= cur.seconds && currentSeconds < next.seconds) {
+        currentPrayerName = cur.name;
+        currentPrayerTime = times[cur.key];
+        nextPrayerName = next.name;
+        nextPrayerTime = times[next.key];
+        nextSeconds = next.seconds;
+        break;
+      }
+    } else {
+      if (currentSeconds >= cur.seconds) {
+        currentPrayerName = 'Isya';
+        currentPrayerTime = times.isha;
+        nextPrayerName = 'Subuh';
+        nextPrayerTime = times.fajr;
+        nextSeconds = prayerSeconds[0].seconds + 86400;
+      } else if (currentSeconds < prayerSeconds[0].seconds) {
+        currentPrayerName = 'Isya';
+        currentPrayerTime = times.isha;
+        nextPrayerName = 'Subuh';
+        nextPrayerTime = times.fajr;
+        nextSeconds = prayerSeconds[0].seconds;
+      }
+    }
+  }
+
+  let remaining = nextSeconds - currentSeconds;
+  if (remaining < 0) remaining += 86400;
+
+  const rh = Math.floor(remaining / 3600);
+  const rm = Math.floor((remaining % 3600) / 60);
+  const rs = remaining % 60;
+  const countdown = `-${String(rh).padStart(2, '0')}:${String(rm).padStart(2, '0')}:${String(rs).padStart(2, '0')}`;
+
+  return { currentTime, currentPrayerName, currentPrayerTime, nextPrayerName, nextPrayerTime, countdown };
+};
 
 // Overlay color options
 const OVERLAY_COLORS = [
@@ -25,9 +105,10 @@ interface PrayerTimeCardProps {
 
 const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const { times, location, loading, currentPrayer, prayerList, refresh } = usePrayerTimes();
+  const { times, location, loading, prayerList, refresh } = usePrayerTimes();
   const { preferences, permission, enableAll } = useAdzanNotifications();
   const { makkahWeather, madinahWeather, isLoading: weatherLoading } = useWeather();
+  const live = useLiveCountdown(times);
   
   // Custom background from localStorage
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -47,8 +128,8 @@ const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) 
   const speakPrayerTime = () => {
     if (isElderlyMode && 'speechSynthesis' in window && times) {
       const utterance = new SpeechSynthesisUtterance(
-        `Waktu sholat ${currentPrayer?.name || 'Ashar'} pukul ${currentPrayer?.time || times.asr}. 
-        Sholat berikutnya ${currentPrayer?.nextPrayer || 'Maghrib'} pukul ${currentPrayer?.nextPrayerTime || times.maghrib}`
+        `Waktu sholat ${live.currentPrayerName} pukul ${live.currentPrayerTime}. 
+        Sholat berikutnya ${live.nextPrayerName} pukul ${live.nextPrayerTime}`
       );
       utterance.lang = 'id-ID';
       utterance.rate = 0.75;
@@ -205,20 +286,24 @@ const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) 
             </div>
           </div>
 
-          {/* Center - Current Prayer Time (Hero) */}
+          {/* Center - Current Time & Prayer Info (Hero) */}
           <div className="text-center mb-3">
-            <h2 className={`font-bold ${isElderlyMode ? 'text-4xl' : 'text-2xl'}`}>
-              {currentPrayer?.name || 'Sholat'}
+            <div className={`font-mono font-bold ${isElderlyMode ? 'text-4xl' : 'text-3xl'} tracking-wider`}>
+              {live.currentTime}
+            </div>
+            <h2 className={`font-semibold mt-1 ${isElderlyMode ? 'text-2xl' : 'text-lg'}`}>
+              {live.currentPrayerName}
+              <span className={`opacity-80 ml-2 ${isElderlyMode ? 'text-lg' : 'text-sm'}`}>
+                {live.currentPrayerTime}
+              </span>
             </h2>
-            <p className={`font-semibold ${isElderlyMode ? 'text-3xl' : 'text-xl'} opacity-95`}>
-              {currentPrayer?.time || times?.asr || '--:--'}
-              {currentPrayer?.countdown && (
-                <span className={`bg-primary-foreground/20 px-2 py-0.5 rounded ml-2 ${
-                  isElderlyMode ? 'text-base' : 'text-xs'
-                }`}>
-                  {currentPrayer.countdown}
-                </span>
-              )}
+            <p className={`opacity-90 ${isElderlyMode ? 'text-base' : 'text-xs'} mt-1`}>
+              <span className="opacity-70">Menuju {live.nextPrayerName}</span>
+              <span className={`bg-primary-foreground/20 px-2 py-0.5 rounded ml-2 font-mono font-semibold ${
+                isElderlyMode ? 'text-base' : 'text-sm'
+              }`}>
+                {live.countdown}
+              </span>
             </p>
           </div>
           
