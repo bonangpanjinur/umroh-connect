@@ -2209,6 +2209,266 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_cart_items: {
+        Row: {
+          cart_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          cart_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          cart_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "shop_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_carts: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shop_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shop_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string | null
+          product_name: string
+          product_price: number
+          quantity: number
+          subtotal: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          product_price: number
+          quantity?: number
+          subtotal?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          product_price?: number
+          quantity?: number
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "shop_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_orders: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          order_code: string
+          paid_at: string | null
+          payment_proof_url: string | null
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_name: string | null
+          shipping_phone: string | null
+          shipping_postal_code: string | null
+          status: Database["public"]["Enums"]["shop_order_status"]
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_code: string
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          status?: Database["public"]["Enums"]["shop_order_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          order_code?: string
+          paid_at?: string | null
+          payment_proof_url?: string | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          status?: Database["public"]["Enums"]["shop_order_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shop_products: {
+        Row: {
+          category_id: string | null
+          compare_price: number | null
+          created_at: string
+          description: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          name: string
+          price: number
+          slug: string
+          stock: number
+          thumbnail_url: string | null
+          updated_at: string
+          weight_gram: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          compare_price?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name: string
+          price?: number
+          slug: string
+          stock?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          weight_gram?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          compare_price?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          name?: string
+          price?: number
+          slug?: string
+          stock?: number
+          thumbnail_url?: string | null
+          updated_at?: string
+          weight_gram?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "shop_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       static_pages: {
         Row: {
           content: string | null
@@ -3020,6 +3280,7 @@ export type Database = {
     Functions: {
       generate_booking_code: { Args: never; Returns: string }
       generate_group_code: { Args: never; Returns: string }
+      generate_shop_order_code: { Args: never; Returns: string }
       get_profile_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -3042,10 +3303,17 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "jamaah" | "agent" | "admin"
+      app_role: "jamaah" | "agent" | "admin" | "shop_admin"
       checklist_category: "dokumen" | "perlengkapan" | "kesehatan" | "mental"
       feedback_type: "bug" | "suggestion" | "rating" | "other"
       package_type: "umroh" | "haji_reguler" | "haji_plus" | "haji_furoda"
+      shop_order_status:
+        | "pending"
+        | "paid"
+        | "processing"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3173,10 +3441,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["jamaah", "agent", "admin"],
+      app_role: ["jamaah", "agent", "admin", "shop_admin"],
       checklist_category: ["dokumen", "perlengkapan", "kesehatan", "mental"],
       feedback_type: ["bug", "suggestion", "rating", "other"],
       package_type: ["umroh", "haji_reguler", "haji_plus", "haji_furoda"],
+      shop_order_status: [
+        "pending",
+        "paid",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
     },
   },
 } as const
