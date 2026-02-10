@@ -15,6 +15,7 @@ interface AuthContextType {
   isAgent: () => boolean;
   isAdmin: () => boolean;
   isJamaah: () => boolean;
+  isShopAdmin: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

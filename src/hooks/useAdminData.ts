@@ -382,7 +382,7 @@ export const useUpdateUserRole = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ user_id, role }: { user_id: string; role: 'jamaah' | 'agent' | 'admin' }) => {
+    mutationFn: async ({ user_id, role }: { user_id: string; role: 'jamaah' | 'agent' | 'admin' | 'shop_admin' }) => {
       // Update profile role
       await supabase
         .from('profiles')
