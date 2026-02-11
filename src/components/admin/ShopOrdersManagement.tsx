@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useAdminShopOrders, useUpdateShopOrderStatus } from '@/hooks/useShopAdmin';
-import { ShopOrderStatus } from '@/types/shop';
+import { ShopOrderStatus, ShopOrder } from '@/types/shop';
 import { format } from 'date-fns';
+import { Eye } from 'lucide-react';
+import OrderDetailsDialog from '../order/OrderDetailsDialog';
 
 const statusColors: Record<ShopOrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -31,6 +35,13 @@ const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'cur
 const ShopOrdersManagement = () => {
   const { data: orders = [], isLoading } = useAdminShopOrders();
   const updateStatus = useUpdateShopOrderStatus();
+  const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const handleViewDetails = (order: ShopOrder) => {
+    setSelectedOrder(order);
+    setIsDetailsOpen(true);
+  };
 
   if (isLoading) return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
 
@@ -47,6 +58,7 @@ const ShopOrdersManagement = () => {
               <TableHead>Total</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -77,12 +89,23 @@ const ShopOrdersManagement = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="icon" onClick={() => handleViewDetails(order)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
-            {orders.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Belum ada pesanan</TableCell></TableRow>}
+            {orders.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Belum ada pesanan</TableCell></TableRow>}
           </TableBody>
         </Table>
       </CardContent>
+
+      <OrderDetailsDialog
+        order={selectedOrder}
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+      />
     </Card>
   );
 };
