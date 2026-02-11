@@ -2375,7 +2375,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
-          order_code: string
+          order_code?: string
           paid_at?: string | null
           payment_proof_url?: string | null
           shipping_address?: string | null
