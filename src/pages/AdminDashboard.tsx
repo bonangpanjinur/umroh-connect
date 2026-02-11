@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper, Fingerprint, Globe, Layout } from 'lucide-react';
+import { ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, Crown, Wallet, Newspaper, Fingerprint, Globe, Layout, ShoppingBag, Tag, PackageCheck } from 'lucide-react';
 import { AdminStatsCards } from '@/components/admin/AdminStatsCards';
 import { AdminAnalyticsDashboard } from '@/components/admin/AdminAnalyticsDashboard';
 import { UsersManagement } from '@/components/admin/UsersManagement';
@@ -24,6 +24,9 @@ import { PaymentGatewaySettings } from '@/components/admin/PaymentGatewaySetting
 import { TasbihManagement } from '@/components/admin/TasbihManagement';
 import { AgentUrlManagement } from '@/components/admin/AgentUrlManagement';
 import WebsiteTemplatesManagement from '@/components/admin/WebsiteTemplatesManagement';
+import ShopProductsManagement from '@/components/admin/ShopProductsManagement';
+import ShopCategoriesManagement from '@/components/admin/ShopCategoriesManagement';
+import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -147,6 +150,18 @@ const AdminDashboard = () => {
               <Layout className="h-4 w-4" />
               <span className="hidden sm:inline">Template</span>
             </TabsTrigger>
+            <TabsTrigger value="shop-products" className="flex items-center gap-2 py-2">
+              <ShoppingBag className="h-4 w-4" />
+              <span className="hidden sm:inline">Produk Toko</span>
+            </TabsTrigger>
+            <TabsTrigger value="shop-categories" className="flex items-center gap-2 py-2">
+              <Tag className="h-4 w-4" />
+              <span className="hidden sm:inline">Kategori Toko</span>
+            </TabsTrigger>
+            <TabsTrigger value="shop-orders" className="flex items-center gap-2 py-2">
+              <PackageCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Pesanan Toko</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -225,6 +240,15 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent value="templates">
             <WebsiteTemplatesManagement />
+          </TabsContent>
+          <TabsContent value="shop-products">
+            <ShopProductsManagement />
+          </TabsContent>
+          <TabsContent value="shop-categories">
+            <ShopCategoriesManagement />
+          </TabsContent>
+          <TabsContent value="shop-orders">
+            <ShopOrdersManagement />
           </TabsContent>
         </Tabs>
       </main>
