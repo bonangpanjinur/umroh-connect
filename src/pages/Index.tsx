@@ -26,6 +26,7 @@ import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import IbadahHubView from '@/components/habit/IbadahHubView';
 import SavingsCalculatorView from '@/components/savings/SavingsCalculatorView';
+import ShopView from '@/components/shop/ShopView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { FeatureLock } from '@/components/common/FeatureLock';
@@ -53,6 +54,7 @@ const Index = () => {
   const [showIbadahHub, setShowIbadahHub] = useState(false);
   const [showSavings, setShowSavings] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [showShop, setShowShop] = useState(false);
 
   const handlePackageClick = (packageId: string) => {
     setSelectedPackageId(packageId);
@@ -124,12 +126,20 @@ const Index = () => {
       case 'tabungan':
         setShowSavings(true);
         break;
+      case 'shop':
+        setShowShop(true);
+        break;
       default:
         break;
     }
   };
 
   const renderView = () => {
+    // Show Shop
+    if (showShop) {
+      return <ShopView onBack={() => setShowShop(false)} />;
+    }
+
     // Show Ibadah Hub (combined Ibadah, Sedekah, Olahraga, Ramadhan)
     if (showIbadahHub) {
       return (
@@ -275,7 +285,7 @@ const Index = () => {
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && !showSavings && (
+        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && !showSavings && !showShop && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
