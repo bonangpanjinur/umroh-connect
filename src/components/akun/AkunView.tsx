@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Bell, Moon, Sun, ImageIcon, Trash2 } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -116,7 +116,7 @@ const BookingButton = ({ onClick }: { onClick: () => void }) => {
 
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const { user, profile, signOut, loading } = useAuthContext();
+  const { user, profile, signOut, loading, isShopAdmin } = useAuthContext();
   const { t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
@@ -235,7 +235,7 @@ const AkunView = () => {
               {profile?.full_name || user.email?.split('@')[0] || 'Pengguna'}
             </h2>
             <p className={`text-muted-foreground ${fontSize.sm}`}>
-              {profile?.role === 'agent' ? 'Travel Agent' : profile?.role === 'admin' ? 'Admin' : 'Jamaah'}
+              {profile?.role === 'agent' ? 'Travel Agent' : profile?.role === 'admin' ? 'Admin' : profile?.role === 'shop_admin' ? 'Admin Toko' : 'Jamaah'}
               <span className="mx-1">•</span>
               <span className="text-primary font-medium">Free Plan</span>
             </p>
@@ -275,6 +275,31 @@ const AkunView = () => {
 
         {/* Haji Registration Status Button */}
         <HajiRegistrationButton />
+
+        {/* Shop Admin Dashboard Button */}
+        {(isShopAdmin() || profile?.role === 'admin') && profile?.role !== 'admin' && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/shop-admin')}
+            className={`w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+              isElderlyMode ? 'p-5' : 'p-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full bg-emerald-500 text-primary-foreground flex items-center justify-center ${
+                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+              }`}>
+                <Store style={{ width: iconSize.md, height: iconSize.md }} />
+              </div>
+              <div className="text-left">
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Admin Toko</h4>
+                <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola produk & pesanan toko</p>
+              </div>
+            </div>
+            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+          </motion.button>
+        )}
 
         {/* Admin Dashboard Button */}
         {profile?.role === 'admin' && (

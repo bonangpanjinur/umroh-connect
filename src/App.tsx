@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgentDashboard from "./pages/AgentDashboard";
 import AgentPublicProfile from "./pages/AgentPublicProfile";
+import ShopAdminDashboard from "./pages/ShopAdminDashboard";
 import PageDetail from "./pages/PageDetail";
 import InstallPWA from "./components/pwa/PWAInstallPrompt";
 import SplashScreen from "./components/pwa/SplashScreen";
@@ -66,6 +67,7 @@ const App = () => {
                       {/* === LEVEL 2: PROTECTED ROUTES (Admin & Agent) === */}
                       {/* Harus diletakkan SEBELUM rute dinamis */}
                       <Route path="/admin/*" element={<AdminDashboard />} />
+                      <Route path="/shop-admin/*" element={<ShopAdminDashboard />} />
                       <Route path="/agent/*" element={<AgentDashboard />} />
                       
                       {/* === LEVEL 3: PUBLIC PROFILES === */}
