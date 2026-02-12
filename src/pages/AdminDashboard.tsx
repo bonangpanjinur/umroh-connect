@@ -27,6 +27,7 @@ import WebsiteTemplatesManagement from '@/components/admin/WebsiteTemplatesManag
 import ShopProductsManagement from '@/components/admin/ShopProductsManagement';
 import ShopCategoriesManagement from '@/components/admin/ShopCategoriesManagement';
 import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
+import ShopDashboard from '@/components/admin/ShopDashboard';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -162,6 +163,10 @@ const AdminDashboard = () => {
               <PackageCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Pesanan Toko</span>
             </TabsTrigger>
+            <TabsTrigger value="shop-dashboard" className="flex items-center gap-2 py-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard Toko</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -249,6 +254,9 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent value="shop-orders">
             <ShopOrdersManagement />
+          </TabsContent>
+          <TabsContent value="shop-dashboard">
+            <ShopDashboard />
           </TabsContent>
         </Tabs>
       </main>
