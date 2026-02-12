@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, ClipboardList } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useShopProducts, useShopCategories } from '@/hooks/useShopProducts';
 import { ShopProduct } from '@/types/shop';
@@ -9,6 +10,7 @@ import ProductCard from './ProductCard';
 import ProductDetailModal from './ProductDetailModal';
 import CartSheet from './CartSheet';
 import CheckoutView from './CheckoutView';
+import OrderHistoryView from './OrderHistoryView';
 
 interface ShopViewProps {
   onBack: () => void;
@@ -19,12 +21,17 @@ const ShopView = ({ onBack }: ShopViewProps) => {
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
 
   const { data: categories = [] } = useShopCategories();
   const { data: products = [], isLoading } = useShopProducts(selectedCategory, search || undefined);
 
   if (showCheckout) {
-    return <CheckoutView onBack={() => setShowCheckout(false)} onSuccess={() => setShowCheckout(false)} />;
+    return <CheckoutView onBack={() => setShowCheckout(false)} onSuccess={() => { setShowCheckout(false); setShowOrders(true); }} />;
+  }
+
+  if (showOrders) {
+    return <OrderHistoryView onBack={() => setShowOrders(false)} />;
   }
 
   return (
@@ -34,6 +41,9 @@ const ShopView = ({ onBack }: ShopViewProps) => {
         <div className="flex items-center gap-3 p-4">
           <button onClick={onBack} className="p-2 rounded-full hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
           <h2 className="font-bold text-lg flex-1">Oleh-oleh & Perlengkapan</h2>
+          <Button variant="ghost" size="icon" onClick={() => setShowOrders(true)} title="Riwayat Pesanan">
+            <ClipboardList className="h-5 w-5" />
+          </Button>
           <CartSheet onCheckout={() => setShowCheckout(true)} />
         </div>
 
