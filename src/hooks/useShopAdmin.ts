@@ -122,9 +122,11 @@ export const useAdminShopOrders = () => {
 export const useUpdateShopOrderStatus = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, tracking_number, courier }: { id: string; status: string; tracking_number?: string; courier?: string }) => {
       const updates: any = { status };
       if (status === 'paid') updates.paid_at = new Date().toISOString();
+      if (tracking_number !== undefined) updates.tracking_number = tracking_number;
+      if (courier !== undefined) updates.courier = courier;
       const { error } = await supabase.from('shop_orders').update(updates).eq('id', id);
       if (error) throw error;
     },
