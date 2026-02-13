@@ -2,7 +2,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useShopCart } from '@/hooks/useShopCart';
-import { ShoppingCart, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { ShoppingCart, Minus, Plus, Trash2, ShoppingBag, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -13,6 +15,8 @@ interface CartSheetProps {
 
 const CartSheet = ({ onCheckout }: CartSheetProps) => {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } = useShopCart();
+  const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   return (
     <Sheet>
@@ -27,7 +31,15 @@ const CartSheet = ({ onCheckout }: CartSheetProps) => {
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader><SheetTitle>Keranjang ({totalItems})</SheetTitle></SheetHeader>
 
-        {items.length === 0 ? (
+        {!user ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+            <LogIn className="h-12 w-12" />
+            <p className="text-center">Silakan login untuk menggunakan keranjang</p>
+            <Button onClick={() => navigate('/auth')}>
+              <LogIn className="h-4 w-4 mr-2" />Login
+            </Button>
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
             <ShoppingBag className="h-12 w-12" />
             <p>Keranjang kosong</p>

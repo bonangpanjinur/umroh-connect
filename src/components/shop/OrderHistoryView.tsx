@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { ArrowLeft, Package, Eye } from 'lucide-react';
+import { ArrowLeft, Package, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useShopOrders } from '@/hooks/useShopOrders';
 import { ShopOrder, ShopOrderStatus } from '@/types/shop';
 import OrderDetailsDialog from '@/components/order/OrderDetailsDialog';
+import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const statusColors: Record<ShopOrderStatus, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -35,8 +38,11 @@ interface OrderHistoryViewProps {
 
 const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const { orders, isLoading } = useShopOrders();
+  const { user } = useAuthContext();
+  const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [paymentOrder, setPaymentOrder] = useState<ShopOrder | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,9 +68,9 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
         )}
 
         {orders.map((order) => (
-          <Card key={order.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true); }}>
+          <Card key={order.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2">
+              <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true); }}>
                 <div>
                   <p className="font-mono text-sm font-medium">{order.order_code}</p>
                   <p className="text-xs text-muted-foreground">
@@ -79,12 +85,38 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
                 <span className="text-sm text-muted-foreground">{order.items?.length || 0} item</span>
                 <span className="font-semibold">{formatRupiah(order.total_amount)}</span>
               </div>
+
+              {/* Upload bukti bayar button for pending orders */}
+              {order.status === 'pending' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-3"
+                  onClick={(e) => { e.stopPropagation(); setPaymentOrder(order); }}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {order.payment_proof_url ? 'Lihat/Ganti Bukti Bayar' : 'Upload Bukti Pembayaran'}
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
       <OrderDetailsDialog order={selectedOrder} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} />
+
+      {paymentOrder && (
+        <PaymentUploadDialog
+          orderId={paymentOrder.id}
+          orderCode={paymentOrder.order_code}
+          open={!!paymentOrder}
+          onOpenChange={(open) => !open && setPaymentOrder(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['shop-orders', user?.id] });
+          }}
+          existingProofUrl={paymentOrder.payment_proof_url}
+        />
+      )}
     </div>
   );
 };

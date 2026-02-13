@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ShopProduct } from '@/types/shop';
 import { useShopCart } from '@/hooks/useShopCart';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Minus, Plus, ShoppingCart, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, ShoppingBag, LogIn } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -21,12 +22,15 @@ const ProductDetailModal = ({ product, open, onOpenChange }: ProductDetailModalP
   const [qty, setQty] = useState(1);
   const { addToCart } = useShopCart();
   const { user } = useAuthContext();
+  const navigate = useNavigate();
 
   if (!product) return null;
 
   const handleAddToCart = () => {
     if (!user) {
       toast({ title: 'Silakan login terlebih dahulu', variant: 'destructive' });
+      onOpenChange(false);
+      navigate('/auth');
       return;
     }
     addToCart.mutate({ productId: product.id, quantity: qty }, {
