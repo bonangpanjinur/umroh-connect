@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShopOrder } from "@/types/shop";
 import { format } from "date-fns";
-import { Truck, UserCheck, Package } from "lucide-react";
+import { Truck, UserCheck, Package, MapPin, Copy } from "lucide-react";
 import MerchantCourierAssignDialog from "../merchant/MerchantCourierAssignDialog";
 import { useUpdateShopOrderStatus } from "@/hooks/useShopAdmin";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderDetailsDialogProps {
   order: ShopOrder | null;
@@ -32,9 +33,14 @@ const OrderDetailsDialog = ({ order, open, onOpenChange }: OrderDetailsDialogPro
   };
 
   const handleCourierAssigned = (courierId: string) => {
-    console.log(`Assigned courier ${courierId} to order ${order.id}`);
     updateStatus.mutate({ id: order.id, status: 'shipped' });
-    // Di sini biasanya ada API call tambahan untuk menyimpan assignment kurir
+  };
+
+  const copyTrackingNumber = () => {
+    if (order.tracking_number) {
+      navigator.clipboard.writeText(order.tracking_number);
+      toast({ title: 'Nomor resi disalin' });
+    }
   };
 
   return (
@@ -66,6 +72,47 @@ const OrderDetailsDialog = ({ order, open, onOpenChange }: OrderDetailsDialogPro
             </div>
 
             <Separator />
+
+            {/* Tracking Info */}
+            {(order.tracking_number || order.courier) && (
+              <>
+                <div className="rounded-lg border p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Truck className="h-4 w-4 text-primary" />
+                    Informasi Pengiriman
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Kurir</p>
+                      <p className="font-medium">{order.courier || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">No. Resi</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-mono font-medium">{order.tracking_number || '-'}</p>
+                        {order.tracking_number && (
+                          <button onClick={copyTrackingNumber} className="p-1 hover:bg-muted rounded">
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
+              </>
+            )}
+
+            {/* Bukti Pembayaran */}
+            {order.payment_proof_url && (
+              <>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Bukti Pembayaran</p>
+                  <img src={order.payment_proof_url} alt="Bukti bayar" className="w-full max-h-48 object-contain rounded-lg border bg-muted" />
+                </div>
+                <Separator />
+              </>
+            )}
 
             {/* Daftar Item */}
             <div className="space-y-3">

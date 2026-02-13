@@ -4,10 +4,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAdminShopOrders, useUpdateShopOrderStatus } from '@/hooks/useShopAdmin';
 import { ShopOrderStatus, ShopOrder } from '@/types/shop';
 import { format } from 'date-fns';
-import { Eye } from 'lucide-react';
+import { Eye, Truck } from 'lucide-react';
 import OrderDetailsDialog from '../order/OrderDetailsDialog';
 
 const statusColors: Record<ShopOrderStatus, string> = {
@@ -30,6 +33,8 @@ const statusLabels: Record<ShopOrderStatus, string> = {
 
 const allStatuses: ShopOrderStatus[] = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
 
+const courierOptions = ['JNE', 'J&T', 'SiCepat', 'Anteraja', 'Pos Indonesia', 'TIKI', 'Grab Express', 'GoSend', 'Lainnya'];
+
 const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
 const ShopOrdersManagement = () => {
@@ -37,10 +42,28 @@ const ShopOrdersManagement = () => {
   const updateStatus = useUpdateShopOrderStatus();
   const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [trackingOrder, setTrackingOrder] = useState<ShopOrder | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [courier, setCourier] = useState('');
 
   const handleViewDetails = (order: ShopOrder) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
+  };
+
+  const handleOpenTracking = (order: ShopOrder) => {
+    setTrackingOrder(order);
+    setTrackingNumber(order.tracking_number || '');
+    setCourier(order.courier || '');
+  };
+
+  const handleSaveTracking = () => {
+    if (!trackingOrder) return;
+    if (!trackingNumber.trim() || !courier.trim()) return;
+    updateStatus.mutate(
+      { id: trackingOrder.id, status: 'shipped', tracking_number: trackingNumber.trim(), courier: courier.trim() },
+      { onSuccess: () => setTrackingOrder(null) }
+    );
   };
 
   if (isLoading) return <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -56,7 +79,7 @@ const ShopOrdersManagement = () => {
               <TableHead>Tanggal</TableHead>
               <TableHead>Penerima</TableHead>
               <TableHead>Total</TableHead>
-              <TableHead>Items</TableHead>
+              <TableHead>Resi</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Aksi</TableHead>
             </TableRow>
@@ -71,11 +94,26 @@ const ShopOrdersManagement = () => {
                   <div className="text-xs text-muted-foreground">{order.shipping_phone}</div>
                 </TableCell>
                 <TableCell className="font-medium">{formatRupiah(order.total_amount)}</TableCell>
-                <TableCell>{order.items?.length || 0} item</TableCell>
+                <TableCell>
+                  {order.tracking_number ? (
+                    <div className="text-xs">
+                      <div className="font-medium">{order.courier}</div>
+                      <div className="font-mono text-muted-foreground">{order.tracking_number}</div>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Select
                     value={order.status}
-                    onValueChange={(v) => updateStatus.mutate({ id: order.id, status: v })}
+                    onValueChange={(v) => {
+                      if (v === 'shipped' && !order.tracking_number) {
+                        handleOpenTracking(order);
+                      } else {
+                        updateStatus.mutate({ id: order.id, status: v });
+                      }
+                    }}
                   >
                     <SelectTrigger className="w-[140px]">
                       <Badge className={statusColors[order.status as ShopOrderStatus] || ''}>
@@ -89,10 +127,15 @@ const ShopOrdersManagement = () => {
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell>
+                <TableCell className="flex gap-1">
                   <Button variant="ghost" size="icon" onClick={() => handleViewDetails(order)}>
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {(order.status === 'paid' || order.status === 'processing') && (
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenTracking(order)} title="Input Resi">
+                      <Truck className="h-4 w-4" />
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -101,11 +144,50 @@ const ShopOrdersManagement = () => {
         </Table>
       </CardContent>
 
-      <OrderDetailsDialog
-        order={selectedOrder}
-        open={isDetailsOpen}
-        onOpenChange={setIsDetailsOpen}
-      />
+      <OrderDetailsDialog order={selectedOrder} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} />
+
+      {/* Tracking Input Dialog */}
+      <Dialog open={!!trackingOrder} onOpenChange={(open) => !open && setTrackingOrder(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Truck className="h-5 w-5" />
+              Input Resi Pengiriman
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Pesanan: <span className="font-mono font-medium text-foreground">{trackingOrder?.order_code}</span>
+            </div>
+            <div>
+              <Label>Kurir</Label>
+              <Select value={courier} onValueChange={setCourier}>
+                <SelectTrigger><SelectValue placeholder="Pilih kurir" /></SelectTrigger>
+                <SelectContent>
+                  {courierOptions.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Nomor Resi</Label>
+              <Input
+                value={trackingNumber}
+                onChange={(e) => setTrackingNumber(e.target.value)}
+                placeholder="Masukkan nomor resi..."
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleSaveTracking}
+              disabled={!trackingNumber.trim() || !courier.trim() || updateStatus.isPending}
+            >
+              {updateStatus.isPending ? 'Menyimpan...' : 'Simpan & Kirim'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

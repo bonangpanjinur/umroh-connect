@@ -61,6 +61,8 @@ export interface ShopOrder {
   notes: string | null;
   payment_proof_url: string | null;
   paid_at: string | null;
+  tracking_number: string | null;
+  courier: string | null;
   created_at: string;
   updated_at: string;
   items?: ShopOrderItem[];

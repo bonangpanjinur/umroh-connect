@@ -2355,6 +2355,7 @@ export type Database = {
       }
       shop_orders: {
         Row: {
+          courier: string | null
           created_at: string
           id: string
           notes: string | null
@@ -2368,10 +2369,12 @@ export type Database = {
           shipping_postal_code: string | null
           status: Database["public"]["Enums"]["shop_order_status"]
           total_amount: number
+          tracking_number: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          courier?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -2385,10 +2388,12 @@ export type Database = {
           shipping_postal_code?: string | null
           status?: Database["public"]["Enums"]["shop_order_status"]
           total_amount?: number
+          tracking_number?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          courier?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -2402,6 +2407,7 @@ export type Database = {
           shipping_postal_code?: string | null
           status?: Database["public"]["Enums"]["shop_order_status"]
           total_amount?: number
+          tracking_number?: string | null
           updated_at?: string
           user_id?: string
         }
