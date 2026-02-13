@@ -1,158 +1,127 @@
 
 
-# Plan: E-Commerce Oleh-Oleh & Perlengkapan Umroh
+# Rencana Pengembangan & Perbaikan E-Commerce
 
-## Ringkasan
+## A. Perbaikan Bug & Stabilitas (Prioritas Tinggi)
 
-Menambahkan fitur toko online untuk oleh-oleh dan perlengkapan umroh. **Admin yang sudah ada** tetap menjadi pengelola utama (super admin). Ditambahkan role baru **`shop_admin`** khusus untuk mengelola toko (produk, kategori, pesanan).
+### 1. Upload Gambar Produk
+Saat ini form produk admin hanya menerima URL gambar secara manual. Perlu ditambahkan fitur upload gambar langsung ke storage `shop-images` yang sudah tersedia.
 
----
+### 2. Validasi Stok Saat Checkout
+Belum ada pengecekan stok sebelum pesanan dibuat. Jika stok habis, pesanan tetap bisa dibuat. Perlu validasi stok di sisi frontend dan backend (edge function atau database constraint).
 
-## 1. Perubahan Database
+### 3. Upload Bukti Pembayaran
+Alur pembayaran saat ini hanya membuat pesanan dengan status `pending` tanpa mekanisme upload bukti bayar dari sisi user. Perlu ditambahkan fitur upload bukti pembayaran pada halaman detail pesanan.
 
-### Role Baru
-- Tambah `'shop_admin'` ke enum `app_role`
-
-### Tabel Baru
-
-| Tabel | Fungsi |
-|---|---|
-| `shop_categories` | Kategori produk (Oleh-oleh, Pakaian Ihram, Perlengkapan, dll) |
-| `shop_products` | Produk: nama, harga, stok, berat, gambar, status |
-| `shop_carts` | Keranjang per user |
-| `shop_cart_items` | Item dalam keranjang |
-| `shop_orders` | Pesanan dengan status tracking |
-| `shop_order_items` | Detail item per pesanan (snapshot harga) |
-
-### Enum Baru
-- `shop_order_status`: pending, paid, processing, shipped, delivered, cancelled
-
-### Storage
-- Bucket baru `shop-images` (public)
-
-### RLS Policies
-- Produk & kategori: public read, write hanya `admin` dan `shop_admin`
-- Cart: user hanya akses miliknya (`user_id = auth.uid()`)
-- Orders: user lihat miliknya, `admin` dan `shop_admin` lihat semua
-- Trigger untuk auto-generate order code (`SH-YYYYMMDD-XXXX`)
-- Trigger untuk update stok saat order dibayar/dibatalkan
+### 4. Penanganan User Belum Login di Toko
+Saat user belum login, fitur keranjang akan error karena membutuhkan `user_id`. Perlu ditambahkan redirect ke login atau mode "tamu" yang menyimpan keranjang di localStorage.
 
 ---
 
-## 2. File Baru
+## B. Peningkatan Fitur (Prioritas Sedang)
 
-### Komponen User
-| File | Fungsi |
-|---|---|
-| `src/components/shop/ShopView.tsx` | Halaman toko: grid produk + filter kategori + search |
-| `src/components/shop/ProductCard.tsx` | Card produk (gambar, nama, harga, tombol beli) |
-| `src/components/shop/ProductDetailModal.tsx` | Detail produk + pilih jumlah + tambah keranjang |
-| `src/components/shop/CartSheet.tsx` | Side drawer keranjang belanja |
-| `src/components/shop/CheckoutView.tsx` | Form checkout (alamat, ringkasan, bayar) |
-| `src/components/shop/OrderHistoryView.tsx` | Riwayat pesanan user |
+### 5. Pencarian & Filter Lanjutan
+- Filter berdasarkan rentang harga (min-max)
+- Sorting: harga terendah, harga tertinggi, terbaru, terlaris
+- Filter produk featured saja
 
-### Komponen Admin / Shop Admin
-| File | Fungsi |
-|---|---|
-| `src/components/admin/ShopProductsManagement.tsx` | CRUD produk + upload gambar |
-| `src/components/admin/ShopCategoriesManagement.tsx` | CRUD kategori |
-| `src/components/admin/ShopOrdersManagement.tsx` | Kelola pesanan + ubah status |
-| `src/components/admin/ShopDashboard.tsx` | Statistik penjualan (revenue, produk terlaris) |
+### 6. Notifikasi Status Pesanan
+Menambahkan notifikasi real-time ketika admin mengubah status pesanan (misal: dari `processing` ke `shipped`). Menggunakan fitur Realtime yang sudah ada di proyek.
 
-### Hooks & Types
-| File | Fungsi |
-|---|---|
-| `src/hooks/useShopProducts.ts` | Fetch produk, filter, search |
-| `src/hooks/useShopCart.ts` | Kelola keranjang (add, remove, qty) |
-| `src/hooks/useShopOrders.ts` | Buat order, fetch riwayat |
-| `src/hooks/useShopAdmin.ts` | Admin: CRUD produk, kategori, pesanan |
-| `src/types/shop.ts` | TypeScript interfaces |
+### 7. Resi & Tracking Pengiriman  
+Menambahkan field nomor resi (tracking number) dan kurir pada tabel `shop_orders`. Admin bisa mengisi resi saat mengubah status ke `shipped`, dan user bisa melihatnya di detail pesanan.
+
+### 8. Wishlist / Favorit Produk
+Tabel baru `shop_wishlists` agar user bisa menandai produk yang diminati dan membeli nanti.
+
+### 9. Review & Rating Produk
+Memungkinkan user memberikan rating dan ulasan produk setelah status pesanan `delivered`. Ditampilkan pada halaman detail produk.
 
 ---
 
-## 3. File yang Diedit
+## C. Peningkatan Admin & Dashboard (Prioritas Sedang)
 
-| File | Perubahan |
-|---|---|
-| `src/types/database.ts` | Tambah `'shop_admin'` ke `AppRole` |
-| `src/hooks/useAuth.ts` | Tambah `isShopAdmin()` helper |
-| `src/contexts/AuthContext.tsx` | Expose `isShopAdmin()` |
-| `src/pages/Index.tsx` | Tambah state `showShop` + render `ShopView` |
-| `src/components/home/QuickMenu.tsx` | Tambah menu "Oleh-oleh" (icon `ShoppingBag`) |
-| `src/pages/AdminDashboard.tsx` | Tambah 4 tab: Produk, Kategori Toko, Pesanan Toko, Dashboard Toko |
-| `src/App.tsx` | Tambah route `/shop/orders` untuk riwayat pesanan |
+### 10. Upload Multi-Gambar Produk
+Memanfaatkan kolom `images[]` yang sudah ada di tabel untuk menampilkan gallery gambar produk, bukan hanya satu thumbnail.
+
+### 11. Export Data Pesanan
+Fitur export pesanan ke CSV/Excel untuk keperluan rekap dan akuntansi.
+
+### 12. Filter & Pencarian di Admin
+Menambahkan filter status pesanan, pencarian produk berdasarkan nama, dan pagination di halaman admin.
+
+### 13. Dashboard Toko yang Lebih Lengkap
+- Grafik penjualan harian/mingguan/bulanan
+- Perbandingan revenue per periode
+- Produk yang paling sering dimasukkan keranjang tapi tidak dibeli (abandoned cart)
 
 ---
 
-## 4. Alur Kerja
+## D. Peningkatan UX (Prioritas Rendah)
+
+### 14. Animasi & Loading State
+Menambahkan skeleton loading, animasi transisi antar halaman toko, dan feedback visual yang lebih baik saat menambah ke keranjang.
+
+### 15. Halaman Produk Dedikasi
+Membuat halaman produk terpisah dengan URL sendiri (SEO friendly), bukan hanya modal. Termasuk breadcrumb navigasi.
+
+### 16. Kategori dengan Gambar/Ikon
+Menampilkan ikon atau gambar pada filter kategori agar lebih menarik secara visual.
+
+---
+
+## Urutan Implementasi yang Disarankan
+
+| Tahap | Fitur | Estimasi |
+|---|---|---|
+| 1 | Upload gambar produk (#1) + validasi stok (#2) | Cepat |
+| 2 | Upload bukti bayar (#3) + handle user belum login (#4) | Cepat |
+| 3 | Nomor resi & tracking (#7) + notifikasi status (#6) | Sedang |
+| 4 | Filter lanjutan (#5) + filter admin (#12) | Sedang |
+| 5 | Review produk (#9) + wishlist (#8) | Sedang |
+| 6 | Dashboard lengkap (#13) + export (#11) | Sedang |
+| 7 | Multi-gambar (#10) + UX polish (#14, #15, #16) | Lama |
+
+---
+
+## Detail Teknis
+
+### Perubahan Database yang Diperlukan
 
 ```text
-JAMAAH (User):
-  QuickMenu [Oleh-oleh] --> ShopView (browse)
-    --> ProductDetailModal --> Tambah ke Keranjang
-    --> CartSheet --> CheckoutView
-    --> Order Created (status: pending)
-    --> Upload bukti bayar --> Status: paid
+-- Tahap 1: Tidak ada perubahan DB
 
-SHOP ADMIN:
-  AdminDashboard [Tab Produk] --> CRUD produk + gambar
-  AdminDashboard [Tab Kategori] --> Kelola kategori
-  AdminDashboard [Tab Pesanan] --> Update status pesanan
+-- Tahap 2: Tidak ada perubahan DB (reuse storage bucket shop-images)
 
-ADMIN (Super):
-  Semua akses shop_admin + ShopDashboard (statistik & monitoring)
-  + Kelola user shop_admin via tab Users
+-- Tahap 3: Tambah kolom di shop_orders
+ALTER TABLE shop_orders ADD COLUMN tracking_number text;
+ALTER TABLE shop_orders ADD COLUMN courier text;
+
+-- Tahap 5: Tabel baru
+shop_product_reviews: id, product_id, user_id, order_id, rating, review_text, created_at
+shop_wishlists: id, user_id, product_id, created_at
 ```
 
----
-
-## 5. Detail Teknis
-
-### Skema Tabel
+### File Baru yang Akan Dibuat
 
 ```text
-shop_categories:
-  id (UUID PK), name, slug, icon, description,
-  sort_order, is_active, created_at, updated_at
-
-shop_products:
-  id (UUID PK), category_id (FK), name, slug,
-  description, price, compare_price, stock,
-  weight_gram, thumbnail_url, images (text[]),
-  is_active, is_featured, created_at, updated_at
-
-shop_carts:
-  id (UUID PK), user_id (UUID NOT NULL), created_at, updated_at
-
-shop_cart_items:
-  id (UUID PK), cart_id (FK), product_id (FK),
-  quantity, created_at
-
-shop_orders:
-  id (UUID PK), user_id, order_code, status (enum),
-  total_amount, shipping_name, shipping_phone,
-  shipping_address, shipping_city, shipping_postal_code,
-  notes, payment_proof_url, paid_at, created_at, updated_at
-
-shop_order_items:
-  id (UUID PK), order_id (FK), product_id (FK),
-  product_name, product_price, quantity, subtotal, created_at
+src/components/shop/PaymentUploadDialog.tsx   -- Upload bukti bayar
+src/components/shop/ProductReviews.tsx        -- Review & rating produk
+src/components/shop/WishlistView.tsx          -- Halaman wishlist
+src/components/admin/ShopExportButton.tsx     -- Export CSV pesanan
+src/hooks/useShopReviews.ts                  -- Hook review produk
+src/hooks/useShopWishlist.ts                 -- Hook wishlist
 ```
 
-### Pembayaran
-- Upload bukti bayar manual (reuse sistem yang sudah ada)
-- Admin/Shop Admin verifikasi dan update status
+### File yang Akan Diedit
 
-### Stok
-- Trigger database: stok berkurang saat status = `paid`, kembali saat `cancelled`
-
----
-
-## 6. Tahap Implementasi
-
-1. **Tahap 1** - Database: migration (tabel, enum, RLS, triggers, storage bucket)
-2. **Tahap 2** - Types + hooks + admin panel (CRUD produk & kategori)
-3. **Tahap 3** - User shop (browse, detail, keranjang)
-4. **Tahap 4** - Checkout + order management + riwayat pesanan
-5. **Tahap 5** - Shop dashboard statistik untuk admin
+```text
+src/components/admin/ShopProductsManagement.tsx  -- Tambah upload gambar
+src/components/shop/CheckoutView.tsx             -- Validasi stok
+src/components/shop/OrderHistoryView.tsx          -- Tambah upload bukti bayar
+src/components/shop/ProductDetailModal.tsx        -- Tampilkan review & wishlist
+src/components/admin/ShopOrdersManagement.tsx     -- Input resi & kurir
+src/components/admin/ShopDashboard.tsx            -- Grafik lebih lengkap
+src/components/shop/ShopView.tsx                  -- Filter & sorting lanjutan
+```
 
