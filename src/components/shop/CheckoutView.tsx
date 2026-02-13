@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,9 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const [postalCode, setPostalCode] = useState('');
   const [notes, setNotes] = useState('');
 
-  const handleSubmit = () => {
+  const [stockChecking, setStockChecking] = useState(false);
+
+  const handleSubmit = async () => {
     if (!name || !phone || !address || !city) {
       toast({ title: 'Lengkapi data pengiriman', variant: 'destructive' });
       return;
@@ -37,6 +40,39 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
       toast({ title: 'Keranjang kosong', variant: 'destructive' });
       return;
     }
+
+    // Validasi stok
+    setStockChecking(true);
+    try {
+      const productIds = items.map(i => i.product.id);
+      const { data: currentProducts, error } = await supabase
+        .from('shop_products')
+        .select('id, name, stock')
+        .in('id', productIds);
+      if (error) throw error;
+
+      const outOfStock: string[] = [];
+      for (const item of items) {
+        const current = currentProducts?.find(p => p.id === item.product.id);
+        if (!current || current.stock < item.quantity) {
+          outOfStock.push(`${item.product.name} (stok: ${current?.stock ?? 0}, diminta: ${item.quantity})`);
+        }
+      }
+      if (outOfStock.length > 0) {
+        toast({
+          title: 'Stok tidak mencukupi',
+          description: outOfStock.join(', '),
+          variant: 'destructive',
+        });
+        setStockChecking(false);
+        return;
+      }
+    } catch (err) {
+      toast({ title: 'Gagal mengecek stok', variant: 'destructive' });
+      setStockChecking(false);
+      return;
+    }
+    setStockChecking(false);
 
     createOrder.mutate({
       items: items.map((item) => ({
@@ -100,8 +136,8 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={createOrder.isPending}>
-          {createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(totalPrice)}`}
+        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={createOrder.isPending || stockChecking}>
+          {stockChecking ? 'Mengecek stok...' : createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(totalPrice)}`}
         </Button>
       </div>
     </div>

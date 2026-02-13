@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, X, Loader2 } from 'lucide-react';
 import {
   useAdminShopProducts,
   useAdminShopCategories,
@@ -18,6 +18,8 @@ import {
   useDeleteShopProduct,
 } from '@/hooks/useShopAdmin';
 import { ShopProduct } from '@/types/shop';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
@@ -43,6 +45,40 @@ const ProductForm = ({
   const [thumbnailUrl, setThumbnailUrl] = useState(initial?.thumbnail_url || '');
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
   const [isFeatured, setIsFeatured] = useState(initial?.is_featured ?? false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'File harus berupa gambar', variant: 'destructive' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Ukuran file maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('shop-images')
+        .upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('shop-images')
+        .getPublicUrl(fileName);
+      setThumbnailUrl(publicUrl);
+      toast({ title: 'Gambar berhasil diupload' });
+    } catch (err: any) {
+      toast({ title: 'Gagal upload gambar', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleNameChange = (v: string) => {
     setName(v);
@@ -69,7 +105,48 @@ const ProductForm = ({
         <div><Label>Stok</Label><Input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value))} /></div>
         <div><Label>Berat (gram)</Label><Input type="number" value={weightGram} onChange={(e) => setWeightGram(Number(e.target.value))} /></div>
       </div>
-      <div><Label>URL Thumbnail</Label><Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="https://..." /></div>
+      <div>
+        <Label>Gambar Produk</Label>
+        <div className="space-y-2">
+          {thumbnailUrl && (
+            <div className="relative inline-block">
+              <img src={thumbnailUrl} alt="Preview" className="h-24 w-24 rounded-lg object-cover border" />
+              <button
+                type="button"
+                onClick={() => setThumbnailUrl('')}
+                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+              {uploading ? 'Uploading...' : 'Upload Gambar'}
+            </Button>
+          </div>
+          <Input
+            value={thumbnailUrl}
+            onChange={(e) => setThumbnailUrl(e.target.value)}
+            placeholder="Atau masukkan URL gambar..."
+            className="text-xs"
+          />
+        </div>
+      </div>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2"><Switch checked={isActive} onCheckedChange={setIsActive} /><Label>Aktif</Label></div>
         <div className="flex items-center gap-2"><Switch checked={isFeatured} onCheckedChange={setIsFeatured} /><Label>Featured</Label></div>
