@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel, useAgentPackages } from '@/hooks/useAgentData';
+import { useIsAgentPro } from '@/hooks/useAgentMembership';
 import { usePackageStats, useInterestTrend } from '@/hooks/usePackageInterests';
 import { useInquiryStats } from '@/hooks/useInquiries';
 import { useHajiStats } from '@/hooks/useHaji';
@@ -56,6 +57,20 @@ const AgentDashboard = () => {
   const { data: inquiryStats } = useInquiryStats(travel?.id);
   const { data: hajiStats } = useHajiStats(travel?.id);
   const bookingStats = usePaymentStats(travel?.id);
+  const { currentPlan, planType } = useIsAgentPro(travel?.id);
+
+  const packageCount = packages?.length || 0;
+  const maxPackages = currentPlan.limits.maxPackages;
+  const canCreatePackage = packageCount < maxPackages;
+
+  const handleCreatePackage = () => {
+    if (!canCreatePackage) {
+      toast.error(`Batas listing paket tercapai (${packageCount}/${maxPackages}). Upgrade membership untuk menambah kuota.`);
+      return;
+    }
+    setEditingPackage(null);
+    setShowPackageForm(true);
+  };
   const { unreadCount: chatUnreadCount } = useChat(null, travel?.id || null);
 
   // Redirect if not logged in or not agent
@@ -236,10 +251,7 @@ const AgentDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-3 p-4">
-                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-primary hover:text-white transition-all duration-300 group" onClick={() => {
-                  setEditingPackage(null);
-                  setShowPackageForm(true);
-                }}>
+                <Button variant="outline" className="h-auto py-4 flex flex-col gap-2 bg-secondary/30 border-none hover:bg-primary hover:text-white transition-all duration-300 group" onClick={handleCreatePackage}>
                   <Plus className="w-5 h-5 text-primary group-hover:text-white" />
                   <span className="text-xs">Paket Baru</span>
                 </Button>
@@ -311,12 +323,13 @@ const AgentDashboard = () => {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <h3 className="font-bold text-2xl">Daftar Paket Umroh</h3>
-                        <p className="text-sm text-muted-foreground mt-1">Kelola semua paket perjalanan Anda</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {packageCount}/{maxPackages} slot paket terpakai
+                          {planType === 'free' && ' · '}
+                          {planType === 'free' && <span className="text-primary cursor-pointer" onClick={() => setActiveTab('membership')}>Upgrade untuk lebih banyak</span>}
+                        </p>
                       </div>
-                      <Button size="lg" onClick={() => {
-                        setEditingPackage(null);
-                        setShowPackageForm(true);
-                      }} className="gap-2 w-full sm:w-auto rounded-xl shadow-lg shadow-primary/20">
+                      <Button size="lg" onClick={handleCreatePackage} disabled={!canCreatePackage} className="gap-2 w-full sm:w-auto rounded-xl shadow-lg shadow-primary/20">
                         <Plus className="w-4 h-4" /> Tambah Paket
                       </Button>
                     </div>
@@ -349,10 +362,7 @@ const AgentDashboard = () => {
                         </div>
                         <p className="text-xl font-bold text-foreground mb-2">Belum ada paket umroh</p>
                         <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">Mulai buat paket pertama Anda untuk menarik pelanggan</p>
-                        <Button size="lg" onClick={() => {
-                          setEditingPackage(null);
-                          setShowPackageForm(true);
-                        }} className="rounded-full px-8">
+                        <Button size="lg" onClick={handleCreatePackage} disabled={!canCreatePackage} className="rounded-full px-8">
                           <Plus className="w-4 h-4 mr-2" /> Buat Paket Pertama
                         </Button>
                       </motion.div>
@@ -405,10 +415,7 @@ const AgentDashboard = () => {
         userAvatar={profile?.avatar_url || undefined}
         onLogout={() => navigate('/auth')}
         unreadNotifications={0}
-        onCreatePackage={() => {
-          setEditingPackage(null);
-          setShowPackageForm(true);
-        }}
+        onCreatePackage={handleCreatePackage}
         onEditTravel={() => setShowTravelForm(true)}
       />
 
@@ -422,10 +429,7 @@ const AgentDashboard = () => {
           inquiryPendingCount={inquiryStats?.pending || 0}
           isCollapsed={isSidebarCollapsed}
           setIsCollapsed={setIsSidebarCollapsed}
-          onCreatePackage={() => {
-            setEditingPackage(null);
-            setShowPackageForm(true);
-          }}
+          onCreatePackage={handleCreatePackage}
         />
 
         <main className="flex-1 p-4 lg:p-8 pb-24 lg:pb-8 overflow-x-hidden bg-secondary/10">
