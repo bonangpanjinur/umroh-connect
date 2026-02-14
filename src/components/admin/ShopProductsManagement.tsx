@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, X, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, X, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   useAdminShopProducts,
   useAdminShopCategories,
@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+const ITEMS_PER_PAGE = 10;
 
 const ProductForm = ({
   initial,
@@ -63,13 +64,9 @@ const ProductForm = ({
     try {
       const ext = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('shop-images')
-        .upload(fileName, file);
+      const { error: uploadError } = await supabase.storage.from('shop-images').upload(fileName, file);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage
-        .from('shop-images')
-        .getPublicUrl(fileName);
+      const { data: { publicUrl } } = supabase.storage.from('shop-images').getPublicUrl(fileName);
       setThumbnailUrl(publicUrl);
       toast({ title: 'Gambar berhasil diupload' });
     } catch (err: any) {
@@ -111,40 +108,19 @@ const ProductForm = ({
           {thumbnailUrl && (
             <div className="relative inline-block">
               <img src={thumbnailUrl} alt="Preview" className="h-24 w-24 rounded-lg object-cover border" />
-              <button
-                type="button"
-                onClick={() => setThumbnailUrl('')}
-                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5"
-              >
+              <button type="button" onClick={() => setThumbnailUrl('')} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
                 <X className="h-3 w-3" />
               </button>
             </div>
           )}
           <div className="flex gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
               {uploading ? 'Uploading...' : 'Upload Gambar'}
             </Button>
           </div>
-          <Input
-            value={thumbnailUrl}
-            onChange={(e) => setThumbnailUrl(e.target.value)}
-            placeholder="Atau masukkan URL gambar..."
-            className="text-xs"
-          />
+          <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="Atau masukkan URL gambar..." className="text-xs" />
         </div>
       </div>
       <div className="flex items-center gap-4">
@@ -172,6 +148,29 @@ const ShopProductsManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ShopProduct | null>(null);
 
+  // Filters & pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+    if (categoryFilter !== 'all') {
+      result = result.filter((p) => p.category_id === categoryFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q));
+    }
+    return result;
+  }, [products, categoryFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const handleSearch = (v: string) => { setSearchQuery(v); setCurrentPage(1); };
+  const handleCategoryFilter = (v: string) => { setCategoryFilter(v); setCurrentPage(1); };
+
   const handleSubmit = (data: any) => {
     if (editing) {
       updateProduct.mutate({ id: editing.id, ...data }, { onSuccess: () => { setDialogOpen(false); setEditing(null); } });
@@ -184,15 +183,36 @@ const ShopProductsManagement = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Produk Toko</CardTitle>
-        <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Tambah Produk</Button></DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>{editing ? 'Edit Produk' : 'Tambah Produk'}</DialogTitle></DialogHeader>
-            <ProductForm initial={editing || undefined} categories={categories} onSubmit={handleSubmit} onCancel={() => { setDialogOpen(false); setEditing(null); }} />
-          </DialogContent>
-        </Dialog>
+      <CardHeader className="flex flex-col gap-2">
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle>Produk Toko</CardTitle>
+          <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Tambah Produk</Button></DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>{editing ? 'Edit Produk' : 'Tambah Produk'}</DialogTitle></DialogHeader>
+              <ProductForm initial={editing || undefined} categories={categories} onSubmit={handleSubmit} onCancel={() => { setDialogOpen(false); setEditing(null); }} />
+            </DialogContent>
+          </Dialog>
+        </div>
+        {/* Search & filter */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Cari produk..." value={searchQuery} onChange={(e) => handleSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={categoryFilter} onValueChange={handleCategoryFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Semua Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="text-xs text-muted-foreground">{filteredProducts.length} produk</div>
       </CardHeader>
       <CardContent>
         <Table>
@@ -207,7 +227,7 @@ const ShopProductsManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((p) => (
+            {paginatedProducts.map((p) => (
               <TableRow key={p.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -231,9 +251,24 @@ const ShopProductsManagement = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {products.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Belum ada produk</TableCell></TableRow>}
+            {paginatedProducts.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Tidak ada produk ditemukan</TableCell></TableRow>}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground">Halaman {currentPage} dari {totalPages}</div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="icon" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
