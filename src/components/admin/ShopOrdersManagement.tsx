@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useAdminShopOrders, useUpdateShopOrderStatus } from '@/hooks/useShopAdmin';
 import { ShopOrderStatus, ShopOrder } from '@/types/shop';
 import { format } from 'date-fns';
-import { Eye, Truck } from 'lucide-react';
+import { Eye, Truck, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import OrderDetailsDialog from '../order/OrderDetailsDialog';
 
 const statusColors: Record<ShopOrderStatus, string> = {
@@ -32,8 +32,8 @@ const statusLabels: Record<ShopOrderStatus, string> = {
 };
 
 const allStatuses: ShopOrderStatus[] = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
-
 const courierOptions = ['JNE', 'J&T', 'SiCepat', 'Anteraja', 'Pos Indonesia', 'TIKI', 'Grab Express', 'GoSend', 'Lainnya'];
+const ITEMS_PER_PAGE = 10;
 
 const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
@@ -46,11 +46,35 @@ const ShopOrdersManagement = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [courier, setCourier] = useState('');
 
-  const handleViewDetails = (order: ShopOrder) => {
-    setSelectedOrder(order);
-    setIsDetailsOpen(true);
-  };
+  // Filters & pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const filteredOrders = useMemo(() => {
+    let result = [...orders];
+    if (statusFilter !== 'all') {
+      result = result.filter((o) => o.status === statusFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((o) =>
+        o.order_code?.toLowerCase().includes(q) ||
+        o.shipping_name?.toLowerCase().includes(q) ||
+        o.shipping_phone?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [orders, statusFilter, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ITEMS_PER_PAGE));
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  const handleStatusFilter = (v: string) => { setStatusFilter(v); setCurrentPage(1); };
+  const handleSearch = (v: string) => { setSearchQuery(v); setCurrentPage(1); };
+
+  const handleViewDetails = (order: ShopOrder) => { setSelectedOrder(order); setIsDetailsOpen(true); };
   const handleOpenTracking = (order: ShopOrder) => {
     setTrackingOrder(order);
     setTrackingNumber(order.tracking_number || '');
@@ -58,8 +82,7 @@ const ShopOrdersManagement = () => {
   };
 
   const handleSaveTracking = () => {
-    if (!trackingOrder) return;
-    if (!trackingNumber.trim() || !courier.trim()) return;
+    if (!trackingOrder || !trackingNumber.trim() || !courier.trim()) return;
     updateStatus.mutate(
       { id: trackingOrder.id, status: 'shipped', tracking_number: trackingNumber.trim(), courier: courier.trim() },
       { onSuccess: () => setTrackingOrder(null) }
@@ -70,7 +93,35 @@ const ShopOrdersManagement = () => {
 
   return (
     <Card>
-      <CardHeader><CardTitle>Pesanan Toko</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Pesanan Toko</CardTitle>
+        {/* Filters row */}
+        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari kode/nama/telepon..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={handleStatusFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Semua Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              {allStatuses.map((s) => (
+                <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="text-xs text-muted-foreground pt-1">
+          {filteredOrders.length} pesanan ditemukan
+        </div>
+      </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
@@ -85,7 +136,7 @@ const ShopOrdersManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {paginatedOrders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell className="font-mono text-sm">{order.order_code}</TableCell>
                 <TableCell>{format(new Date(order.created_at), 'dd/MM/yyyy')}</TableCell>
@@ -139,9 +190,28 @@ const ShopOrdersManagement = () => {
                 </TableCell>
               </TableRow>
             ))}
-            {orders.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Belum ada pesanan</TableCell></TableRow>}
+            {paginatedOrders.length === 0 && (
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Tidak ada pesanan ditemukan</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4">
+            <div className="text-sm text-muted-foreground">
+              Halaman {currentPage} dari {totalPages}
+            </div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="icon" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <OrderDetailsDialog order={selectedOrder} open={isDetailsOpen} onOpenChange={setIsDetailsOpen} />
