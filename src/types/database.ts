@@ -1,6 +1,6 @@
 // Database types for Arah Umroh
 
-export type AppRole = 'jamaah' | 'agent' | 'admin' | 'shop_admin';
+export type AppRole = 'jamaah' | 'agent' | 'admin' | 'shop_admin' | 'seller';
 export type TravelStatus = 'active' | 'suspended' | 'pending';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 export type PackageType = 'umroh' | 'haji_reguler' | 'haji_plus' | 'haji_furoda';

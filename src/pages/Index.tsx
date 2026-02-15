@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { TabId } from '@/types';
 import AppHeader from '@/components/layout/AppHeader';
@@ -34,6 +34,7 @@ import { ArrowLeft } from 'lucide-react';
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const tabFromUrl = searchParams.get('tab') as TabId | null;
   const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || 'home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
@@ -128,6 +129,9 @@ const Index = () => {
         break;
       case 'shop':
         setShowShop(true);
+        break;
+      case 'seller':
+        navigate('/seller');
         break;
       default:
         break;

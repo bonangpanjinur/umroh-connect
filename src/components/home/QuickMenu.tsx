@@ -1,4 +1,4 @@
-import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart, Wallet, ShoppingBag } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, MessageSquarePlus, DollarSign, Book, Flame, Sparkles, Users, BookHeart, Wallet, ShoppingBag, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 
@@ -16,6 +16,7 @@ const menuItems = [
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
   { id: 'shop', label: 'Oleh-oleh', icon: ShoppingBag, color: 'text-amber-600', audioLabel: 'Toko Oleh-oleh', isHighlight: true, highlightColor: 'purple' },
+  { id: 'seller', label: 'Jual', icon: Store, color: 'text-primary', audioLabel: 'Seller Center' },
 ];
 
 interface QuickMenuProps {
