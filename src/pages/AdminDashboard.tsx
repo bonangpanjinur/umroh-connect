@@ -28,6 +28,7 @@ import ShopProductsManagement from '@/components/admin/ShopProductsManagement';
 import ShopCategoriesManagement from '@/components/admin/ShopCategoriesManagement';
 import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
 import ShopDashboard from '@/components/admin/ShopDashboard';
+import SellerManagement from '@/components/admin/SellerManagement';
 
 const AdminDashboard = () => {
   const { user, loading, isAdmin } = useAuthContext();
@@ -167,6 +168,10 @@ const AdminDashboard = () => {
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard Toko</span>
             </TabsTrigger>
+            <TabsTrigger value="sellers" className="flex items-center gap-2 py-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Seller</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -257,6 +262,9 @@ const AdminDashboard = () => {
           </TabsContent>
           <TabsContent value="shop-dashboard">
             <ShopDashboard />
+          </TabsContent>
+          <TabsContent value="sellers">
+            <SellerManagement />
           </TabsContent>
         </Tabs>
       </main>
