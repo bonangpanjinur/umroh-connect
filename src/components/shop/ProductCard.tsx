@@ -37,6 +37,12 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
       </div>
       <CardContent className="p-3">
         <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.name}</h3>
+        {product.seller && (
+          <p className="text-[10px] text-muted-foreground mb-1 truncate">
+            {product.seller.shop_name}
+            {product.seller.is_verified && ' ✓'}
+          </p>
+        )}
         <div className="flex items-baseline gap-1.5">
           <span className="font-bold text-primary text-sm">{formatRupiah(product.price)}</span>
           {product.compare_price && (
