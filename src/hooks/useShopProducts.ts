@@ -22,7 +22,7 @@ export const useShopProducts = (categoryId?: string, search?: string) => {
     queryFn: async (): Promise<ShopProduct[]> => {
       let query = supabase
         .from('shop_products')
-        .select('*, category:shop_categories(*)');
+        .select('*, category:shop_categories(*), seller:seller_profiles(id, shop_name, is_verified, rating)');
 
       if (categoryId) {
         query = query.eq('category_id', categoryId);
@@ -44,7 +44,7 @@ export const useShopProduct = (productId: string) => {
     queryFn: async (): Promise<ShopProduct | null> => {
       const { data, error } = await supabase
         .from('shop_products')
-        .select('*, category:shop_categories(*)')
+        .select('*, category:shop_categories(*), seller:seller_profiles(id, shop_name, is_verified, rating)')
         .eq('id', productId)
         .maybeSingle();
       if (error) throw error;

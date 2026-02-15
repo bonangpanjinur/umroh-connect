@@ -15,6 +15,7 @@ export interface ShopCategory {
 export interface ShopProduct {
   id: string;
   category_id: string | null;
+  seller_id: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -29,6 +30,12 @@ export interface ShopProduct {
   created_at: string;
   updated_at: string;
   category?: ShopCategory;
+  seller?: {
+    id: string;
+    shop_name: string;
+    is_verified: boolean;
+    rating: number;
+  };
 }
 
 export interface ShopCart {
