@@ -131,7 +131,7 @@ const Index = () => {
         setShowShop(true);
         break;
       case 'seller':
-        navigate('/seller');
+        // Seller access is now managed via admin role assignment
         break;
       default:
         break;
