@@ -11,7 +11,7 @@ import { useAllUsers, useUpdateUserRole, useSuspendUser, useUpdateAgentWebsiteSe
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Search, UserCog, Ban, CheckCircle, AlertTriangle, Shield, User, Globe, Save, Palette, Layout, Eye, Upload } from 'lucide-react';
+import { Search, UserCog, Ban, CheckCircle, AlertTriangle, Shield, User, Globe, Save, Palette, Layout, Eye, Upload, Store } from 'lucide-react';
 import { AppRole, Profile } from '@/types/database';
 import {
   Dialog,
@@ -149,6 +149,8 @@ export const UsersManagement = () => {
         return <Badge variant="destructive" className="gap-1"><Shield className="h-3 w-3" />Admin</Badge>;
       case 'agent':
         return <Badge variant="default" className="gap-1"><UserCog className="h-3 w-3" />Agent</Badge>;
+      case 'seller':
+        return <Badge className="gap-1 bg-purple-500"><Store className="h-3 w-3" />Seller</Badge>;
       default:
         return <Badge variant="secondary" className="gap-1"><User className="h-3 w-3" />Jamaah</Badge>;
     }
@@ -213,6 +215,7 @@ export const UsersManagement = () => {
                   <SelectItem value="all">Semua</SelectItem>
                   <SelectItem value="jamaah">Jamaah</SelectItem>
                   <SelectItem value="agent">Agent</SelectItem>
+                  <SelectItem value="seller">Seller</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -303,6 +306,7 @@ export const UsersManagement = () => {
                           <SelectContent>
                             <SelectItem value="jamaah">Jamaah</SelectItem>
                             <SelectItem value="agent">Agent</SelectItem>
+                            <SelectItem value="seller">Seller</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>
                         </Select>
