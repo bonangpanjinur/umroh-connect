@@ -408,6 +408,31 @@ export const useUpdateUserRole = () => {
           .insert({ user_id, role });
         if (error) throw error;
       }
+
+      // Auto-create seller profile when role is set to seller
+      if (role === 'seller') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, phone')
+          .eq('user_id', user_id)
+          .single();
+
+        const { data: existingSeller } = await supabase
+          .from('seller_profiles')
+          .select('id')
+          .eq('user_id', user_id)
+          .maybeSingle();
+
+        if (!existingSeller) {
+          await supabase
+            .from('seller_profiles')
+            .insert({
+              user_id,
+              shop_name: profile?.full_name || 'Toko Baru',
+              phone: profile?.phone || null,
+            });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
