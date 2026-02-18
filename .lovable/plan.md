@@ -1,127 +1,148 @@
 
 
-# Rencana Pengembangan & Perbaikan E-Commerce
+# Analisis & Peningkatan Menu Tracker/Ibadah
 
-## A. Perbaikan Bug & Stabilitas (Prioritas Tinggi)
+## Analisis Kekurangan Saat Ini
 
-### 1. Upload Gambar Produk
-Saat ini form produk admin hanya menerima URL gambar secara manual. Perlu ditambahkan fitur upload gambar langsung ke storage `shop-images` yang sudah tersedia.
+### 1. Model Bisnis Lemah
+- **Gratis vs Premium tidak jelas**: Saat ini hanya membedakan "local storage" (gratis) vs "cloud sync" (premium). Ini bukan value proposition yang kuat karena user merasa fitur gratis sudah cukup.
+- **Tidak ada trial period**: User langsung diminta bayar tanpa merasakan manfaat premium terlebih dahulu.
+- **Fitur premium kurang menarik**: Hanya cloud sync dan backup -- tidak ada konten eksklusif.
 
-### 2. Validasi Stok Saat Checkout
-Belum ada pengecekan stok sebelum pesanan dibuat. Jika stok habis, pesanan tetap bisa dibuat. Perlu validasi stok di sisi frontend dan backend (edge function atau database constraint).
+### 2. UX Kekurangan
+- **Tidak ada onboarding/guided tour**: User baru langsung dihadapkan interface kompleks tanpa arahan.
+- **Tadarus tanpa kalkulator khatam**: Tidak ada estimasi kapan user bisa khatam berdasarkan kecepatan baca.
+- **Tips statis**: Hanya 1 tips hardcoded di TadarusView ("Baca minimal 1 halaman...").
+- **Tidak ada achievement/gamification**: Tidak ada badge, milestone celebration, atau reward visual.
+- **Tidak ada daily motivation/reminder konten**: Tidak ada konten inspiratif harian yang membuat user kembali.
 
-### 3. Upload Bukti Pembayaran
-Alur pembayaran saat ini hanya membuat pesanan dengan status `pending` tanpa mekanisme upload bukti bayar dari sisi user. Perlu ditambahkan fitur upload bukti pembayaran pada halaman detail pesanan.
-
-### 4. Penanganan User Belum Login di Toko
-Saat user belum login, fitur keranjang akan error karena membutuhkan `user_id`. Perlu ditambahkan redirect ke login atau mode "tamu" yang menyimpan keranjang di localStorage.
-
----
-
-## B. Peningkatan Fitur (Prioritas Sedang)
-
-### 5. Pencarian & Filter Lanjutan
-- Filter berdasarkan rentang harga (min-max)
-- Sorting: harga terendah, harga tertinggi, terbaru, terlaris
-- Filter produk featured saja
-
-### 6. Notifikasi Status Pesanan
-Menambahkan notifikasi real-time ketika admin mengubah status pesanan (misal: dari `processing` ke `shipped`). Menggunakan fitur Realtime yang sudah ada di proyek.
-
-### 7. Resi & Tracking Pengiriman  
-Menambahkan field nomor resi (tracking number) dan kurir pada tabel `shop_orders`. Admin bisa mengisi resi saat mengubah status ke `shipped`, dan user bisa melihatnya di detail pesanan.
-
-### 8. Wishlist / Favorit Produk
-Tabel baru `shop_wishlists` agar user bisa menandai produk yang diminati dan membeli nanti.
-
-### 9. Review & Rating Produk
-Memungkinkan user memberikan rating dan ulasan produk setelah status pesanan `delivered`. Ditampilkan pada halaman detail produk.
+### 3. Fitur yang Hilang
+- Kalkulator Khatam (estimasi target berdasarkan pace)
+- Tips & trik hatam Quran yang berputar/dinamis
+- Achievement badges (7 hari berturut, khatam 1 juz, dll)
+- Daily Islamic motivation/hadits
+- Sharing progress ke sosial media
+- Streak protection (gratis 1x, premium unlimited)
 
 ---
 
-## C. Peningkatan Admin & Dashboard (Prioritas Sedang)
+## Rencana Implementasi
 
-### 10. Upload Multi-Gambar Produk
-Memanfaatkan kolom `images[]` yang sudah ada di tabel untuk menampilkan gallery gambar produk, bukan hanya satu thumbnail.
+### Tahap A: Free Trial 30 Hari + Kalkulator Khatam
 
-### 11. Export Data Pesanan
-Fitur export pesanan ke CSV/Excel untuk keperluan rekap dan akuntansi.
+**1. Free Trial System**
+- Tambah kolom `trial_start_date` dan `trial_end_date` di tabel `user_subscriptions`
+- User baru otomatis mendapat 30 hari full access saat pertama kali menggunakan tracker
+- Setelah 30 hari, fitur premium (cloud sync, statistik lengkap, kalkulator khatam) terkunci
+- UI menampilkan countdown sisa trial ("15 hari lagi trial berakhir")
 
-### 12. Filter & Pencarian di Admin
-Menambahkan filter status pesanan, pencarian produk berdasarkan nama, dan pagination di halaman admin.
+**2. Kalkulator Khatam Al-Quran**
+- Komponen baru: `KhatamCalculator`
+- Input: target khatam (tanggal atau jumlah hari)
+- Output: berapa halaman/ayat per hari yang harus dibaca
+- Integrasi dengan data tadarus aktual untuk menampilkan apakah user on-track atau behind
+- Menampilkan estimasi tanggal khatam berdasarkan pace saat ini
 
-### 13. Dashboard Toko yang Lebih Lengkap
-- Grafik penjualan harian/mingguan/bulanan
-- Perbandingan revenue per periode
-- Produk yang paling sering dimasukkan keranjang tapi tidak dibeli (abandoned cart)
+**3. Tips & Trik Dinamis**
+- Koleksi 30+ tips hatam Quran yang berputar harian
+- Kategori: motivasi, teknik membaca, adab tilawah, keutamaan surat
+- Ditampilkan sebagai card yang berubah setiap hari di halaman Tadarus
+- Premium: akses semua tips sekaligus + tips audio dari ustadz
 
----
+### Tahap B: Achievement & Gamification
 
-## D. Peningkatan UX (Prioritas Rendah)
+**4. Achievement System**
+- Badge milestones: "7 Hari Berturut", "1 Juz Tercapai", "Khatam!", "100 Hari Istiqomah"
+- Visual celebration (confetti animation) saat unlock badge
+- Streak counter yang lebih prominent dengan streak protection (1x gratis, premium unlimited)
 
-### 14. Animasi & Loading State
-Menambahkan skeleton loading, animasi transisi antar halaman toko, dan feedback visual yang lebih baik saat menambah ke keranjang.
-
-### 15. Halaman Produk Dedikasi
-Membuat halaman produk terpisah dengan URL sendiri (SEO friendly), bukan hanya modal. Termasuk breadcrumb navigasi.
-
-### 16. Kategori dengan Gambar/Ikon
-Menampilkan ikon atau gambar pada filter kategori agar lebih menarik secara visual.
-
----
-
-## Urutan Implementasi yang Disarankan
-
-| Tahap | Fitur | Estimasi |
-|---|---|---|
-| 1 | Upload gambar produk (#1) + validasi stok (#2) | Cepat |
-| 2 | Upload bukti bayar (#3) + handle user belum login (#4) | Cepat |
-| 3 | Nomor resi & tracking (#7) + notifikasi status (#6) | Sedang |
-| 4 | Filter lanjutan (#5) + filter admin (#12) | Sedang |
-| 5 | Review produk (#9) + wishlist (#8) | Sedang |
-| 6 | Dashboard lengkap (#13) + export (#11) | Sedang |
-| 7 | Multi-gambar (#10) + UX polish (#14, #15, #16) | Lama |
+**5. Daily Motivation Card**
+- Hadits/ayat harian yang relevan dengan ibadah user
+- Rotasi otomatis setiap hari
+- Fitur share ke WhatsApp/media sosial
 
 ---
 
 ## Detail Teknis
 
-### Perubahan Database yang Diperlukan
+### Database Migration
 
 ```text
--- Tahap 1: Tidak ada perubahan DB
+-- Free trial tracking
+ALTER TABLE user_subscriptions 
+  ADD COLUMN trial_start_date TIMESTAMPTZ,
+  ADD COLUMN trial_end_date TIMESTAMPTZ;
 
--- Tahap 2: Tidak ada perubahan DB (reuse storage bucket shop-images)
+-- Khatam target
+CREATE TABLE quran_khatam_targets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  target_date DATE NOT NULL,
+  pages_per_day NUMERIC(5,1) DEFAULT 0,
+  ayat_per_day INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, is_active)
+);
+ALTER TABLE quran_khatam_targets ENABLE ROW LEVEL SECURITY;
 
--- Tahap 3: Tambah kolom di shop_orders
-ALTER TABLE shop_orders ADD COLUMN tracking_number text;
-ALTER TABLE shop_orders ADD COLUMN courier text;
+-- Tips collection
+CREATE TABLE quran_tips (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category TEXT DEFAULT 'motivasi',
+  day_number INTEGER, -- for daily rotation
+  is_premium BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE quran_tips ENABLE ROW LEVEL SECURITY;
 
--- Tahap 5: Tabel baru
-shop_product_reviews: id, product_id, user_id, order_id, rating, review_text, created_at
-shop_wishlists: id, user_id, product_id, created_at
+-- Achievement badges
+CREATE TABLE user_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  achievement_key TEXT NOT NULL,
+  unlocked_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, achievement_key)
+);
+ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users manage own khatam targets" ON quran_khatam_targets
+  FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Tips readable by all authenticated" ON quran_tips
+  FOR SELECT TO authenticated USING (is_active = true);
+
+CREATE POLICY "Users manage own achievements" ON user_achievements
+  FOR ALL USING (auth.uid() = user_id);
 ```
 
-### File Baru yang Akan Dibuat
+### File Baru
+1. `src/components/habit/KhatamCalculator.tsx` -- Kalkulator target khatam dengan visual progress
+2. `src/components/habit/QuranTipsCard.tsx` -- Card tips harian yang berputar
+3. `src/components/habit/AchievementBadges.tsx` -- Display achievement dan celebration
+4. `src/hooks/useKhatamTarget.ts` -- Hook CRUD khatam target
+5. `src/hooks/useQuranTips.ts` -- Hook fetch tips harian
+6. `src/hooks/useAchievements.ts` -- Hook achievement tracking
+7. `src/hooks/useFreeTrial.ts` -- Hook cek status trial 30 hari
 
-```text
-src/components/shop/PaymentUploadDialog.tsx   -- Upload bukti bayar
-src/components/shop/ProductReviews.tsx        -- Review & rating produk
-src/components/shop/WishlistView.tsx          -- Halaman wishlist
-src/components/admin/ShopExportButton.tsx     -- Export CSV pesanan
-src/hooks/useShopReviews.ts                  -- Hook review produk
-src/hooks/useShopWishlist.ts                 -- Hook wishlist
-```
+### File yang Dimodifikasi
+1. `src/components/habit/TadarusView.tsx` -- Tambah KhatamCalculator + QuranTipsCard
+2. `src/components/habit/IbadahHubView.tsx` -- Tambah trial banner + achievement summary
+3. `src/components/premium/PremiumUpgradeModal.tsx` -- Update untuk trial flow
+4. `src/hooks/usePremiumSubscription.ts` -- Tambah logic trial period
+5. `src/hooks/useQuranTracking.ts` -- Tambah achievement trigger saat log tadarus
 
-### File yang Akan Diedit
+### Alur Trial 30 Hari
+1. User pertama kali buka Tracker -> sistem set `trial_start_date = now()`, `trial_end_date = now + 30 days`
+2. Selama trial: semua fitur premium terbuka (cloud sync, kalkulator khatam, tips premium)
+3. Banner kecil: "Trial Premium: 25 hari tersisa"
+4. Hari ke-25: notifikasi "5 hari lagi trial berakhir"
+5. Setelah expired: fitur premium terkunci, tampilkan modal upgrade dengan highlight fitur yang sudah dipakai
 
-```text
-src/components/admin/ShopProductsManagement.tsx  -- Tambah upload gambar
-src/components/shop/CheckoutView.tsx             -- Validasi stok
-src/components/shop/OrderHistoryView.tsx          -- Tambah upload bukti bayar
-src/components/shop/ProductDetailModal.tsx        -- Tampilkan review & wishlist
-src/components/admin/ShopOrdersManagement.tsx     -- Input resi & kurir
-src/components/admin/ShopDashboard.tsx            -- Grafik lebih lengkap
-src/components/shop/ShopView.tsx                  -- Filter & sorting lanjutan
-```
+### Seed Data Tips (20+ tips)
+Tips akan di-seed langsung ke tabel `quran_tips` mencakup kategori: motivasi, teknik, adab, dan keutamaan surat.
 
