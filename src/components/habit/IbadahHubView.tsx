@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PremiumUpgradeModal, StorageIndicator } from '@/components/premium/PremiumUpgradeModal';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
+import { useFreeTrial } from '@/hooks/useFreeTrial';
 import { useLocalHabits, useLocalHabitStats, useLocalWeeklyProgress } from '@/hooks/useLocalHabitTracking';
 import { useMoodTracking, moodConfig, MoodType } from '@/hooks/useMoodTracking';
 import TodayHabitsList from './TodayHabitsList';
@@ -34,6 +35,7 @@ interface IbadahHubViewProps {
 export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: IbadahHubViewProps) => {
   const { user } = useAuthContext();
   const { isPremium } = useIsPremium();
+  const { isInTrial, daysRemaining, hasEverStartedTrial, startTrial } = useFreeTrial();
   const [activeTab, setActiveTab] = useState('ibadah');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showHabitLibrary, setShowHabitLibrary] = useState(false);
@@ -200,6 +202,43 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
       <div className="px-4 pt-2">
         <StorageIndicator onUpgrade={() => setShowPremiumModal(true)} />
       </div>
+
+      {/* Trial Banner */}
+      {user && isInTrial && (
+        <div className="px-4 pt-2">
+          <Card className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-200 dark:border-violet-800">
+            <CardContent className="py-2.5 px-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-500" />
+                <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
+                  Trial Premium: {daysRemaining} hari tersisa
+                </span>
+              </div>
+              <Badge className="bg-violet-500 text-white text-[10px]">GRATIS</Badge>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {user && !hasEverStartedTrial && !isPremium && (
+        <div className="px-4 pt-2">
+          <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-200 dark:border-emerald-800">
+            <CardContent className="py-3 px-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">🎁 Coba Premium 30 Hari Gratis!</p>
+                <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">Cloud sync, kalkulator khatam, tips eksklusif</p>
+              </div>
+              <Button 
+                size="sm" 
+                className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => startTrial.mutate()}
+                disabled={startTrial.isPending}
+              >
+                Mulai Trial
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Main Tabs */}
       <div className="px-4 pt-3">
