@@ -2074,6 +2074,39 @@ export type Database = {
         }
         Relationships: []
       }
+      quran_khatam_targets: {
+        Row: {
+          ayat_per_day: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          pages_per_day: number | null
+          target_date: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ayat_per_day?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pages_per_day?: number | null
+          target_date: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ayat_per_day?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pages_per_day?: number | null
+          target_date?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       quran_last_read: {
         Row: {
           ayah_number: number
@@ -2167,6 +2200,39 @@ export type Database = {
           surah_start?: number
           total_verses?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      quran_tips: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          day_number: number | null
+          id: string
+          is_active: boolean | null
+          is_premium: boolean | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          day_number?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          day_number?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          title?: string
         }
         Relationships: []
       }
@@ -3142,6 +3208,27 @@ export type Database = {
           },
         ]
       }
+      user_achievements: {
+        Row: {
+          achievement_key: string
+          id: string
+          unlocked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          id?: string
+          unlocked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          id?: string
+          unlocked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_checklists: {
         Row: {
           checked_at: string | null
@@ -3614,6 +3701,8 @@ export type Database = {
           plan_id: string | null
           start_date: string | null
           status: string
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
           user_id: string
           verified_at: string | null
@@ -3630,6 +3719,8 @@ export type Database = {
           plan_id?: string | null
           start_date?: string | null
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id: string
           verified_at?: string | null
@@ -3646,6 +3737,8 @@ export type Database = {
           plan_id?: string | null
           start_date?: string | null
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
           user_id?: string
           verified_at?: string | null
