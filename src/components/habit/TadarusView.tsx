@@ -11,6 +11,9 @@ import {
 } from '@/hooks/useQuranTracking';
 import { BookOpen, Plus, Trash2, ChevronRight, History, Target, Calendar, BookMarked, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import KhatamCalculator from './KhatamCalculator';
+import AchievementBadges from './AchievementBadges';
+import QuranTipsCard from './QuranTipsCard';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -312,22 +315,14 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
         </CardContent>
       </Card>
 
-      {/* Tips Card */}
-      <Card className="border-none bg-amber-50/50 dark:bg-amber-950/20 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-              <span className="text-lg">💡</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Tips Istiqomah</p>
-              <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
-                Baca minimal 1 halaman Al-Qur'an setiap hari. Klik tombol centang di setiap ayat untuk mencatat progres otomatis.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Kalkulator Khatam */}
+      <KhatamCalculator />
+
+      {/* Achievement Badges */}
+      <AchievementBadges />
+
+      {/* Tips Card - Dynamic */}
+      <QuranTipsCard />
     </div>
   );
 };
