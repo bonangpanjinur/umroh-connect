@@ -1,20 +1,23 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2 } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserHajiRegistrations } from '@/hooks/useHaji';
 import { useUserBookings } from '@/hooks/useBookings';
+import { useIsPremium } from '@/hooks/usePremiumSubscription';
 import UserBookingsView from '@/components/booking/UserBookingsView';
 import PushNotificationSettings from '@/components/notifications/PushNotificationSettings';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import ThemeToggle from '@/components/settings/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
+import { supabase } from '@/integrations/supabase/client';
 
 // Haji registration button component
 const HajiRegistrationButton = () => {
@@ -121,12 +124,16 @@ const AkunView = () => {
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isPremium, subscription } = useIsPremium();
   const [showBookings, setShowBookings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return localStorage.getItem('prayer-card-background');
   });
@@ -162,6 +169,38 @@ const AkunView = () => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleEditProfile = () => {
+    setEditName(profile?.full_name || '');
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user?.id || !profile?.id) return;
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: editName.trim() })
+        .eq('id', profile.id);
+      if (error) throw error;
+      toast({ title: 'Profil berhasil diperbarui' });
+      setIsEditingProfile(false);
+      // Reload to reflect changes
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: 'Gagal memperbarui profil', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const getPlanLabel = () => {
+    if (!user) return '';
+    if (isPremium) return 'Premium';
+    if (subscription?.status === 'pending') return 'Menunggu Verifikasi';
+    return 'Free Plan';
   };
 
   if (loading) {
@@ -232,15 +271,33 @@ const AkunView = () => {
           </div>
           <div className="flex-1">
             <h2 className={`font-bold text-foreground ${fontSize.lg}`}>
-              {profile?.full_name || user.email?.split('@')[0] || 'Pengguna'}
+              {isEditingProfile ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-8 text-base"
+                    placeholder="Nama lengkap"
+                    autoFocus
+                  />
+                  <button onClick={handleSaveProfile} disabled={savingProfile} className="p-1 text-primary hover:bg-primary/10 rounded">
+                    <Check className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => setIsEditingProfile(false)} className="p-1 text-muted-foreground hover:bg-muted rounded">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              ) : (
+                profile?.full_name || user.email?.split('@')[0] || 'Pengguna'
+              )}
             </h2>
             <p className={`text-muted-foreground ${fontSize.sm}`}>
               {profile?.role === 'agent' ? 'Travel Agent' : profile?.role === 'admin' ? 'Admin' : profile?.role === 'shop_admin' ? 'Admin Toko' : 'Jamaah'}
               <span className="mx-1">•</span>
-              <span className="text-primary font-medium">Free Plan</span>
+              <span className={`font-medium ${isPremium ? 'text-amber-500' : 'text-primary'}`}>{getPlanLabel()}</span>
             </p>
           </div>
-          <button className="text-muted-foreground hover:text-primary transition-colors p-2">
+          <button onClick={handleEditProfile} className="text-muted-foreground hover:text-primary transition-colors p-2">
             <Pen style={{ width: iconSize.sm, height: iconSize.sm }} />
           </button>
         </div>
