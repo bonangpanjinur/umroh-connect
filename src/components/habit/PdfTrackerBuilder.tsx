@@ -178,15 +178,29 @@ export const PdfTrackerBuilder = ({ open, onOpenChange, onShowPremium }: PdfTrac
             />
           </div>
 
+          {/* Logo Upload */}
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground">Upload Logo (opsional)</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleLogoUpload}
+              className="h-9 text-[11px] mt-1"
+            />
+            {logoBase64 && (
+              <p className="text-[10px] text-emerald-600 mt-1">✓ Logo ter-upload</p>
+            )}
+          </div>
+
           {/* Whitelabel (Premium) */}
           <Card className={`transition-all ${whitelabel ? 'border-primary/50 bg-primary/5' : 'bg-muted/30'}`}>
             <CardContent className="py-3 px-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-500" />
                   <div>
                     <p className="text-xs font-medium">Whitelabel</p>
-                    <p className="text-[10px] text-muted-foreground">Hapus branding, pakai logo sendiri</p>
+                    <p className="text-[10px] text-muted-foreground">Hapus branding UmrohConnect</p>
                   </div>
                 </div>
                 <Switch
@@ -199,29 +213,19 @@ export const PdfTrackerBuilder = ({ open, onOpenChange, onShowPremium }: PdfTrac
               </div>
 
               {whitelabel && isPremium && (
-                <div className="space-y-2 pt-2 border-t">
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Upload Logo</Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="h-8 text-[10px] mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Tagline Footer</Label>
-                    <Input
-                      value={tagline}
-                      onChange={(e) => setTagline(e.target.value)}
-                      placeholder="Nama travel / tagline"
-                      className="h-8 text-[10px] mt-1"
-                    />
-                  </div>
+                <div className="pt-2 mt-2 border-t">
+                  <Label className="text-[10px] text-muted-foreground">Tagline Footer</Label>
+                  <Input
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    placeholder="Nama travel / tagline"
+                    className="h-8 text-[10px] mt-1"
+                  />
                 </div>
               )}
             </CardContent>
           </Card>
+
 
           {/* Preview */}
           <div>

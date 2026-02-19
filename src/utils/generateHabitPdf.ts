@@ -165,7 +165,7 @@ function drawCoverPage(doc: jsPDF, config: TrackerConfig, title: string, subtitl
 
   // Logo or brand area
   let brandY = pageH * 0.32;
-  if (config.logoBase64 && config.whitelabel) {
+  if (config.logoBase64) {
     try {
       doc.addImage(config.logoBase64, 'PNG', pageW / 2 - 20, brandY - 20, 40, 40);
       brandY += 28;
@@ -211,15 +211,14 @@ function drawCoverPage(doc: jsPDF, config: TrackerConfig, title: string, subtitl
   doc.roundedRect(pageW * 0.15, infoY, pageW * 0.7, 30, 4, 4, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Nama:', pageW * 0.2, infoY + 12);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text(
-    config.userName || '________________________________',
-    pageW * 0.2, infoY + 23
-  );
+  if (config.userName) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Nama:', pageW * 0.2, infoY + 12);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(config.userName, pageW * 0.2, infoY + 23);
+  }
 
   // Month/year
   const dateStr = config.monthYear || format(new Date(), 'MMMM yyyy', { locale: idLocale });
@@ -260,7 +259,7 @@ function drawPageHeader(doc: jsPDF, config: TrackerConfig, title: string) {
   doc.rect(8, 28, pageW - 16, 2, 'F');
 
   let titleX = 14;
-  if (config.logoBase64 && config.whitelabel) {
+  if (config.logoBase64) {
     try {
       doc.addImage(config.logoBase64, 'PNG', 12, 10, 18, 18);
       titleX = 34;
@@ -274,10 +273,11 @@ function drawPageHeader(doc: jsPDF, config: TrackerConfig, title: string) {
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  const sub = [
-    config.userName ? `Nama: ${config.userName}` : 'Nama: _______________',
+  const subParts = [
+    config.userName ? `Nama: ${config.userName}` : '',
     config.monthYear || format(new Date(), 'MMMM yyyy', { locale: idLocale }),
-  ].join('  •  ');
+  ].filter(Boolean);
+  const sub = subParts.join('  •  ');
   doc.text(sub, titleX, 25);
 
   if (!config.whitelabel) {
