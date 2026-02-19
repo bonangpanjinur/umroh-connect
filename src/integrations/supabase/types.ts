@@ -2077,6 +2077,45 @@ export type Database = {
         }
         Relationships: []
       }
+      quran_ayahs: {
+        Row: {
+          arabic_text: string
+          ayah_global: number | null
+          ayah_number: number
+          created_at: string
+          id: string
+          juz: number | null
+          page: number | null
+          surah_number: number
+          translation_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          arabic_text: string
+          ayah_global?: number | null
+          ayah_number: number
+          created_at?: string
+          id?: string
+          juz?: number | null
+          page?: number | null
+          surah_number: number
+          translation_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          arabic_text?: string
+          ayah_global?: number | null
+          ayah_number?: number
+          created_at?: string
+          id?: string
+          juz?: number | null
+          page?: number | null
+          surah_number?: number
+          translation_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quran_khatam_targets: {
         Row: {
           ayat_per_day: number | null
@@ -2137,30 +2176,72 @@ export type Database = {
       quran_surahs: {
         Row: {
           created_at: string
+          english_name: string | null
           id: number
           juz_start: number | null
           name: string
           name_arabic: string
           number: number
+          revelation_type: string | null
           total_verses: number
+          translation_name: string | null
         }
         Insert: {
           created_at?: string
+          english_name?: string | null
           id?: number
           juz_start?: number | null
           name: string
           name_arabic: string
           number: number
+          revelation_type?: string | null
           total_verses: number
+          translation_name?: string | null
         }
         Update: {
           created_at?: string
+          english_name?: string | null
           id?: number
           juz_start?: number | null
           name?: string
           name_arabic?: string
           number?: number
+          revelation_type?: string | null
           total_verses?: number
+          translation_name?: string | null
+        }
+        Relationships: []
+      }
+      quran_sync_logs: {
+        Row: {
+          ayahs_synced: number | null
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          started_at: string
+          status: string
+          surahs_synced: number | null
+          sync_type: string
+        }
+        Insert: {
+          ayahs_synced?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          surahs_synced?: number | null
+          sync_type?: string
+        }
+        Update: {
+          ayahs_synced?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          surahs_synced?: number | null
+          sync_type?: string
         }
         Relationships: []
       }
