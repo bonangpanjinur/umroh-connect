@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 const API_BASE = 'https://api.alquran.cloud/v1'
@@ -114,8 +114,8 @@ Deno.serve(async (req) => {
         totalAyahs += ayahRows.length
         totalSurahs++
 
-        // Rate limit
-        if (surahsToSync.length > 1) await delay(500)
+        // Rate limit - reduced to 100ms to prevent timeouts
+        if (surahsToSync.length > 1) await delay(100)
       }
 
       // Update log success

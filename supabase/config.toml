@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.payment-config]
 verify_jwt = false
+
+[functions.sync-quran-data]
+verify_jwt = false
