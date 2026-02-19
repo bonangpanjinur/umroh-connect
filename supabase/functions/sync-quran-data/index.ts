@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const API_BASE = 'https://api.alquran.cloud/v1'
 
-function delay(ms: number) {
+function delay(ms: number ) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Verify admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -34,7 +33,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Check admin role
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
@@ -48,7 +46,6 @@ Deno.serve(async (req) => {
 
     const { mode = 'full', surah_number, start_surah = 1, end_surah = 114 } = await req.json()
 
-    // Create sync log
     const { data: logEntry, error: logError } = await supabase
       .from('quran_sync_logs')
       .insert({
@@ -64,15 +61,6 @@ Deno.serve(async (req) => {
     }
 
     const logId = logEntry.id
-    
-    // For full sync, we respond immediately and run in background to avoid timeout
-    // Or we process in smaller chunks requested by frontend
-    if (mode === 'full' && !req.headers.get('x-batch-process')) {
-      // Background processing is tricky in Edge Functions without persistent workers
-      // Better approach: Tell frontend to call in batches or increase timeout
-      // For now, let's try to optimize the loop and handle as many as possible
-    }
-
     let totalAyahs = 0
     let totalSurahs = 0
 
@@ -80,37 +68,25 @@ Deno.serve(async (req) => {
       ? [surah_number]
       : Array.from({ length: end_surah - start_surah + 1 }, (_, i) => start_surah + i)
 
-    // Optimization: Process surahs
     try {
       for (const num of surahsToSync) {
-        // Fetch Arabic and Translation in parallel to save time
         const [arabicRes, transRes] = await Promise.all([
           fetch(`${API_BASE}/surah/${num}`),
           fetch(`${API_BASE}/surah/${num}/id.indonesian`)
         ])
 
-        if (!arabicRes.ok) throw new Error(`Failed to fetch surah ${num} arabic`)
-        if (!transRes.ok) throw new Error(`Failed to fetch surah ${num} translation`)
+        if (!arabicRes.ok || !transRes.ok) throw new Error(`Failed to fetch surah ${num}`)
         
-        const [arabicData, transData] = await Promise.all([
-          arabicRes.json(),
-          transRes.json()
-        ])
-
+        const [arabicData, transData] = await Promise.all([arabicRes.json(), transRes.json()])
         const surahInfo = arabicData.data
         const transInfo = transData.data
 
-        // Update quran_surahs metadata
-        await supabase
-          .from('quran_surahs')
-          .update({
-            revelation_type: surahInfo.revelationType === 'Meccan' ? 'Makkiyah' : 'Madaniyah',
-            english_name: surahInfo.englishName,
-            translation_name: surahInfo.englishNameTranslation,
-          })
-          .eq('number', num)
+        await supabase.from('quran_surahs').update({
+          revelation_type: surahInfo.revelationType === 'Meccan' ? 'Makkiyah' : 'Madaniyah',
+          english_name: surahInfo.englishName,
+          translation_name: surahInfo.englishNameTranslation,
+        }).eq('number', num)
 
-        // Upsert ayahs in one go
         const ayahRows = surahInfo.ayahs.map((ayah: any, idx: number) => ({
           surah_number: num,
           ayah_number: ayah.numberInSurah,
@@ -121,52 +97,28 @@ Deno.serve(async (req) => {
           page: ayah.page,
         }))
 
-        const { error: upsertError } = await supabase
-          .from('quran_ayahs')
-          .upsert(ayahRows, { onConflict: 'surah_number,ayah_number' })
-
-        if (upsertError) throw new Error(`Upsert failed for surah ${num}: ${upsertError.message}`)
+        const { error: upsertError } = await supabase.from('quran_ayahs').upsert(ayahRows, { onConflict: 'surah_number,ayah_number' })
+        if (upsertError) throw new Error(`Upsert failed: ${upsertError.message}`)
 
         totalAyahs += ayahRows.length
         totalSurahs++
-
-        // Smaller delay, only if many surahs
         if (surahsToSync.length > 5) await delay(50)
       }
 
-      // Update log success
-      await supabase
-        .from('quran_sync_logs')
-        .update({
-          status: 'completed',
-          surahs_synced: totalSurahs,
-          ayahs_synced: totalAyahs,
-          completed_at: new Date().toISOString(),
-          error_message: null
-        })
-        .eq('id', logId)
-
-      return new Response(JSON.stringify({
-        success: true,
+      await supabase.from('quran_sync_logs').update({
+        status: 'completed',
         surahs_synced: totalSurahs,
         ayahs_synced: totalAyahs,
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        completed_at: new Date().toISOString(),
+        error_message: null
+      }).eq('id', logId)
+
+      return new Response(JSON.stringify({ success: true, surahs_synced: totalSurahs, ayahs_synced: totalAyahs }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     } catch (syncError: any) {
-      await supabase
-        .from('quran_sync_logs')
-        .update({
-          status: 'failed',
-          error_message: syncError.message,
-          surahs_synced: totalSurahs,
-          ayahs_synced: totalAyahs,
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', logId)
-
+      await supabase.from('quran_sync_logs').update({ status: 'failed', error_message: syncError.message, completed_at: new Date().toISOString() }).eq('id', logId)
       return new Response(JSON.stringify({ error: syncError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
-
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
