@@ -384,6 +384,33 @@ const AkunView = () => {
         )}
       </div>
 
+      {/* Agent Registration CTA - only for jamaah users */}
+      {profile?.role === 'jamaah' && (
+        <div className={`${isElderlyMode ? 'px-5' : 'px-4'} pb-2`}>
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/daftar-agen')}
+            className={`w-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl flex items-center justify-between ${
+              isElderlyMode ? 'p-5' : 'p-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full bg-primary text-primary-foreground flex items-center justify-center ${
+                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+              }`}>
+                <Briefcase style={{ width: iconSize.md, height: iconSize.md }} />
+              </div>
+              <div className="text-left">
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Jadi Agen Travel</h4>
+                <p className={`text-muted-foreground ${fontSize.xs}`}>Daftar & listing paket umroh Anda</p>
+              </div>
+            </div>
+            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+          </motion.button>
+        </div>
+      )}
+
       {/* Settings */}
       <div className={`space-y-3 ${isElderlyMode ? 'p-5' : 'p-4'}`}>
         <h3 className={`font-bold text-muted-foreground uppercase tracking-wider mb-2 ${fontSize.xs}`}>
