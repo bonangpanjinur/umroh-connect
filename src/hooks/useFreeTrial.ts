@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { usePremiumTrialConfig } from '@/hooks/usePremiumConfig';
+import { useIsPremium } from '@/hooks/usePremiumSubscription';
 
 interface TrialStatus {
   isInTrial: boolean;
@@ -110,5 +111,10 @@ export const useFreeTrial = () => {
 
 export const useHasPremiumAccess = () => {
   const { isInTrial } = useFreeTrial();
-  return { hasPremiumAccess: isInTrial };
+  const { isPremium } = useIsPremium();
+  const { isAdmin } = useAuthContext();
+
+  // Admin selalu punya akses premium
+  const hasPremiumAccess = isAdmin() || isPremium || isInTrial;
+  return { hasPremiumAccess };
 };
