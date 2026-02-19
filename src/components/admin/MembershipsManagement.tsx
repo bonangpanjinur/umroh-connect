@@ -28,8 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMemberships, useUpdateMembership } from '@/hooks/useAdminData';
+import { useMemberships, useUpdateMembership, usePlatformSettings } from '@/hooks/useAdminData';
 import { MEMBERSHIP_PLANS, getPlanById } from '@/hooks/useAgentMembership';
+import type { MembershipPlan } from '@/hooks/useAgentMembership';
 import { 
   CheckCircle2, Clock, XCircle, Building2, Search, 
   Filter, Eye, Crown, Sparkles, Shield, 
@@ -40,10 +41,19 @@ import { format, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
 
+// Helper to merge DB prices into hardcoded plans
+const getMergedPlans = (dbPrices?: { free: number; pro: number; premium: number }): MembershipPlan[] => {
+  if (!dbPrices) return MEMBERSHIP_PLANS;
+  return MEMBERSHIP_PLANS.map(plan => ({
+    ...plan,
+    price: dbPrices[plan.id as keyof typeof dbPrices] ?? plan.price,
+  }));
+};
+
 // Plan comparison component
-const PlanComparisonCards = () => (
+const PlanComparisonCards = ({ plans }: { plans: MembershipPlan[] }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    {MEMBERSHIP_PLANS.map((plan) => {
+    {plans.map((plan) => {
       const isHighlight = plan.id === 'pro';
       return (
         <Card key={plan.id} className={`relative overflow-hidden ${
@@ -120,7 +130,12 @@ const PlanComparisonCards = () => (
 
 export const MembershipsManagement = () => {
   const { data: memberships, isLoading } = useMemberships();
+  const { data: platformSettings } = usePlatformSettings();
   const updateMembership = useUpdateMembership();
+  
+  // Merge DB prices with hardcoded plans
+  const dbPrices = platformSettings?.find((s: any) => s.key === 'membership_prices')?.value as { free: number; pro: number; premium: number } | undefined;
+  const mergedPlans = getMergedPlans(dbPrices);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -227,7 +242,7 @@ export const MembershipsManagement = () => {
   return (
     <div className="space-y-6">
       {/* Plan Comparison */}
-      <PlanComparisonCards />
+      <PlanComparisonCards plans={mergedPlans} />
 
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -328,7 +343,7 @@ export const MembershipsManagement = () => {
                   </TableRow>
                 ) : (
                   filteredMemberships?.map((membership) => {
-                    const plan = getPlanById(membership.plan_type);
+                    const plan = mergedPlans.find(p => p.id === membership.plan_type) || mergedPlans[0];
                     return (
                       <TableRow key={membership.id} className="hover:bg-muted/30">
                         <TableCell>
@@ -407,7 +422,7 @@ export const MembershipsManagement = () => {
           </DialogHeader>
 
           {selectedMembership && (() => {
-            const plan = getPlanById(selectedMembership.plan_type);
+            const plan = mergedPlans.find(p => p.id === selectedMembership.plan_type) || mergedPlans[0];
             return (
               <div className="space-y-4">
                 {/* Travel Info */}
