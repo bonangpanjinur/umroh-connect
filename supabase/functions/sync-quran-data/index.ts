@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const API_BASE = 'https://api.alquran.cloud/v1'
@@ -25,12 +26,12 @@ Deno.serve(async (req) => {
     // Verify admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // Check admin role
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: 'Admin only' }), { status: 403, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Admin only' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const { mode = 'full', surah_number } = await req.json()
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (logError) {
-      return new Response(JSON.stringify({ error: logError.message }), { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: logError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const logId = logEntry.id
@@ -147,10 +148,10 @@ Deno.serve(async (req) => {
         })
         .eq('id', logId)
 
-      return new Response(JSON.stringify({ error: syncError.message }), { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: syncError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
