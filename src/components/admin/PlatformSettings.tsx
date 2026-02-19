@@ -7,17 +7,13 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePlatformSettings, useUpdatePlatformSetting } from '@/hooks/useAdminData';
 import { toast } from 'sonner';
-import { Settings, Save, Sparkles, Layout, CreditCard, ShieldCheck } from 'lucide-react';
+import { Settings, Save, Sparkles, Layout, CreditCard } from 'lucide-react';
+import { MembershipConfigPanel } from './MembershipConfigPanel';
 
 export const PlatformSettings = () => {
   const { data: settings, isLoading } = usePlatformSettings();
   const updateSetting = useUpdatePlatformSetting();
   
-  const [membershipPrices, setMembershipPrices] = useState({
-    free: 0,
-    pro: 2000000,
-    premium: 7500000
-  });
   
   const [creditPrices, setCreditPrices] = useState({
     '1': 50000,
@@ -62,14 +58,12 @@ export const PlatformSettings = () => {
 
   useEffect(() => {
     if (settings) {
-      const membershipSetting = settings.find(s => s.key === 'membership_prices');
       const creditSetting = settings.find(s => s.key === 'credit_prices');
       const freeCreditSetting = settings.find(s => s.key === 'free_credits_on_register');
       const featuredPricingSetting = settings.find(s => s.key === 'featured_package_pricing');
       const featuredLimitsSetting = settings.find(s => s.key === 'featured_package_limits');
       const whitelabelSetting = settings.find(s => s.key === 'whitelabel_settings');
       
-      if (membershipSetting) setMembershipPrices(membershipSetting.value as any);
       if (creditSetting) setCreditPrices(creditSetting.value as any);
       if (freeCreditSetting) setFreeCredits(freeCreditSetting.value as any);
       if (featuredPricingSetting) setFeaturedPricing(featuredPricingSetting.value as any);
@@ -77,18 +71,6 @@ export const PlatformSettings = () => {
       if (whitelabelSetting) setWhitelabelSettings(whitelabelSetting.value as any);
     }
   }, [settings]);
-
-  const handleSaveMembership = async () => {
-    try {
-      await updateSetting.mutateAsync({
-        key: 'membership_prices',
-        value: membershipPrices
-      });
-      toast.success('Harga keanggotaan berhasil disimpan');
-    } catch (error) {
-      toast.error('Gagal menyimpan pengaturan');
-    }
-  };
 
   const handleSaveCredits = async () => {
     try {
@@ -186,52 +168,8 @@ export const PlatformSettings = () => {
         </TabsList>
 
         <TabsContent value="general" className="space-y-6">
-          {/* Membership Prices */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                Harga Keanggotaan (Membership)
-              </CardTitle>
-              <CardDescription>
-                Atur harga langganan untuk berbagai level keanggotaan
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label>Free (Gratis)</Label>
-                  <Input 
-                    type="number" 
-                    value={membershipPrices.free} 
-                    onChange={(e) => setMembershipPrices({...membershipPrices, free: parseInt(e.target.value) || 0})}
-                    disabled
-                  />
-                  <p className="text-[10px] text-muted-foreground">Tier gratis tidak bisa diubah</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Pro</Label>
-                  <Input 
-                    type="number" 
-                    value={membershipPrices.pro} 
-                    onChange={(e) => setMembershipPrices({...membershipPrices, pro: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Premium</Label>
-                  <Input 
-                    type="number" 
-                    value={membershipPrices.premium} 
-                    onChange={(e) => setMembershipPrices({...membershipPrices, premium: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSaveMembership}>
-                <Save className="h-4 w-4 mr-2" />
-                Simpan Harga Keanggotaan
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Full Membership Config Panel */}
+          <MembershipConfigPanel />
 
           {/* Credit Prices */}
           <Card>
