@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { 
   Printer, Flame, Dumbbell, Utensils, Heart, BookOpen, Layers,
-  Lock, Crown, Sparkles, FileDown
+  Lock, Crown, Sparkles, FileDown, Eye
 } from 'lucide-react';
+import PdfTrackerPreview from './PdfTrackerPreview';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
 import { generateTracker, type TrackerType, type TrackerPeriod, type TrackerTheme, type TrackerConfig } from '@/utils/generateHabitPdf';
 
@@ -221,6 +222,22 @@ export const PdfTrackerBuilder = ({ open, onOpenChange, onShowPremium }: PdfTrac
               )}
             </CardContent>
           </Card>
+
+          {/* Preview */}
+          <div>
+            <Label className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5" />
+              Preview Template
+            </Label>
+            <div className="max-w-[200px] mx-auto">
+              <PdfTrackerPreview
+                type={selectedType}
+                period={period}
+                theme={theme}
+                userName={userName}
+              />
+            </div>
+          </div>
 
           {/* Generate Button */}
           <Button
