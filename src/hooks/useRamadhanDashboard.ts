@@ -5,6 +5,22 @@ import { format, differenceInDays } from 'date-fns';
 // Ramadan 2026 dates (approximate - Hijri calendar)
 const RAMADAN_START_2026 = new Date('2026-02-17');
 const RAMADAN_END_2026 = new Date('2026-03-18');
+const IDUL_FITRI_2026 = new Date('2026-03-19');
+
+// Helper to check if currently Ramadan
+export const isCurrentlyRamadan = () => {
+  const today = new Date();
+  return today >= RAMADAN_START_2026 && today <= RAMADAN_END_2026;
+};
+
+export const getRamadanDay = () => {
+  const today = new Date();
+  return differenceInDays(today, RAMADAN_START_2026) + 1;
+};
+
+export const getDaysUntilIdulFitri = () => {
+  return Math.max(0, differenceInDays(IDUL_FITRI_2026, new Date()));
+};
 
 export interface RamadanDashboardData {
   dayOfRamadan: number;
