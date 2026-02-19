@@ -119,12 +119,14 @@ export const usePrayerTimes = () => {
         throw new Error('API error: ' + data.status);
       }
 
-      const times: PrayerTimes = {
+      const times: PrayerTimes & { imsak?: string; sunrise?: string } = {
         fajr: data.data.timings.Fajr.split(' ')[0],
         dhuhr: data.data.timings.Dhuhr.split(' ')[0],
         asr: data.data.timings.Asr.split(' ')[0],
         maghrib: data.data.timings.Maghrib.split(' ')[0],
         isha: data.data.timings.Isha.split(' ')[0],
+        imsak: data.data.timings.Imsak.split(' ')[0],
+        sunrise: data.data.timings.Sunrise.split(' ')[0],
       };
 
       // Reverse geocode to get city name
