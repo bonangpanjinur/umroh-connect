@@ -6,7 +6,7 @@ import {
   ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, 
   Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, 
   Crown, Wallet, Newspaper, Fingerprint, Globe, Layout, ShoppingBag, 
-  Tag, PackageCheck, ChevronDown, Menu, X
+  Tag, PackageCheck, ChevronDown, Menu, X, Book
 } from 'lucide-react';
 import { AdminStatsCards } from '@/components/admin/AdminStatsCards';
 import { AdminAnalyticsDashboard } from '@/components/admin/AdminAnalyticsDashboard';
@@ -33,6 +33,7 @@ import ShopCategoriesManagement from '@/components/admin/ShopCategoriesManagemen
 import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
 import ShopDashboard from '@/components/admin/ShopDashboard';
 import SellerManagement from '@/components/admin/SellerManagement';
+import QuranManagement from '@/components/admin/QuranManagement';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -74,6 +75,7 @@ const navGroups: NavGroup[] = [
       { id: 'content', label: 'Konten', icon: <FileText className="h-4 w-4" /> },
       { id: 'templates', label: 'Template', icon: <Layout className="h-4 w-4" /> },
       { id: 'master', label: 'Master Data', icon: <Database className="h-4 w-4" /> },
+      { id: 'quran', label: 'Al-Quran', icon: <Book className="h-4 w-4" /> },
       { id: 'prayers', label: 'Doa', icon: <BookOpen className="h-4 w-4" /> },
       { id: 'tasbih', label: 'Tasbih', icon: <Fingerprint className="h-4 w-4" /> },
       { id: 'reviews', label: 'Review', icon: <MessageSquare className="h-4 w-4" /> },
@@ -150,6 +152,7 @@ const AdminDashboard = () => {
       case 'featured': return <FeaturedManagement />;
       case 'content': return <ContentManagement />;
       case 'master': return <MasterDataManagement />;
+      case 'quran': return <QuranManagement />;
       case 'prayers': return <PrayersManagement />;
       case 'tasbih': return <TasbihManagement />;
       case 'reviews': return <ReviewsManagement />;
