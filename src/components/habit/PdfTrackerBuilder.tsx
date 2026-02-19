@@ -235,6 +235,8 @@ export const PdfTrackerBuilder = ({ open, onOpenChange, onShowPremium }: PdfTrac
                 period={period}
                 theme={theme}
                 userName={userName}
+                whitelabel={whitelabel}
+                tagline={tagline}
               />
             </div>
           </div>
