@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSellerProfile, useSellerProducts, useSellerPlanLimits, useDeleteSellerProduct } from '@/hooks/useSeller';
+import { useSellerStats } from '@/hooks/useSellerOrders';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import SellerProductForm from '@/components/seller/SellerProductForm';
+import SellerStatsTab from '@/components/seller/SellerStatsTab';
+import SellerOrdersTab from '@/components/seller/SellerOrdersTab';
+import SellerSettingsTab from '@/components/seller/SellerSettingsTab';
 import { ShopProduct } from '@/types/shop';
 
 const formatRupiah = (n: number) =>
@@ -23,7 +27,7 @@ const SellerDashboard = () => {
   const { data: products = [], isLoading: loadingProducts } = useSellerProducts(sellerProfile?.id);
   const { maxProducts, currentPlan } = useSellerPlanLimits(sellerProfile?.id);
   const deleteMutation = useDeleteSellerProduct();
-
+  const { stats, allItems: orderItems, isLoading: loadingStats } = useSellerStats(sellerProfile?.id);
   const [activeTab, setActiveTab] = useState('products');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
@@ -140,10 +144,14 @@ const SellerDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-3 gap-2 h-auto p-1">
+          <TabsList className="grid grid-cols-4 gap-2 h-auto p-1">
             <TabsTrigger value="products" className="flex items-center gap-1.5 py-2 text-xs">
               <ShoppingBag className="h-4 w-4" />
               Produk
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-1.5 py-2 text-xs">
+              <ClipboardList className="h-4 w-4" />
+              Pesanan
             </TabsTrigger>
             <TabsTrigger value="stats" className="flex items-center gap-1.5 py-2 text-xs">
               <BarChart3 className="h-4 w-4" />
@@ -223,39 +231,19 @@ const SellerDashboard = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="orders">
+            <SellerOrdersTab items={orderItems} isLoading={loadingStats} />
+          </TabsContent>
+
           <TabsContent value="stats">
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                <p>Statistik penjualan akan segera hadir</p>
-              </CardContent>
-            </Card>
+            <SellerStatsTab stats={stats} isLoading={loadingStats} />
           </TabsContent>
 
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Profil Toko</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Nama Toko</span>
-                  <span className="font-medium">{sellerProfile.shop_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Telepon</span>
-                  <span>{sellerProfile.phone || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Kota</span>
-                  <span>{sellerProfile.city || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Membership</span>
-                  <Badge>{currentPlan?.name || 'Starter'}</Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <SellerSettingsTab
+              sellerProfile={sellerProfile}
+              currentPlanName={currentPlan?.name || 'Starter'}
+            />
           </TabsContent>
         </Tabs>
       </main>
