@@ -1,283 +1,380 @@
 import jsPDF from 'jspdf';
+import { starterPackHabits } from '@/data/defaultHabits';
+import { format } from 'date-fns';
+import { id as idLocale } from 'date-fns/locale';
 
-export interface PdfReportConfig {
-  dateRange: { start: string; end: string };
-  theme: 'green' | 'blue' | 'gold' | 'custom';
+export type TrackerType = 'ibadah' | 'olahraga' | 'makanan' | 'sedekah' | 'tadarus' | 'all-in-one';
+export type TrackerPeriod = 'weekly' | 'monthly';
+export type TrackerTheme = 'green' | 'blue' | 'gold' | 'custom';
+
+export interface TrackerConfig {
+  type: TrackerType;
+  period: TrackerPeriod;
+  theme: TrackerTheme;
   customColor?: string;
-  userName: string;
-  tagline?: string;
+  orientation: 'portrait' | 'landscape';
+  userName?: string;
+  monthYear?: string;
   logoBase64?: string;
   whitelabel: boolean;
-  orientation: 'portrait' | 'landscape';
+  tagline?: string;
+  customHabits?: string[];
 }
 
-interface HabitStats {
-  totalCompleted: number;
-  totalHabits: number;
-  streak: number;
-  weeklyRate: number;
-}
-
-interface OlahragaStats {
-  totalMinutes: number;
-  totalSessions: number;
-  types: string[];
-}
-
-interface SedekahStats {
-  totalAmount: number;
-  totalCount: number;
-  types: string[];
-}
-
-interface MealStats {
-  totalDays: number;
-  avgWater: number;
-}
-
-interface TadarusStats {
-  totalAyat: number;
-  totalJuz: number;
-  khatamProgress: number;
-}
-
-export interface PdfReportData {
-  habits: HabitStats;
-  olahraga: OlahragaStats;
-  sedekah: SedekahStats;
-  meals: MealStats;
-  tadarus: TadarusStats;
-}
-
-const themeColors: Record<string, { primary: number[]; secondary: number[]; accent: number[] }> = {
-  green: { primary: [34, 139, 34], secondary: [144, 238, 144], accent: [0, 100, 0] },
-  blue: { primary: [41, 98, 255], secondary: [173, 216, 230], accent: [0, 0, 139] },
-  gold: { primary: [218, 165, 32], secondary: [255, 223, 0], accent: [139, 119, 42] },
-  custom: { primary: [99, 102, 241], secondary: [199, 210, 254], accent: [67, 56, 202] },
+const themeColors: Record<string, { primary: number[]; secondary: number[]; headerText: number[] }> = {
+  green: { primary: [34, 139, 34], secondary: [230, 245, 230], headerText: [255, 255, 255] },
+  blue: { primary: [41, 98, 255], secondary: [230, 240, 255], headerText: [255, 255, 255] },
+  gold: { primary: [178, 134, 32], secondary: [255, 248, 225], headerText: [255, 255, 255] },
+  custom: { primary: [99, 102, 241], secondary: [238, 242, 255], headerText: [255, 255, 255] },
 };
 
-export function collectHabitData(startDate: string, endDate: string): PdfReportData {
-  // Collect from localStorage
-  const getLocalData = (key: string) => {
-    try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; }
-  };
-
-  // Habit stats from local tracking
-  const habitLogs = getLocalData('local_habit_tracking');
-  let totalCompleted = 0;
-  let totalDays = 0;
-  Object.keys(habitLogs).forEach(date => {
-    if (date >= startDate && date <= endDate) {
-      const dayData = habitLogs[date] || {};
-      totalCompleted += Object.values(dayData).filter(Boolean).length;
-      totalDays++;
-    }
-  });
-
-  const habits: HabitStats = {
-    totalCompleted,
-    totalHabits: totalDays * 5, // approximate
-    streak: Number(localStorage.getItem('habit_streak') || '0'),
-    weeklyRate: totalDays > 0 ? Math.round((totalCompleted / Math.max(totalDays * 5, 1)) * 100) : 0,
-  };
-
-  // Olahraga
-  const olahragaLogs = getLocalData('local_olahraga_logs');
-  let olahragaMinutes = 0;
-  let olahragaSessions = 0;
-  const olahragaTypes = new Set<string>();
-  Object.keys(olahragaLogs).forEach(date => {
-    if (date >= startDate && date <= endDate) {
-      const entries = olahragaLogs[date] || [];
-      if (Array.isArray(entries)) {
-        entries.forEach((e: any) => {
-          olahragaMinutes += e.duration || 0;
-          olahragaSessions++;
-          if (e.type) olahragaTypes.add(e.type);
-        });
-      }
-    }
-  });
-
-  // Sedekah
-  const sedekahLogs = getLocalData('local_sedekah_logs');
-  let sedekahTotal = 0;
-  let sedekahCount = 0;
-  const sedekahTypes = new Set<string>();
-  Object.keys(sedekahLogs).forEach(date => {
-    if (date >= startDate && date <= endDate) {
-      const entries = sedekahLogs[date] || [];
-      if (Array.isArray(entries)) {
-        entries.forEach((e: any) => {
-          sedekahTotal += e.amount || 0;
-          sedekahCount++;
-          if (e.type) sedekahTypes.add(e.type);
-        });
-      }
-    }
-  });
-
-  // Meals
-  const mealLogs = getLocalData('meal_tracking');
-  let mealDays = 0;
-  let totalWater = 0;
-  Object.keys(mealLogs).forEach(date => {
-    if (date >= startDate && date <= endDate) {
-      mealDays++;
-      totalWater += mealLogs[date]?.water || 0;
-    }
-  });
-
-  // Tadarus
-  const tadarusLogs = getLocalData('local_tadarus_logs');
-  let totalAyat = 0;
-  let totalJuz = 0;
-  Object.keys(tadarusLogs).forEach(date => {
-    if (date >= startDate && date <= endDate) {
-      const entry = tadarusLogs[date];
-      if (entry) {
-        totalAyat += entry.ayat || 0;
-        totalJuz += entry.juz || 0;
-      }
-    }
-  });
-
-  const khatamTarget = Number(localStorage.getItem('khatam_target_juz') || '30');
-  const khatamProgress = khatamTarget > 0 ? Math.min(100, Math.round((totalJuz / khatamTarget) * 100)) : 0;
-
-  return {
-    habits,
-    olahraga: { totalMinutes: olahragaMinutes, totalSessions: olahragaSessions, types: [...olahragaTypes] },
-    sedekah: { totalAmount: sedekahTotal, totalCount: sedekahCount, types: [...sedekahTypes] },
-    meals: { totalDays: mealDays, avgWater: mealDays > 0 ? Math.round(totalWater / mealDays) : 0 },
-    tadarus: { totalAyat, totalJuz, khatamProgress },
-  };
+function getColors(config: TrackerConfig) {
+  return themeColors[config.theme] || themeColors.green;
 }
 
-export function generateHabitPdf(config: PdfReportConfig, data: PdfReportData): void {
-  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
-  const colors = themeColors[config.theme] || themeColors.green;
+function getDayCount(period: TrackerPeriod): number {
+  return period === 'weekly' ? 7 : 30;
+}
+
+function drawHeader(doc: jsPDF, config: TrackerConfig, title: string) {
+  const colors = getColors(config);
   const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  
-  // Background
-  doc.setFillColor(250, 250, 252);
-  doc.rect(0, 0, pageW, pageH, 'F');
 
   // Header bar
   doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-  doc.rect(0, 0, pageW, 35, 'F');
+  doc.rect(0, 0, pageW, 28, 'F');
 
-  // Logo or branding
-  let headerY = 14;
+  let titleX = 10;
   if (config.logoBase64) {
     try {
-      doc.addImage(config.logoBase64, 'PNG', 10, 5, 25, 25);
-      headerY = 14;
+      doc.addImage(config.logoBase64, 'PNG', 8, 3, 22, 22);
+      titleX = 34;
     } catch { /* ignore */ }
   }
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
+  doc.setTextColor(colors.headerText[0], colors.headerText[1], colors.headerText[2]);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  const titleX = config.logoBase64 ? 40 : 10;
-  doc.text(config.whitelabel ? (config.tagline || 'Laporan Ibadah') : 'Laporan Ibadah', titleX, headerY);
-  
-  doc.setFontSize(10);
+  doc.text(title, titleX, 13);
+
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${config.userName} • ${config.dateRange.start} s/d ${config.dateRange.end}`, titleX, headerY + 7);
+  const subtitle = [
+    config.userName ? `Nama: ${config.userName}` : 'Nama: _______________',
+    config.monthYear || format(new Date(), 'MMMM yyyy', { locale: idLocale }),
+  ].join('  •  ');
+  doc.text(subtitle, titleX, 21);
 
   if (!config.whitelabel) {
-    doc.setFontSize(8);
-    doc.text('UmrohConnect', pageW - 10, 8, { align: 'right' });
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text('UmrohConnect', pageW - 8, 8, { align: 'right' });
   }
+}
 
-  let y = 45;
-
-  // Helper to draw stat card
-  const drawCard = (x: number, y: number, w: number, h: number, title: string, items: [string, string][]) => {
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, y, w, h, 3, 3, 'F');
-    doc.setDrawColor(230, 230, 235);
-    doc.roundedRect(x, y, w, h, 3, 3, 'S');
-
-    doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(title, x + 5, y + 8);
-
-    doc.setTextColor(60, 60, 60);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    items.forEach(([label, value], i) => {
-      const itemY = y + 16 + i * 7;
-      doc.text(label, x + 5, itemY);
-      doc.setFont('helvetica', 'bold');
-      doc.text(value, x + w - 5, itemY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-    });
-  };
-
-  const cardW = (pageW - 30) / 2;
-
-  // Ibadah
-  drawCard(10, y, cardW, 40, '🕌 Ibadah', [
-    ['Habit Selesai', `${data.habits.totalCompleted}`],
-    ['Streak', `${data.habits.streak} hari`],
-    ['Rate Mingguan', `${data.habits.weeklyRate}%`],
-  ]);
-
-  // Olahraga
-  drawCard(15 + cardW, y, cardW, 40, '🏃 Olahraga', [
-    ['Total Sesi', `${data.olahraga.totalSessions}`],
-    ['Total Menit', `${data.olahraga.totalMinutes}`],
-    ['Jenis', data.olahraga.types.length > 0 ? data.olahraga.types.slice(0, 3).join(', ') : '-'],
-  ]);
-
-  y += 48;
-
-  // Makanan
-  drawCard(10, y, cardW, 40, '🍽️ Makanan', [
-    ['Hari Tercatat', `${data.meals.totalDays}`],
-    ['Rata-rata Air', `${data.meals.avgWater} gelas`],
-    ['Konsistensi', data.meals.totalDays > 0 ? 'Aktif' : '-'],
-  ]);
-
-  // Sedekah
-  const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
-  drawCard(15 + cardW, y, cardW, 40, '💝 Sedekah', [
-    ['Total Nominal', fmtRp(data.sedekah.totalAmount)],
-    ['Frekuensi', `${data.sedekah.totalCount}x`],
-    ['Jenis', data.sedekah.types.length > 0 ? data.sedekah.types.slice(0, 3).join(', ') : '-'],
-  ]);
-
-  y += 48;
-
-  // Tadarus
-  drawCard(10, y, cardW, 40, '📖 Tadarus', [
-    ['Total Ayat', `${data.tadarus.totalAyat}`],
-    ['Total Juz', `${data.tadarus.totalJuz}`],
-    ['Khatam Progress', `${data.tadarus.khatamProgress}%`],
-  ]);
-
-  // Summary
-  drawCard(15 + cardW, y, cardW, 40, '📊 Ringkasan', [
-    ['Total Aktivitas', `${data.habits.totalCompleted + data.olahraga.totalSessions + data.sedekah.totalCount}`],
-    ['Hari Aktif', `${data.meals.totalDays}`],
-    ['Konsistensi', `${data.habits.weeklyRate}%`],
-  ]);
-
-  // Footer
+function drawFooter(doc: jsPDF, config: TrackerConfig) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
   doc.setFontSize(7);
   doc.setTextColor(160, 160, 160);
-  doc.text(
-    config.whitelabel
-      ? `Digenerate pada ${new Date().toLocaleDateString('id-ID')}`
-      : `Digenerate oleh UmrohConnect pada ${new Date().toLocaleDateString('id-ID')}`,
-    pageW / 2,
-    pageH - 8,
-    { align: 'center' }
-  );
+  const footerText = config.whitelabel
+    ? (config.tagline || 'Printable Habit Tracker')
+    : 'UmrohConnect • Printable Habit Tracker';
+  doc.text(footerText, pageW / 2, pageH - 6, { align: 'center' });
+}
 
-  doc.save(`laporan-ibadah-${config.dateRange.start}.pdf`);
+function drawChecklistGrid(
+  doc: jsPDF, config: TrackerConfig, startY: number,
+  rows: string[], dayCount: number
+): number {
+  const colors = getColors(config);
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 8;
+  const labelW = config.orientation === 'landscape' ? 55 : 45;
+  const availW = pageW - margin * 2 - labelW;
+  const cellW = Math.min(availW / dayCount, 8);
+  const cellH = 7;
+  const gridW = labelW + cellW * dayCount;
+
+  let y = startY;
+
+  // Column headers (day numbers)
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  for (let d = 1; d <= dayCount; d++) {
+    doc.text(String(d), margin + labelW + (d - 1) * cellW + cellW / 2, y, { align: 'center' });
+  }
+  y += 3;
+
+  // Draw rows
+  rows.forEach((label, rowIdx) => {
+    const rowY = y + rowIdx * cellH;
+    // Alternate row bg
+    if (rowIdx % 2 === 0) {
+      doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+      doc.rect(margin, rowY, gridW, cellH, 'F');
+    }
+
+    // Label
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(40, 40, 40);
+    doc.text(label, margin + 2, rowY + cellH / 2 + 1.5);
+
+    // Cells
+    doc.setDrawColor(200, 200, 200);
+    for (let d = 0; d < dayCount; d++) {
+      doc.rect(margin + labelW + d * cellW, rowY, cellW, cellH, 'S');
+    }
+  });
+
+  // Border around grid
+  doc.setDrawColor(180, 180, 180);
+  doc.rect(margin, y, gridW, rows.length * cellH, 'S');
+
+  return y + rows.length * cellH + 5;
+}
+
+function drawTableGrid(
+  doc: jsPDF, config: TrackerConfig, startY: number,
+  columns: { label: string; width: number }[], rowCount: number
+): number {
+  const colors = getColors(config);
+  const margin = 8;
+  const cellH = 7;
+  let y = startY;
+
+  // Header row
+  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  let totalW = columns.reduce((s, c) => s + c.width, 0);
+  doc.rect(margin, y, totalW, cellH, 'F');
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  let cx = margin;
+  columns.forEach(col => {
+    doc.text(col.label, cx + 2, y + cellH / 2 + 1.5);
+    cx += col.width;
+  });
+  y += cellH;
+
+  // Data rows (empty)
+  for (let r = 0; r < rowCount; r++) {
+    const rowY = y + r * cellH;
+    if (r % 2 === 0) {
+      doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+      doc.rect(margin, rowY, totalW, cellH, 'F');
+    }
+    doc.setDrawColor(200, 200, 200);
+    cx = margin;
+    columns.forEach(col => {
+      doc.rect(cx, rowY, col.width, cellH, 'S');
+      cx += col.width;
+    });
+  }
+
+  doc.setDrawColor(180, 180, 180);
+  doc.rect(margin, startY, totalW, (rowCount + 1) * cellH, 'S');
+
+  return y + rowCount * cellH + 5;
+}
+
+function drawNotesSection(doc: jsPDF, y: number): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 8;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Catatan:', margin, y + 4);
+  y += 7;
+  doc.setDrawColor(200, 200, 200);
+  for (let i = 0; i < 4; i++) {
+    const lineY = y + i * 7;
+    doc.line(margin, lineY, pageW - margin, lineY);
+  }
+  return y + 28;
+}
+
+function getDefaultIbadahRows(config: TrackerConfig): string[] {
+  if (config.customHabits && config.customHabits.length > 0) {
+    return config.customHabits;
+  }
+  // Try localStorage habits
+  try {
+    const saved = JSON.parse(localStorage.getItem('habit_tracker_habits') || '[]');
+    if (Array.isArray(saved) && saved.length > 0) {
+      return saved.map((h: any) => h.name || h.id).slice(0, 15);
+    }
+  } catch { /* */ }
+  // Fallback to starter pack
+  return starterPackHabits.map(h => h.name);
+}
+
+// ===== Generator Functions =====
+
+export function generateBlankIbadahTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
+  const days = getDayCount(config.period);
+  const rows = getDefaultIbadahRows(config);
+
+  drawHeader(doc, config, `📿 TRACKER IBADAH - ${config.period === 'weekly' ? 'Mingguan' : 'Bulanan'}`);
+  let y = 34;
+  y = drawChecklistGrid(doc, config, y, rows, days);
+  y = drawNotesSection(doc, y);
+  drawFooter(doc, config);
+
+  doc.save(`tracker-ibadah-${config.period}.pdf`);
+}
+
+export function generateBlankOlahragaTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
+  const rowCount = getDayCount(config.period);
+  const colW = config.orientation === 'landscape' ? 56 : 42;
+
+  drawHeader(doc, config, `🏃 TRACKER OLAHRAGA - ${config.period === 'weekly' ? 'Mingguan' : 'Bulanan'}`);
+  let y = 34;
+  y = drawTableGrid(doc, config, y, [
+    { label: 'Tanggal', width: colW * 0.7 },
+    { label: 'Jenis Olahraga', width: colW },
+    { label: 'Durasi (menit)', width: colW * 0.8 },
+    { label: 'Intensitas', width: colW * 0.7 },
+    { label: 'Catatan', width: colW },
+  ], rowCount);
+  y = drawNotesSection(doc, y);
+  drawFooter(doc, config);
+
+  doc.save(`tracker-olahraga-${config.period}.pdf`);
+}
+
+export function generateBlankMealTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
+  const rowCount = getDayCount(config.period);
+  const colW = config.orientation === 'landscape' ? 52 : 38;
+
+  drawHeader(doc, config, `🍽️ TRACKER MAKANAN - ${config.period === 'weekly' ? 'Mingguan' : 'Bulanan'}`);
+  let y = 34;
+  y = drawTableGrid(doc, config, y, [
+    { label: 'Tanggal', width: colW * 0.7 },
+    { label: 'Menu Sahur', width: colW * 1.2 },
+    { label: 'Menu Berbuka', width: colW * 1.2 },
+    { label: 'Air (gelas)', width: colW * 0.6 },
+    { label: 'Catatan', width: colW },
+  ], rowCount);
+  drawFooter(doc, config);
+
+  doc.save(`tracker-makanan-${config.period}.pdf`);
+}
+
+export function generateBlankSedekahTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
+  const rowCount = getDayCount(config.period);
+  const colW = config.orientation === 'landscape' ? 52 : 38;
+
+  drawHeader(doc, config, `💝 TRACKER SEDEKAH - ${config.period === 'weekly' ? 'Mingguan' : 'Bulanan'}`);
+  let y = 34;
+  y = drawTableGrid(doc, config, y, [
+    { label: 'Tanggal', width: colW * 0.7 },
+    { label: 'Jenis Sedekah', width: colW * 1.1 },
+    { label: 'Nominal (Rp)', width: colW * 0.9 },
+    { label: 'Penerima', width: colW * 0.9 },
+    { label: 'Catatan', width: colW },
+  ], rowCount);
+  drawFooter(doc, config);
+
+  doc.save(`tracker-sedekah-${config.period}.pdf`);
+}
+
+export function generateBlankTadarusTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: config.orientation, unit: 'mm', format: 'a4' });
+  const colors = getColors(config);
+  const margin = 8;
+
+  drawHeader(doc, config, '📖 TRACKER TADARUS & KHATAM');
+  let y = 34;
+
+  // Juz Grid (6x5 = 30 boxes)
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.text('Progress Khatam (30 Juz)', margin, y + 4);
+  y += 7;
+
+  const boxSize = 12;
+  const cols = 10;
+  for (let j = 0; j < 30; j++) {
+    const col = j % cols;
+    const row = Math.floor(j / cols);
+    const bx = margin + col * (boxSize + 2);
+    const by = y + row * (boxSize + 2);
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    doc.roundedRect(bx, by, boxSize, boxSize, 1, 1, 'FD');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(String(j + 1), bx + boxSize / 2, by + boxSize / 2 + 1.5, { align: 'center' });
+  }
+  y += Math.ceil(30 / cols) * (boxSize + 2) + 8;
+
+  // Daily log table
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.text('Log Harian Tadarus', margin, y + 4);
+  y += 7;
+
+  const colW = config.orientation === 'landscape' ? 48 : 35;
+  const rowCount = config.period === 'weekly' ? 7 : 15;
+  y = drawTableGrid(doc, config, y, [
+    { label: 'Tanggal', width: colW * 0.7 },
+    { label: 'Surah', width: colW },
+    { label: 'Dari Ayat', width: colW * 0.7 },
+    { label: 'Sampai Ayat', width: colW * 0.7 },
+    { label: 'Juz', width: colW * 0.5 },
+    { label: 'Catatan', width: colW },
+  ], rowCount);
+
+  drawFooter(doc, config);
+  doc.save(`tracker-tadarus.pdf`);
+}
+
+export function generateAllInOneTracker(config: TrackerConfig): void {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const days = getDayCount(config.period);
+  const pageH = doc.internal.pageSize.getHeight();
+
+  // Page 1: Ibadah checklist (compact)
+  drawHeader(doc, { ...config, orientation: 'landscape' }, '📿 ALL-IN-ONE TRACKER');
+  const ibadahRows = getDefaultIbadahRows(config).slice(0, 8);
+  let y = 34;
+  y = drawChecklistGrid({ ...doc, internal: doc.internal } as any, { ...config, orientation: 'landscape' }, y, ibadahRows, days);
+
+  // Olahraga mini table
+  if (y + 50 < pageH) {
+    const colW = 40;
+    y = drawTableGrid(doc, { ...config, orientation: 'landscape' }, y, [
+      { label: 'Tgl', width: colW * 0.5 },
+      { label: 'Olahraga', width: colW },
+      { label: 'Durasi', width: colW * 0.6 },
+      { label: 'Sedekah (Rp)', width: colW * 0.8 },
+      { label: 'Air', width: colW * 0.4 },
+      { label: 'Tadarus', width: colW * 0.7 },
+    ], Math.min(days, 10));
+  }
+
+  drawFooter(doc, { ...config, orientation: 'landscape' });
+  doc.save(`tracker-all-in-one-${config.period}.pdf`);
+}
+
+// Main dispatch
+export function generateTracker(config: TrackerConfig): void {
+  switch (config.type) {
+    case 'ibadah': return generateBlankIbadahTracker(config);
+    case 'olahraga': return generateBlankOlahragaTracker(config);
+    case 'makanan': return generateBlankMealTracker(config);
+    case 'sedekah': return generateBlankSedekahTracker(config);
+    case 'tadarus': return generateBlankTadarusTracker(config);
+    case 'all-in-one': return generateAllInOneTracker(config);
+  }
 }
