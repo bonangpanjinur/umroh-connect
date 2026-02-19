@@ -11,6 +11,7 @@ import {
   BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PremiumUpgradeModal } from '@/components/premium/PremiumUpgradeModal';
@@ -38,14 +39,9 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
   const { user } = useAuthContext();
   const { isPremium } = useIsPremium();
   const { isInTrial, daysRemaining, hasEverStartedTrial, startTrial } = useFreeTrial();
+  const { isRamadhanMode, setRamadhanMode } = useRamadhanMode();
   const isRamadan = isCurrentlyRamadan();
   
-  const [isRamadhanMode, setIsRamadhanMode] = useState(() => {
-    const saved = localStorage.getItem('ramadhan_mode');
-    if (saved !== null) return saved === 'true';
-    return isRamadan; // Auto-detect
-  });
-
   // Default to ramadhan tab when in ramadhan mode
   const [activeTab, setActiveTab] = useState(() => isRamadhanMode ? 'ramadhan' : 'ibadah');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
@@ -77,9 +73,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
     });
   };
 
-  useEffect(() => {
-    localStorage.setItem('ramadhan_mode', isRamadhanMode.toString());
-  }, [isRamadhanMode]);
+  // Ramadan mode is managed by global context
 
   const currentMoodConfig = todayMood ? getMoodConfig(todayMood.mood) : null;
   const daysToIdulFitri = getDaysUntilIdulFitri();
@@ -270,7 +264,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
             <Switch 
               checked={isRamadhanMode} 
               onCheckedChange={(checked) => {
-                setIsRamadhanMode(checked);
+                setRamadhanMode(checked);
                 if (checked) setActiveTab('ramadhan');
               }}
               className="data-[state=checked]:bg-amber-500"

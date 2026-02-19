@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ElderlyModeProvider } from "./contexts/ElderlyModeContext";
+import { RamadhanModeProvider, useRamadhanMode } from "./contexts/RamadhanModeContext";
 import Index from "./pages/Index";
 import AgentOnboarding from "./pages/AgentOnboarding";
 import Auth from "./pages/Auth";
@@ -33,6 +34,40 @@ const queryClient = new QueryClient({
   },
 });
 
+const AppContent = () => {
+  const { isRamadhanMode } = useRamadhanMode();
+
+  return (
+    <AuthProvider>
+      <TooltipProvider>
+        <div className={`min-h-screen bg-background text-foreground transition-colors duration-300 ${isRamadhanMode ? 'ramadan-mode' : ''}`}>
+          <OfflineBanner />
+          <Toaster />
+          <Sonner />
+          <UpdatePrompt />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/offline" element={<OfflineManagerView />} />
+              <Route path="/daftar-agen" element={<AgentOnboarding />} />
+              <Route path="/admin/*" element={<AdminDashboard />} />
+              <Route path="/shop-admin/*" element={<ShopAdminDashboard />} />
+              <Route path="/agent/*" element={<AgentDashboard />} />
+              <Route path="/seller/*" element={<SellerDashboard />} />
+              <Route path="/travel/:slug" element={<AgentPublicProfile />} />
+              <Route path="/travel/:slug/:packageSlug" element={<AgentPublicProfile />} />
+              <Route path="/:slug" element={<PageDetail />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <InstallPWA />
+          </BrowserRouter>
+        </div>
+      </TooltipProvider>
+    </AuthProvider>
+  );
+};
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
@@ -52,44 +87,9 @@ const App = () => {
       <ThemeProvider>
         <LanguageProvider>
           <ElderlyModeProvider>
-            <AuthProvider>
-              <TooltipProvider>
-                <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-                  <OfflineBanner />
-                  <Toaster />
-                  <Sonner />
-                  <UpdatePrompt />
-                  <BrowserRouter>
-                    <Routes>
-                      {/* === LEVEL 1: STATIC PAGES === */}
-                      <Route path="/" element={<Index />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/offline" element={<OfflineManagerView />} />
-                      <Route path="/daftar-agen" element={<AgentOnboarding />} />
-
-                      {/* === LEVEL 2: PROTECTED ROUTES (Admin & Agent) === */}
-                      {/* Harus diletakkan SEBELUM rute dinamis */}
-                      <Route path="/admin/*" element={<AdminDashboard />} />
-                      <Route path="/shop-admin/*" element={<ShopAdminDashboard />} />
-                      <Route path="/agent/*" element={<AgentDashboard />} />
-                      <Route path="/seller/*" element={<SellerDashboard />} />
-                      
-                      {/* === LEVEL 3: PUBLIC PROFILES === */}
-                      {/* Agent Website: /travel/namatravel */}
-                      <Route path="/travel/:slug" element={<AgentPublicProfile />} />
-                      <Route path="/travel/:slug/:packageSlug" element={<AgentPublicProfile />} />
-
-                      {/* Static Pages: /tentang-kami, etc. */}
-                      <Route path="/:slug" element={<PageDetail />} />
-
-                      {/* === LEVEL 5: FALLBACK (404) === */}
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <InstallPWA />
-                  </BrowserRouter>
-                </div>
-              </TooltipProvider>
-            </AuthProvider>
+            <RamadhanModeProvider>
+              <AppContent />
+            </RamadhanModeProvider>
           </ElderlyModeProvider>
         </LanguageProvider>
       </ThemeProvider>
