@@ -128,14 +128,15 @@ export const useCreateSubscription = () => {
   });
 };
 
-// Admin: Get all subscriptions
+// Admin: Get all subscriptions with profile info
 export const useAllSubscriptions = () => {
   const { isAdmin } = useAuthContext();
 
   return useQuery({
     queryKey: ['all-subscriptions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get subscriptions
+      const { data: subs, error } = await supabase
         .from('user_subscriptions')
         .select(`
           *,
@@ -144,7 +145,23 @@ export const useAllSubscriptions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      if (!subs || subs.length === 0) return [];
+
+      // Get profiles for these users
+      const userIds = subs.map(s => s.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+
+      const profileMap = new Map(
+        (profiles || []).map(p => [p.user_id, p])
+      );
+
+      return subs.map(sub => ({
+        ...sub,
+        profile: profileMap.get(sub.user_id) || null,
+      }));
     },
     enabled: isAdmin(),
   });

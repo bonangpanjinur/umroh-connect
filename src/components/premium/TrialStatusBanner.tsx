@@ -15,7 +15,7 @@ interface TrialStatusBannerProps {
 const TrialStatusBanner = ({ onUpgrade, onNavigateToAuth }: TrialStatusBannerProps) => {
   const { user } = useAuthContext();
   const { isPremium } = useIsPremium();
-  const { isInTrial, daysRemaining, hasEverStartedTrial, hasTrialExpired, startTrial } = useFreeTrial();
+  const { isInTrial, daysRemaining, hasEverStartedTrial, hasTrialExpired, startTrial, trialDurationDays, trialEnabled } = useFreeTrial();
 
   // Already premium - show badge only
   if (isPremium) {
@@ -30,14 +30,15 @@ const TrialStatusBanner = ({ onUpgrade, onNavigateToAuth }: TrialStatusBannerPro
     );
   }
 
-  // Not logged in
+  // Not logged in - only show if trial enabled
   if (!user) {
+    if (!trialEnabled) return null;
     return (
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
         <CardContent className="py-3 px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs text-foreground">Login untuk coba Premium 30 hari gratis</span>
+            <span className="text-xs text-foreground">Login untuk coba Premium {trialDurationDays} hari gratis</span>
           </div>
           <Button size="sm" className="h-7 text-[10px]" onClick={onNavigateToAuth}>
             Login
@@ -49,7 +50,7 @@ const TrialStatusBanner = ({ onUpgrade, onNavigateToAuth }: TrialStatusBannerPro
 
   // Active trial
   if (isInTrial) {
-    const trialProgress = ((30 - daysRemaining) / 30) * 100;
+    const trialProgress = ((trialDurationDays - daysRemaining) / trialDurationDays) * 100;
     return (
       <Card className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-200">
         <CardContent className="py-3 px-4 space-y-2">
@@ -86,14 +87,14 @@ const TrialStatusBanner = ({ onUpgrade, onNavigateToAuth }: TrialStatusBannerPro
     );
   }
 
-  // Never started trial
-  if (!hasEverStartedTrial) {
+  // Never started trial - only show if trial enabled
+  if (!hasEverStartedTrial && trialEnabled) {
     return (
       <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-200">
         <CardContent className="py-3 px-4 flex items-center justify-between">
           <div>
             <p className="text-xs font-bold text-emerald-700 flex items-center gap-1">
-              <Gift className="w-3.5 h-3.5" /> Coba Premium 30 Hari Gratis!
+              <Gift className="w-3.5 h-3.5" /> Coba Premium {trialDurationDays} Hari Gratis!
             </p>
             <p className="text-[10px] text-muted-foreground">Cloud sync, kalkulator khatam, tips eksklusif</p>
           </div>

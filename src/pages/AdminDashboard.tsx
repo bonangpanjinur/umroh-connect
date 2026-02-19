@@ -93,7 +93,7 @@ const navGroups: NavGroup[] = [
     label: 'Pembayaran',
     items: [
       { id: 'payment', label: 'Gateway', icon: <Wallet className="h-4 w-4" /> },
-      { id: 'subscriptions', label: 'Premium', icon: <Crown className="h-4 w-4" /> },
+      { id: 'subscriptions', label: 'Langganan Tracker', icon: <Crown className="h-4 w-4" /> },
       { id: 'featured', label: 'Featured', icon: <Sparkles className="h-4 w-4" /> },
     ],
   },

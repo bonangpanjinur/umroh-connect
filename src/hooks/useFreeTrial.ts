@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { usePremiumTrialConfig } from '@/hooks/usePremiumConfig';
 
 interface TrialStatus {
   isInTrial: boolean;
@@ -9,16 +10,33 @@ interface TrialStatus {
   trialEndDate: string | null;
   hasTrialExpired: boolean;
   hasEverStartedTrial: boolean;
+  trialDurationDays: number;
+  trialEnabled: boolean;
 }
+
+const EMPTY: TrialStatus = {
+  isInTrial: false,
+  daysRemaining: 0,
+  trialStartDate: null,
+  trialEndDate: null,
+  hasTrialExpired: false,
+  hasEverStartedTrial: false,
+  trialDurationDays: 30,
+  trialEnabled: true,
+};
 
 export const useFreeTrial = () => {
   const { user } = useAuthContext();
   const queryClient = useQueryClient();
+  const { data: trialConfig } = usePremiumTrialConfig();
+
+  const durationDays = trialConfig?.durationDays ?? 30;
+  const trialEnabled = trialConfig?.enabled ?? true;
 
   const { data: trialStatus, isLoading } = useQuery({
-    queryKey: ['free-trial', user?.id],
+    queryKey: ['free-trial', user?.id, durationDays, trialEnabled],
     queryFn: async (): Promise<TrialStatus> => {
-      if (!user?.id) return { isInTrial: false, daysRemaining: 0, trialStartDate: null, trialEndDate: null, hasTrialExpired: false, hasEverStartedTrial: false };
+      if (!user?.id) return { ...EMPTY, trialDurationDays: durationDays, trialEnabled };
 
       const { data, error } = await supabase
         .from('user_subscriptions')
@@ -28,13 +46,15 @@ export const useFreeTrial = () => {
 
       if (error) throw error;
 
-      // If user has active paid subscription, no trial needed
+      const base = { trialDurationDays: durationDays, trialEnabled };
+
+      // Active paid subscription
       if (data?.status === 'active' && data?.end_date && new Date(data.end_date) > new Date()) {
-        return { isInTrial: false, daysRemaining: 0, trialStartDate: null, trialEndDate: null, hasTrialExpired: false, hasEverStartedTrial: true };
+        return { ...EMPTY, ...base, hasEverStartedTrial: true };
       }
 
       if (!data?.trial_start_date) {
-        return { isInTrial: false, daysRemaining: 0, trialStartDate: null, trialEndDate: null, hasTrialExpired: false, hasEverStartedTrial: false };
+        return { ...EMPTY, ...base };
       }
 
       const now = new Date();
@@ -49,6 +69,7 @@ export const useFreeTrial = () => {
         trialEndDate: data.trial_end_date,
         hasTrialExpired: !isInTrial,
         hasEverStartedTrial: true,
+        ...base,
       };
     },
     enabled: !!user?.id,
@@ -57,10 +78,11 @@ export const useFreeTrial = () => {
   const startTrial = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('Not authenticated');
+      if (!trialEnabled) throw new Error('Trial is disabled');
 
       const now = new Date();
       const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 30);
+      trialEnd.setDate(trialEnd.getDate() + durationDays);
 
       const { error } = await supabase
         .from('user_subscriptions')
@@ -80,21 +102,13 @@ export const useFreeTrial = () => {
   });
 
   return {
-    ...(trialStatus || { isInTrial: false, daysRemaining: 0, trialStartDate: null, trialEndDate: null, hasTrialExpired: false, hasEverStartedTrial: false }),
+    ...(trialStatus || { ...EMPTY, trialDurationDays: durationDays, trialEnabled }),
     isLoading,
     startTrial,
   };
 };
 
-// Helper: check if user has premium access (paid OR trial)
 export const useHasPremiumAccess = () => {
   const { isInTrial } = useFreeTrial();
-  const { data: subscription } = useQuery({
-    queryKey: ['user-subscription-check'],
-    queryFn: async () => null, // handled by useIsPremium
-    enabled: false,
-  });
-
-  // Import useIsPremium separately for paid check
   return { hasPremiumAccess: isInTrial };
 };
