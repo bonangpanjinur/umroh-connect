@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { ElderlyModeProvider } from "./contexts/ElderlyModeContext";
 import Index from "./pages/Index";
+import AgentOnboarding from "./pages/AgentOnboarding";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -64,6 +65,7 @@ const App = () => {
                       <Route path="/" element={<Index />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/offline" element={<OfflineManagerView />} />
+                      <Route path="/daftar-agen" element={<AgentOnboarding />} />
 
                       {/* === LEVEL 2: PROTECTED ROUTES (Admin & Agent) === */}
                       {/* Harus diletakkan SEBELUM rute dinamis */}
