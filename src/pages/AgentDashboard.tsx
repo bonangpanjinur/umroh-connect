@@ -116,7 +116,8 @@ const AgentDashboard = () => {
 
   const handleShare = () => {
     if (travel) {
-      const url = `${window.location.origin}/travel/${travel.id}`;
+      const slug = (travel as any).admin_approved_slug || travel.id;
+      const url = `${window.location.origin}/travel/${slug}`;
       navigator.clipboard.writeText(url);
       toast.success('Link profil travel berhasil disalin!');
     }
