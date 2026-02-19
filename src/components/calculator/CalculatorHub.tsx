@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BookOpen, Calendar, Coins, Wallet, Plane, PiggyBank, CreditCard, Gem } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar, Coins, Wallet, Plane, Landmark, CreditCard, Gem } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import KhatamCalculatorFull from './KhatamCalculatorFull';
 import QadhaPuasaCalculator from './QadhaPuasaCalculator';
@@ -19,7 +19,7 @@ const calculators = [
   { id: 'fidyah' as CalcId, label: 'Fidyah', icon: Coins, color: 'from-amber-500 to-amber-600', category: 'Ibadah' },
   { id: 'zakat' as CalcId, label: 'Zakat', icon: Wallet, color: 'from-teal-500 to-teal-600', category: 'Ibadah' },
   { id: 'umroh' as CalcId, label: 'Biaya Umroh', icon: Plane, color: 'from-blue-500 to-blue-600', category: 'Keuangan' },
-  { id: 'haji' as CalcId, label: 'Tabungan Haji', icon: PiggyBank, color: 'from-purple-500 to-purple-600', category: 'Keuangan' },
+  { id: 'haji' as CalcId, label: 'Tabungan Haji', icon: Landmark, color: 'from-purple-500 to-purple-600', category: 'Keuangan' },
   { id: 'cicilan' as CalcId, label: 'Cicilan Syariah', icon: CreditCard, color: 'from-indigo-500 to-indigo-600', category: 'Keuangan' },
   { id: 'emas' as CalcId, label: 'Emas Syariah', icon: Gem, color: 'from-yellow-500 to-yellow-600', category: 'Keuangan' },
 ];
