@@ -114,10 +114,12 @@ export const PdfTrackerPreview = ({ type, period, theme, userName, whitelabel, t
             </div>
 
             {/* Name box */}
-            <div className="w-[80%] z-10 rounded px-2 py-1.5" style={{ backgroundColor: `${colors.primaryLight}50` }}>
-              <p className="text-[5px] text-white/70">Nama:</p>
-              <p className="text-[7px] font-bold text-white">{userName || '________________________________'}</p>
-            </div>
+            {userName && (
+              <div className="w-[80%] z-10 rounded px-2 py-1.5" style={{ backgroundColor: `${colors.primaryLight}50` }}>
+                <p className="text-[5px] text-white/70">Nama:</p>
+                <p className="text-[7px] font-bold text-white">{userName}</p>
+              </div>
+            )}
 
             {/* Footer */}
             <div className="text-center z-10 mb-1">
@@ -134,7 +136,7 @@ export const PdfTrackerPreview = ({ type, period, theme, userName, whitelabel, t
               <div className="flex-1">
                 <p className="font-bold text-[8px] text-white">{info.emoji} {info.title}</p>
                 <p className="text-[5px] text-white/80">
-                  {userName || '___________'} • Februari 2026
+                  {[userName, 'Februari 2026'].filter(Boolean).join(' • ')}
                 </p>
               </div>
               {!whitelabel && <span className="text-[4px] text-white/60">UmrohConnect</span>}
