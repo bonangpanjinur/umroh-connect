@@ -93,7 +93,7 @@ export const useCreateSubscription = () => {
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_subscriptions')
         .upsert({
           user_id: user.id,
