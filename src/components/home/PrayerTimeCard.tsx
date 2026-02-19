@@ -1,10 +1,12 @@
-import { MapPin, Compass, Volume2, Bell, Droplets, Palette, Clock } from 'lucide-react';
+import { MapPin, Compass, Volume2, Bell, Droplets, Palette, Clock, Moon, Sunset } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
+import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 import { useAdzanNotifications } from '@/hooks/useAdzanNotifications';
 import { useWeather } from '@/hooks/useWeather';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import QiblaModal from '@/components/modals/QiblaModal';
 import defaultMasjidImage from '@/assets/default-masjid.jpg';
@@ -105,6 +107,7 @@ interface PrayerTimeCardProps {
 
 const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
+  const { isRamadhanMode } = useRamadhanMode();
   const { times, location, loading, prayerList, refresh } = usePrayerTimes();
   const { preferences, permission, enableAll } = useAdzanNotifications();
   const { makkahWeather, madinahWeather, isLoading: weatherLoading } = useWeather();
@@ -184,13 +187,31 @@ const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) 
     );
   }
 
-  // Get next 3 prayers to display
+  // Get next prayers to display
   const upcomingPrayers = prayerList
     .filter(p => !p.passed || p.active)
     .slice(0, 5);
 
   // If all prayers passed, show first 5 for tomorrow
   const displayPrayers = upcomingPrayers.length > 0 ? upcomingPrayers : prayerList.slice(0, 5);
+
+  // Ramadan extra times from API
+  const imsakTime = (times as any)?.imsak || null;
+  const iftarTime = times?.maghrib || null;
+
+  // Calculate iftar countdown
+  const getIftarCountdown = () => {
+    if (!iftarTime) return '';
+    const now = new Date();
+    const [h, m] = iftarTime.split(':').map(Number);
+    const iftarSec = h * 3600 + m * 60;
+    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    let remaining = iftarSec - nowSec;
+    if (remaining <= 0) return '';
+    const rh = Math.floor(remaining / 3600);
+    const rm = Math.floor((remaining % 3600) / 60);
+    return `${rh}j ${rm}m`;
+  };
 
   return (
     <>
@@ -306,6 +327,31 @@ const PrayerTimeCard = ({ onQiblaClick, onLocationClick }: PrayerTimeCardProps) 
               </span>
             </p>
           </div>
+
+          {/* Ramadan Imsak & Iftar Strip */}
+          {isRamadhanMode && imsakTime && (
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-foreground/15 border border-primary-foreground/20">
+                <Moon className="w-3.5 h-3.5 text-yellow-300" />
+                <div className="text-center">
+                  <span className="text-[10px] block opacity-70">Imsak</span>
+                  <span className="text-sm font-bold">{imsakTime}</span>
+                </div>
+              </div>
+              <div className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-foreground/15 border border-primary-foreground/20">
+                <Sunset className="w-3.5 h-3.5 text-orange-300" />
+                <div className="text-center">
+                  <span className="text-[10px] block opacity-70">Berbuka</span>
+                  <span className="text-sm font-bold">{iftarTime}</span>
+                </div>
+                {getIftarCountdown() && (
+                  <Badge className="bg-orange-500/80 text-white text-[9px] px-1.5 py-0">
+                    {getIftarCountdown()}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Prayer Times Row - Compact horizontal scroll */}
           <div className={`flex gap-1.5 overflow-x-auto hide-scrollbar justify-center mb-3`}>
