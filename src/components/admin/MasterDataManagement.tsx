@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Pencil, Trash2, Hotel, Plane, Star } from 'lucide-react';
 import { useAllHotels, useCreateHotel, useUpdateHotel, useDeleteHotel, useAllAirlines, useCreateAirline, useUpdateAirline, useDeleteAirline } from '@/hooks/useMasterData';
 import { Hotel as HotelType, Airline } from '@/types/database';
+import { ImageUpload } from '../common/ImageUpload';
 
 export const MasterDataManagement = () => {
   const [activeTab, setActiveTab] = useState('hotels');
@@ -251,33 +252,62 @@ const AirlinesTab = () => {
     }
   };
 
-  const AirlineForm = ({ airline, isEdit }: { airline?: Airline | null; isEdit: boolean }) => (
-    <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nama Maskapai *</Label>
-          <Input id="name" name="name" defaultValue={airline?.name} required />
+  const AirlineForm = ({ airline, isEdit }: { airline?: Airline | null; isEdit: boolean }) => {
+    const [logoUrl, setLogoUrl] = useState(airline?.logo_url || '');
+
+    return (
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const formData = new FormData(form);
+        
+        const data = {
+          name: formData.get('name') as string,
+          code: formData.get('code') as string || null,
+          logo_url: logoUrl || null,
+          is_active: formData.get('is_active') === 'on',
+        };
+
+        if (isEdit && editAirline) {
+          updateAirline.mutateAsync({ id: editAirline.id, ...data }).then(() => setEditAirline(null));
+        } else {
+          createAirline.mutateAsync(data).then(() => setIsAddOpen(false));
+        }
+      }} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nama Maskapai *</Label>
+            <Input id="name" name="name" defaultValue={airline?.name} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="code">Kode (IATA)</Label>
+            <Input id="code" name="code" defaultValue={airline?.code || ''} placeholder="GA" maxLength={3} />
+          </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="code">Kode (IATA)</Label>
-          <Input id="code" name="code" defaultValue={airline?.code || ''} placeholder="GA" maxLength={3} />
+          <Label>Logo Maskapai</Label>
+          <ImageUpload
+            bucket="uploads"
+            folder="airlines"
+            currentUrl={logoUrl}
+            onUpload={setLogoUrl}
+            onRemove={() => setLogoUrl('')}
+            aspectRatio="square"
+            className="w-24"
+          />
         </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="logo_url">URL Logo</Label>
-        <Input id="logo_url" name="logo_url" defaultValue={airline?.logo_url || ''} placeholder="https://..." />
-      </div>
-      <div className="flex items-center gap-2">
-        <Switch id="is_active" name="is_active" defaultChecked={airline?.is_active ?? true} />
-        <Label htmlFor="is_active">Aktif</Label>
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={createAirline.isPending || updateAirline.isPending}>
-          {isEdit ? 'Update' : 'Simpan'}
-        </Button>
-      </div>
-    </form>
-  );
+        <div className="flex items-center gap-2">
+          <Switch id="is_active" name="is_active" defaultChecked={airline?.is_active ?? true} />
+          <Label htmlFor="is_active">Aktif</Label>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button type="submit" disabled={createAirline.isPending || updateAirline.isPending}>
+            {isEdit ? 'Update' : 'Simpan'}
+          </Button>
+        </div>
+      </form>
+    );
+  };
 
   if (isLoading) {
     return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
