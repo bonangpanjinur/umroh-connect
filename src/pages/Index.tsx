@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { TabId } from '@/types';
@@ -19,13 +19,10 @@ import JournalView from '@/components/journal/JournalView';
 import DoaView from '@/components/doa/DoaView';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import OfflineManagerView from '@/components/offline/OfflineManagerView';
-import PackingListGenerator from '@/components/packing/PackingListGenerator';
 import CurrencyConverter from '@/components/currency/CurrencyConverter';
-import GroupTrackingView from '@/components/tracking/GroupTrackingView';
 import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import IbadahHubView from '@/components/habit/IbadahHubView';
-import SavingsCalculatorView from '@/components/savings/SavingsCalculatorView';
 import CalculatorHub from '@/components/calculator/CalculatorHub';
 import ShopView from '@/components/shop/ShopView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
@@ -33,30 +30,26 @@ import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
+// Views that render as full sub-pages (hide bottom nav)
+const FULLSCREEN_VIEWS = ['shop', 'quran', 'ibadah', 'savings', 'reviews', 'manasik', 'maps', 'reminder', 'journal', 'doa', 'notifications', 'offline'] as const;
+type FullscreenView = typeof FULLSCREEN_VIEWS[number];
+
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  
   const tabFromUrl = searchParams.get('tab') as TabId | null;
+  const viewFromUrl = searchParams.get('view') as FullscreenView | null;
+  
   const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || 'home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
-  const [showManasik, setShowManasik] = useState(false);
-  const [showMaps, setShowMaps] = useState(false);
-  const [showReminder, setShowReminder] = useState(false);
-  const [showJournal, setShowJournal] = useState(false);
-  const [showDoa, setShowDoa] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showOffline, setShowOffline] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
-
-  const [showReviews, setShowReviews] = useState(false);
-  const [showQuran, setShowQuran] = useState(false);
-  const [showIbadahHub, setShowIbadahHub] = useState(false);
-  const [showSavings, setShowSavings] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  const [showShop, setShowShop] = useState(false);
+
+  const activeView = viewFromUrl;
 
   const handlePackageClick = (packageId: string) => {
     setSelectedPackageId(packageId);
@@ -80,6 +73,14 @@ const Index = () => {
     }
   };
 
+  const openView = useCallback((view: string) => {
+    setSearchParams({ view });
+  }, [setSearchParams]);
+
+  const closeView = useCallback(() => {
+    setSearchParams({});
+  }, [setSearchParams]);
+
   const handleMenuClick = (menuId: string) => {
     switch (menuId) {
       case 'tasbih':
@@ -89,25 +90,25 @@ const Index = () => {
         setIsQiblaOpen(true);
         break;
       case 'doa':
-        setShowManasik(true);
+        openView('manasik');
         break;
       case 'peta':
-        setShowMaps(true);
+        openView('maps');
         break;
       case 'reminder':
-        setShowReminder(true);
+        openView('reminder');
         break;
       case 'journal':
-        setShowJournal(true);
+        openView('journal');
         break;
       case 'doaharian':
-        setShowDoa(true);
+        openView('doa');
         break;
       case 'notifikasi':
-        setShowNotifications(true);
+        openView('notifications');
         break;
       case 'offline':
-        setShowOffline(true);
+        openView('offline');
         break;
       case 'feedback':
         setShowFeedback(true);
@@ -115,24 +116,22 @@ const Index = () => {
       case 'kurs':
         setShowCurrency(true);
         break;
-
       case 'reviews':
-        setShowReviews(true);
+        openView('reviews');
         break;
       case 'quran':
-        setShowQuran(true);
+        openView('quran');
         break;
       case 'ibadah':
-        setShowIbadahHub(true);
+        openView('ibadah');
         break;
       case 'tabungan':
-        setShowSavings(true);
+        openView('savings');
         break;
       case 'shop':
-        setShowShop(true);
+        openView('shop');
         break;
       case 'seller':
-        // Seller access is now managed via admin role assignment
         break;
       default:
         break;
@@ -140,115 +139,84 @@ const Index = () => {
   };
 
   const renderView = () => {
-    // Show Shop
-    if (showShop) {
-      return <ShopView onBack={() => setShowShop(false)} />;
+    // Route-based sub-views
+    if (activeView === 'shop') {
+      return <ShopView onBack={closeView} />;
     }
 
-    // Show Ibadah Hub (combined Ibadah, Sedekah, Olahraga, Ramadhan)
-    if (showIbadahHub) {
+    if (activeView === 'ibadah') {
       return (
         <div className="min-h-screen bg-background">
           <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowIbadahHub(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
+            <button onClick={closeView} className="p-2 rounded-full hover:bg-muted">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-lg">Ibadah & Tracking</h2>
           </div>
           <IbadahHubView 
-            onOpenTasbih={() => {
-              setShowIbadahHub(false);
-              setIsTasbihOpen(true);
-            }} 
-            onOpenQuran={() => {
-              setShowIbadahHub(false);
-              setShowQuran(true);
-            }}
+            onOpenTasbih={() => { closeView(); setIsTasbihOpen(true); }} 
+            onOpenQuran={() => { setSearchParams({ view: 'quran' }); }}
           />
         </div>
       );
     }
 
-    // Show Calculator Hub
-    if (showSavings) {
+    if (activeView === 'savings') {
       return (
         <CalculatorHub 
-          onBack={() => setShowSavings(false)} 
-          onViewPackages={() => {
-            setShowSavings(false);
-            handleTabChange('paket');
-          }}
+          onBack={closeView} 
+          onViewPackages={() => { closeView(); handleTabChange('paket'); }}
         />
       );
     }
 
-    // Show Al-Quran Reader
-    if (showQuran) {
-      return <QuranView onBack={() => setShowQuran(false)} />;
+    if (activeView === 'quran') {
+      return <QuranView onBack={closeView} />;
     }
 
-    // Show Public Reviews
-    if (showReviews) {
-      return <PublicReviewsView onBack={() => setShowReviews(false)} />;
+    if (activeView === 'reviews') {
+      return <PublicReviewsView onBack={closeView} />;
     }
 
-
-
-
-
-    // Show Offline Manager
-    if (showOffline) {
+    if (activeView === 'offline') {
       return (
         <div className="min-h-screen bg-background">
           <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
-            <button 
-              onClick={() => setShowOffline(false)}
-              className="p-2 rounded-full hover:bg-muted"
-            >
+            <button onClick={closeView} className="p-2 rounded-full hover:bg-muted">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h2 className="font-bold text-lg">Offline Manager</h2>
           </div>
-          <div className="p-4">
-            <OfflineManagerView />
-          </div>
+          <div className="p-4"><OfflineManagerView /></div>
         </div>
       );
     }
 
-    // Show Notification Center
-    if (showNotifications) {
-      return <NotificationCenter onBack={() => setShowNotifications(false)} />;
+    if (activeView === 'notifications') {
+      return <NotificationCenter onBack={closeView} />;
     }
 
-    // Show Doa view
-    if (showDoa) {
-      return <DoaView onBack={() => setShowDoa(false)} />;
+    if (activeView === 'doa') {
+      return <DoaView onBack={closeView} />;
     }
 
-    // Show Journal view
-    if (showJournal) {
-      return <JournalView onBack={() => setShowJournal(false)} />;
+    if (activeView === 'journal') {
+      return <JournalView onBack={closeView} />;
     }
 
-    // Show Reminder view
-    if (showReminder) {
-      return <ReminderView onBack={() => setShowReminder(false)} />;
+    if (activeView === 'reminder') {
+      return <ReminderView onBack={closeView} />;
     }
 
-    // Show Maps view when peta menu is clicked
-    if (showMaps) {
-      return <MapsView onBack={() => setShowMaps(false)} />;
+    if (activeView === 'maps') {
+      return <MapsView onBack={closeView} />;
     }
 
-    // Show Manasik view when doa menu is clicked
-    if (showManasik) {
-      return <ManasikView onBack={() => setShowManasik(false)} />;
+    if (activeView === 'manasik') {
+      return <ManasikView onBack={closeView} />;
     }
 
+    // Tab-based main views
     switch (activeTab) {
       case 'home':
         return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
@@ -275,32 +243,27 @@ const Index = () => {
     }
   };
 
+  const isFullscreenView = activeView && FULLSCREEN_VIEWS.includes(activeView);
+
   return (
     <div className="min-h-screen bg-secondary/30 flex justify-center">
-      {/* PWA Install Prompt */}
       <PWAInstallPrompt />
-      
-      {/* App Container - Mobile viewport simulation */}
       <div className="w-full max-w-md bg-background min-h-screen relative shadow-float">
         <AppHeader onSOSClick={() => setIsSOSOpen(true)} />
-        
         <main className="animate-fade-in">
           <AnimatePresence mode="wait">
             {renderView()}
           </AnimatePresence>
         </main>
         
-        {!showManasik && !showMaps && !showReminder && !showJournal && !showDoa && !showNotifications && !showReviews && !showQuran && !showIbadahHub && !showSavings && !showShop && (
+        {!isFullscreenView && (
           <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
         )}
         
-        {/* Modals */}
         <SOSModal isOpen={isSOSOpen} onClose={() => setIsSOSOpen(false)} />
         <TasbihModal isOpen={isTasbihOpen} onClose={() => setIsTasbihOpen(false)} />
         <QiblaModal isOpen={isQiblaOpen} onClose={() => setIsQiblaOpen(false)} />
         <CurrencyConverter isOpen={showCurrency} onClose={() => setShowCurrency(false)} />
-        
-        {/* Feedback Form Modal */}
         <FeedbackForm isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
       </div>
     </div>
