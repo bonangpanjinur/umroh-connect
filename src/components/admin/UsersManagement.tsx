@@ -52,7 +52,8 @@ export const UsersManagement = () => {
   const filteredUsers = users?.filter(user => {
     const matchesSearch = 
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.includes(searchTerm);
+      user.phone?.includes(searchTerm) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -241,9 +242,10 @@ export const UsersManagement = () => {
       <CardContent>
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Telepon</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
@@ -253,10 +255,10 @@ export const UsersManagement = () => {
             </TableHeader>
             <TableBody>
               {filteredUsers?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Tidak ada pengguna ditemukan
-                  </TableCell>
+               <TableRow>
+                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                     Tidak ada pengguna ditemukan
+                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUsers?.map((user) => (
@@ -265,7 +267,10 @@ export const UsersManagement = () => {
                       <div className="flex items-center gap-2">
                         {user.is_suspended && <Ban className="h-4 w-4 text-destructive" />}
                         {user.full_name || 'Belum diisi'}
-                      </div>
+                     </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">{user.email || '-'}</span>
                     </TableCell>
                     <TableCell>{user.phone || '-'}</TableCell>
                     <TableCell>{getRoleBadge(user.role)}</TableCell>

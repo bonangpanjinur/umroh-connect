@@ -2,6 +2,7 @@ import { AlertTriangle, Moon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
+import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,9 @@ const langOptions: { code: Language; label: string; flag: string }[] = [
 const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
   const { isRamadhanMode, toggleRamadhanMode } = useRamadhanMode();
   const { language, setLanguage } = useLanguage();
+  const { data: platformConfig } = usePlatformConfig();
+  const siteName = platformConfig?.site_name || 'Arah Umroh';
+  const siteDesc = platformConfig?.site_description || 'Marketplace & Ibadah';
 
   return (
     <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex justify-between items-center">
@@ -38,10 +42,10 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
         </motion.div>
         <div className="flex flex-col">
           <h1 className="font-bold text-lg text-primary leading-none tracking-tight">
-            {isRamadhanMode ? 'Ramadhan Kareem' : 'Arah Umroh'}
+            {isRamadhanMode ? 'Ramadhan Kareem' : siteName}
           </h1>
           <span className="text-[10px] text-muted-foreground font-medium">
-            {isRamadhanMode ? 'Mode Ramadhan Aktif ✨' : 'Marketplace & Ibadah'}
+            {isRamadhanMode ? 'Mode Ramadhan Aktif ✨' : siteDesc}
           </span>
         </div>
       </div>

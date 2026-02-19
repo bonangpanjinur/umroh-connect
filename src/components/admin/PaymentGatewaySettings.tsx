@@ -42,6 +42,7 @@ interface PaymentGatewayConfig {
   webhookUrl?: string;
   autoVerify: boolean;
   paymentMethods: PaymentMethod[];
+  paymentDeadlineHours?: number;
 }
 
 const defaultPaymentMethods: PaymentMethod[] = [
@@ -363,21 +364,33 @@ export const PaymentGatewaySettings = () => {
                       />
                     </div>
                     {method.enabled && (
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div>
-                          <Label className="text-xs">Nomor Rekening</Label>
-                          <Input
-                            value={method.accountNumber || ''}
-                            onChange={(e) => updatePaymentMethod(method.id, 'accountNumber', e.target.value)}
-                            placeholder="1234567890"
-                          />
+                      <div className="grid gap-3">
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div>
+                            <Label className="text-xs">Nomor Rekening</Label>
+                            <Input
+                              value={method.accountNumber || ''}
+                              onChange={(e) => updatePaymentMethod(method.id, 'accountNumber', e.target.value)}
+                              placeholder="1234567890"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Nama Pemilik</Label>
+                            <Input
+                              value={method.accountName || ''}
+                              onChange={(e) => updatePaymentMethod(method.id, 'accountName', e.target.value)}
+                              placeholder="PT Arah Umroh"
+                            />
+                          </div>
                         </div>
                         <div>
-                          <Label className="text-xs">Nama Pemilik</Label>
-                          <Input
-                            value={method.accountName || ''}
-                            onChange={(e) => updatePaymentMethod(method.id, 'accountName', e.target.value)}
-                            placeholder="PT Arah Umroh"
+                          <Label className="text-xs">Instruksi Pembayaran</Label>
+                          <Textarea
+                            value={method.instructions || ''}
+                            onChange={(e) => updatePaymentMethod(method.id, 'instructions', e.target.value)}
+                            placeholder="Contoh: Transfer ke rekening BCA atas nama PT Arah Umroh. Cantumkan kode booking di berita transfer."
+                            rows={2}
+                            className="text-xs"
                           />
                         </div>
                       </div>
@@ -500,6 +513,51 @@ export const PaymentGatewaySettings = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Payment Deadline */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">⏰ Batas Waktu Pembayaran</CardTitle>
+              <CardDescription>
+                Tentukan berapa jam batas waktu pembayaran setelah pesanan dibuat
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="max-w-[200px] space-y-2">
+                <Label>Deadline (jam)</Label>
+                <Input
+                  type="number"
+                  value={config.paymentDeadlineHours ?? 24}
+                  onChange={(e) => setConfig(prev => ({ ...prev, paymentDeadlineHours: parseInt(e.target.value) || 24 }))}
+                  min={1}
+                  max={168}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Default: 24 jam. Pesanan yang melewati deadline akan ditandai expired.</p>
+              <Button onClick={handleSaveConfig} size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Simpan
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Security Warning */}
+          {config.provider !== 'manual' && (
+            <Card className="border-amber-300 bg-amber-50/50">
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <p className="font-semibold text-amber-800">Keamanan API Key</p>
+                    <p className="text-amber-700 mt-1">
+                      API Key yang tersimpan di sini ada di database. Untuk keamanan lebih baik, simpan Server Key / Secret Key 
+                      di environment variable (secrets) bukan di database.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

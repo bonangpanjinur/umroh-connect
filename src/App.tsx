@@ -10,6 +10,7 @@ import { ElderlyModeProvider } from "./contexts/ElderlyModeContext";
 import { RamadhanModeProvider, useRamadhanMode } from "./contexts/RamadhanModeContext";
 import Index from "./pages/Index";
 import AgentOnboarding from "./pages/AgentOnboarding";
+import SellerRegistration from "./pages/SellerRegistration";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -51,6 +52,7 @@ const AppContent = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/offline" element={<OfflineManagerView />} />
               <Route path="/daftar-agen" element={<AgentOnboarding />} />
+              <Route path="/daftar-seller" element={<SellerRegistration />} />
               <Route path="/admin/*" element={<AdminDashboard />} />
               <Route path="/shop-admin/*" element={<ShopAdminDashboard />} />
               <Route path="/agent/*" element={<AgentDashboard />} />
