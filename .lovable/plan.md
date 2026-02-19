@@ -1,114 +1,173 @@
 
+# Rencana Perbaikan & Penyempurnaan Sistem (9 Poin)
 
-# Analisis Lengkap & Rencana Perbaikan Sistem
+## 1. Link Pendaftaran Seller di Admin Dashboard
 
-## Temuan Masalah Aktif
+**Masalah**: Admin tidak bisa membagikan link pendaftaran khusus seller. Form pendaftaran hanya muncul jika user sudah login dan membuka /seller.
 
-### A. Bug & Error di Console
-1. **React ref warning di MealTrackingView** -- Dialog component tidak menggunakan `forwardRef`, menyebabkan warning di console setiap kali Ibadah Hub dibuka.
+**Solusi**:
+- Tambah halaman publik `/daftar-seller` yang bisa diakses tanpa login (redirect ke /auth dulu jika belum login, lalu kembali ke form)
+- Di `SellerManagement.tsx`, tambah card di bagian atas dengan URL pendaftaran yang bisa di-copy admin
+- Tombol "Salin Link Pendaftaran" yang menyalin URL `{origin}/daftar-seller`
+- Buat route baru di `App.tsx` untuk `/daftar-seller`
 
-### B. Keamanan (dari Linter - 3 issue)
-1. **Security Definer View (ERROR)** -- View menggunakan permission creator, bukan user yang query. Berbahaya karena bypass RLS.
-2. **RLS Policy Always True (WARN)** -- Ada policy INSERT/UPDATE/DELETE yang menggunakan `USING(true)` atau `WITH CHECK(true)` tanpa filter user.
-3. **Leaked Password Protection Disabled (WARN)** -- Proteksi password bocor belum diaktifkan di auth config.
-
-### C. Agent Dashboard
-1. **Share URL masih pakai `travel.id`** -- `handleShare()` di baris 119 masih menyalin `/travel/${travel.id}` bukan `/travel/${travel.admin_approved_slug || travel.id}`. Card status website sudah benar, tapi tombol share belum.
-
-### D. Seller Dashboard (Masih banyak placeholder)
-1. **Tab "Statistik" kosong** -- Hanya placeholder text, tidak ada data penjualan.
-2. **Tab "Pengaturan" read-only** -- Tidak bisa edit nama toko, telepon, kota.
-3. **Tidak ada order management** -- Seller tidak bisa lihat pesanan untuk produknya.
-
-### E. Checkout User
-1. **Tidak ada info pembayaran** -- Setelah order dibuat, user tidak tahu harus transfer ke mana. Tidak ada info bank/QRIS yang ditampilkan.
-
-### F. Shop Admin Dashboard
-1. **Terlalu sederhana** -- Hanya 4 tab dengan komponen yang sama persis dengan yang ada di Admin. Tidak ada fitur unik (seller management, invoice).
+**File yang diubah**:
+- `src/App.tsx` -- tambah route `/daftar-seller`
+- `src/components/admin/SellerManagement.tsx` -- tambah card link pendaftaran dengan tombol copy
+- Buat `src/pages/SellerRegistration.tsx` -- halaman publik pendaftaran seller
 
 ---
 
-## Rencana Implementasi (Prioritas)
+## 2. Pengaturan Membership Dinamis
 
-### Tahap 1: Fix Bug & Keamanan
+**Masalah**: Data membership (MEMBERSHIP_PLANS) di-hardcode di `useAgentMembership.ts` dengan harga tetap (Free/Pro Rp2jt/Premium Rp7.5jt). Tidak bisa diubah dari admin. `PlatformSettings` punya field harga membership tapi dengan nama tier berbeda (basic/premium/enterprise) dan tidak sinkron dengan MEMBERSHIP_PLANS.
 
-**1.1 Fix MealTrackingView ref warning**
-- Wrap komponen Dialog child dengan `React.forwardRef` di `MealTrackingView.tsx`
+**Solusi**:
+- Sinkronkan nama tier di PlatformSettings agar sesuai: Free, Pro, Premium
+- Buat `MEMBERSHIP_PLANS` membaca harga dari `platform_settings` (key: `membership_prices`) sehingga admin bisa mengubah harga
+- Tambah pengaturan fitur/limit per tier yang bisa diedit admin (maxPackages, maxTemplates, dll)
+- Buat komponen `MembershipConfigPanel` di admin settings dengan editor lengkap per tier
 
-**1.2 Fix RLS policies yang terlalu permisif**
-- Query analytics DB untuk identifikasi tabel dengan policy `USING(true)` pada write operations
-- Buat migration SQL untuk mengganti dengan policy yang cek `auth.uid()`
-- Pastikan tabel publik (produk, banner) tetap bisa diakses read-only
-
-**1.3 Aktifkan leaked password protection**
-- Konfigurasi di auth settings via migration atau config
-
-### Tahap 2: Fix Agent Share URL
-
-**2.1 Update `handleShare()` di AgentDashboard.tsx**
-- Ganti `travel.id` dengan `travel.admin_approved_slug || travel.id` agar konsisten dengan card status website
-
-### Tahap 3: Seller Dashboard Enhancement
-
-**3.1 Implementasi Statistik Penjualan**
-- Query `shop_orders` + `shop_order_items` yang terkait produk seller
-- Tampilkan: total revenue, jumlah pesanan, produk terlaris
-- Chart trend penjualan 7 hari terakhir
-
-**3.2 Seller Order Management**
-- Buat tab "Pesanan" baru di Seller Dashboard
-- Query pesanan yang mengandung produk milik seller
-- Seller bisa update status item (proses/kirim/selesai)
-
-**3.3 Edit Profil Toko**
-- Ubah tab "Pengaturan" dari read-only ke editable form
-- Field: nama toko, deskripsi, telepon, kota, logo
-- Save ke tabel `sellers`
-
-### Tahap 4: Info Pembayaran di Checkout
-
-**4.1 Tampilkan info bank/QRIS setelah order**
-- Baca konfigurasi payment dari `payment_gateway_settings`
-- Setelah order sukses, tampilkan halaman konfirmasi dengan:
-  - Nomor rekening bank / QRIS image
-  - Nominal yang harus ditransfer
-  - Batas waktu pembayaran
-  - Tombol upload bukti transfer
-
-### Tahap 5: Perbaikan Minor
-
-**5.1 Language toggle button** -- Tombol "ID" di header tidak punya handler, hanya tampil statis. Hubungkan ke `LanguageSelector` atau buat dropdown bahasa.
+**File yang diubah**:
+- `src/hooks/useAgentMembership.ts` -- tambah hook untuk baca harga dari DB, fallback ke hardcoded
+- `src/components/admin/PlatformSettings.tsx` -- perbaiki label tier (Free/Pro/Premium), tambah editor limit per tier
+- `src/components/admin/MembershipsManagement.tsx` -- gunakan harga dinamis
 
 ---
 
-## Detail Teknis
+## 3. Tema Default Terang (Light)
 
-### Database Migration (Tahap 1.2)
-```text
--- Contoh fix RLS
--- Ganti policy "Anyone can insert" menjadi "Authenticated users can insert own"
-DROP POLICY IF EXISTS "anyone_can_insert" ON some_table;
-CREATE POLICY "auth_users_insert" ON some_table
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-```
+**Masalah**: Default tema adalah `system`, yang bisa menjadi gelap jika perangkat user menggunakan dark mode.
 
-### Seller Stats Query (Tahap 3.1)
-```text
--- Ambil order items yang produknya milik seller
-SELECT soi.*, so.status, so.created_at
-FROM shop_order_items soi
-JOIN shop_orders so ON so.id = soi.order_id
-JOIN shop_products sp ON sp.id = soi.product_id
-WHERE sp.seller_id = $seller_id
-ORDER BY so.created_at DESC
-```
+**Solusi**:
+- Ubah default di `ThemeContext.tsx` dari `'system'` menjadi `'light'`
+- User yang sudah memilih tema sebelumnya tidak akan terpengaruh (tersimpan di localStorage)
 
-### File yang Akan Diubah
-- `src/components/habit/MealTrackingView.tsx` -- fix forwardRef warning
-- `src/pages/AgentDashboard.tsx` -- fix share URL (1 baris)
-- `src/pages/SellerDashboard.tsx` -- tambah stats, orders, edit settings
-- `src/hooks/useSellerOrders.ts` -- hook baru untuk query pesanan seller
-- `src/components/shop/CheckoutView.tsx` -- tambah info pembayaran post-order
-- `src/hooks/usePublicPaymentConfig.ts` -- fetch payment config untuk user
-- Database migration -- fix RLS policies
+**File yang diubah**:
+- `src/contexts/ThemeContext.tsx` -- ubah `return stored || 'system'` menjadi `return stored || 'light'`
 
+---
+
+## 4. Alur Premium 30 Hari di Tracker
+
+**Masalah**: `useFreeTrial.ts` sudah ada logika trial 30 hari, tapi alurnya tidak jelas di UI. User tidak tahu kapan trial dimulai, berapa sisa hari, dan apa yang terjadi setelah expired.
+
+**Solusi**:
+- Di `IbadahHubView.tsx` atau area tracker, tambah banner yang jelas:
+  - Jika belum pernah trial: tampilkan CTA "Coba Premium 30 Hari Gratis" dengan penjelasan manfaat
+  - Jika sedang trial: tampilkan "Premium Trial - Sisa X hari" dengan progress bar
+  - Jika trial expired: tampilkan "Trial Berakhir" dengan tombol upgrade ke Premium berbayar
+- Hubungkan dengan `useFreeTrial.startTrial` dan `PremiumUpgradeModal`
+
+**File yang diubah**:
+- `src/components/habit/IbadahHubView.tsx` -- tambah banner trial status
+- Buat `src/components/premium/TrialStatusBanner.tsx` -- komponen reusable untuk status trial
+
+---
+
+## 5. Manajemen Pengguna: Tampilkan Email & Detail Lengkap
+
+**Masalah**: Tabel user di admin hanya menampilkan Nama, Telepon, Role, Status, Terdaftar. Email tidak ditampilkan karena kolom `email` tidak ada di tabel `profiles`.
+
+**Solusi**:
+- Tambah kolom `email` ke tabel `profiles` via migration
+- Update trigger `handle_new_user()` untuk menyimpan email dari `auth.users`
+- Backfill email dari `auth.users` ke `profiles` yang sudah ada
+- Tampilkan email di tabel admin dengan layout yang lebih readable
+- Tambah kolom Aksi yang lebih compact, gunakan ikon saja di mobile
+- Gunakan layout responsive: card-based di mobile, tabel di desktop
+
+**File yang diubah**:
+- Database migration -- tambah kolom email, update trigger, backfill data
+- `src/components/admin/UsersManagement.tsx` -- tambah kolom email, perbaiki layout tabel
+- `src/types/database.ts` -- update type Profile
+
+---
+
+## 6. Sinkronisasi Pengaturan Global dengan Menu
+
+**Masalah**: `PlatformSettings` punya pengaturan harga membership (basic/premium/enterprise) yang berbeda nama tier dengan `MEMBERSHIP_PLANS` (free/pro/premium). Pengaturan whitelabel (site_name, primary_color) tidak digunakan secara global di header/footer.
+
+**Solusi**:
+- Buat hook `usePlatformConfig` yang membaca `whitelabel_settings` dan dipakai di `AppHeader`, footer, dll
+- Pastikan nama tier konsisten di seluruh sistem
+- Site name dari whitelabel muncul di header, splash screen, dan judul halaman
+- Primary color dari whitelabel diterapkan ke CSS variable jika diubah
+
+**File yang diubah**:
+- Buat `src/hooks/usePlatformConfig.ts` -- hook baru untuk baca whitelabel settings
+- `src/components/layout/AppHeader.tsx` -- gunakan site_name dari settings
+- `src/components/admin/PlatformSettings.tsx` -- sinkronkan label tier
+
+---
+
+## 7. Dashboard Store Khusus
+
+**Masalah**: `ShopAdminDashboard` (`/shop-admin`) hanya me-reuse komponen yang sama persis dari Admin Dashboard (ShopProductsManagement, ShopCategoriesManagement, dll). Tidak ada fitur khusus shop admin seperti seller management atau laporan toko.
+
+**Solusi**:
+- Redesign `/shop-admin` sebagai dashboard toko yang independen dengan sidebar layout seperti Admin
+- Tambah fitur khusus: Seller Management, laporan pendapatan toko, manajemen promo/diskon
+- Tambah statistik toko: total produk, total pesanan hari ini, pendapatan bulan ini, seller aktif
+- Navigasi sidebar: Overview, Produk, Kategori, Pesanan, Seller, Laporan
+
+**File yang diubah**:
+- `src/pages/ShopAdminDashboard.tsx` -- redesign dengan sidebar layout dan fitur tambahan
+
+---
+
+## 8. Template Builder: Perbaikan Drag & Drop
+
+**Masalah**: `VisualBlockBuilder.tsx` sudah menggunakan `@dnd-kit` untuk drag & drop. Namun UX-nya bisa ditingkatkan: tidak ada visual feedback saat drag, tidak ada insert-between indicator, dan blok baru selalu ditambah di akhir.
+
+**Solusi**:
+- Tambah visual drag overlay menggunakan `DragOverlay` dari dnd-kit
+- Tambah insert indicator line (garis biru) antara blok saat drag untuk menunjukkan posisi drop
+- Tambah kemampuan drag dari panel "Tambah Blok" ke posisi tertentu di daftar blok
+- Tambah animasi smooth saat reorder
+- Preview blok saat hover di panel tambah blok
+- Perbaiki responsiveness: pada mobile, panel editor muncul sebagai sheet dari bawah
+
+**File yang diubah**:
+- `src/components/blocks/VisualBlockBuilder.tsx` -- tambah DragOverlay, insert indicator, animasi
+
+---
+
+## 9. Analisis & Perbaikan Payment Gateway
+
+**Temuan kekurangan**:
+1. **QRIS hanya URL manual** -- Tidak bisa upload gambar langsung, harus paste URL. Sebaiknya tambah fitur upload langsung ke storage.
+2. **Tidak ada instruksi pembayaran** -- Setiap metode bank tidak punya field instruksi khusus (contoh: "Transfer ke rekening BCA atas nama...").
+3. **Tidak ada batas waktu pembayaran** -- Tidak ada setting berapa jam/hari deadline pembayaran setelah order.
+4. **Tidak ada notifikasi admin** -- Saat user upload bukti bayar, admin tidak mendapat notifikasi.
+5. **E-Wallet belum ada flow** -- E-wallet (GoPay/OVO/DANA) toggle-nya ada tapi tidak ada mekanisme verifikasi/pembayaran di sisi user.
+6. **API Key tersimpan di platform_settings** -- API key Midtrans/Xendit disimpan sebagai plain text di platform_settings (tabel biasa), bukan di secrets/vault. Ini risiko keamanan.
+
+**Solusi**:
+- Tambah upload QRIS ke storage bucket dengan komponen ImageUpload
+- Tambah field `instructions` per metode pembayaran (textarea)
+- Tambah setting `payment_deadline_hours` (default: 24 jam) 
+- Tambah info deadline di checkout
+- Tambah warning banner bahwa API key sebaiknya disimpan di environment variable/secrets, bukan di database
+
+**File yang diubah**:
+- `src/components/admin/PaymentGatewaySettings.tsx` -- tambah upload QRIS, instruksi per metode, deadline setting
+- `src/components/shop/CheckoutView.tsx` -- tampilkan deadline pembayaran
+
+---
+
+## Ringkasan Prioritas Implementasi
+
+| No | Poin | Kompleksitas | Prioritas |
+|----|------|-------------|-----------|
+| 3 | Tema default terang | Rendah | Tinggi |
+| 5 | Email di user management | Sedang | Tinggi |
+| 1 | Link pendaftaran seller | Sedang | Tinggi |
+| 2 | Membership dinamis | Tinggi | Tinggi |
+| 6 | Sinkronisasi global-menu | Sedang | Sedang |
+| 4 | Alur trial premium | Sedang | Sedang |
+| 9 | Perbaikan payment gateway | Sedang | Sedang |
+| 7 | Dashboard store khusus | Tinggi | Sedang |
+| 8 | Drag & drop template | Tinggi | Rendah |
+
+Implementasi akan dilakukan bertahap sesuai prioritas. Setiap tahap akan menghasilkan perubahan yang bisa langsung diuji.
