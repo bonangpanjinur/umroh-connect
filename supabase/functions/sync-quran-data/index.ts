@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Admin only' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { mode = 'full', surah_number } = await req.json()
+    const { mode = 'full', surah_number, start_surah = 1, end_surah = 114 } = await req.json()
 
     // Create sync log
     const { data: logEntry, error: logError } = await supabase
@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
       .insert({
         sync_type: mode === 'full' ? 'full' : 'partial',
         status: 'running',
+        error_message: mode === 'full' ? `Syncing surahs ${start_surah} to ${end_surah}` : `Syncing surah ${surah_number}`,
       })
       .select()
       .single()
@@ -63,24 +64,38 @@ Deno.serve(async (req) => {
     }
 
     const logId = logEntry.id
+    
+    // For full sync, we respond immediately and run in background to avoid timeout
+    // Or we process in smaller chunks requested by frontend
+    if (mode === 'full' && !req.headers.get('x-batch-process')) {
+      // Background processing is tricky in Edge Functions without persistent workers
+      // Better approach: Tell frontend to call in batches or increase timeout
+      // For now, let's try to optimize the loop and handle as many as possible
+    }
+
     let totalAyahs = 0
     let totalSurahs = 0
 
     const surahsToSync = mode === 'surah' && surah_number
       ? [surah_number]
-      : Array.from({ length: 114 }, (_, i) => i + 1)
+      : Array.from({ length: end_surah - start_surah + 1 }, (_, i) => start_surah + i)
 
+    // Optimization: Process surahs
     try {
       for (const num of surahsToSync) {
-        // Fetch Arabic
-        const arabicRes = await fetch(`${API_BASE}/surah/${num}`)
-        if (!arabicRes.ok) throw new Error(`Failed to fetch surah ${num} arabic`)
-        const arabicData = await (arabicRes.json())
+        // Fetch Arabic and Translation in parallel to save time
+        const [arabicRes, transRes] = await Promise.all([
+          fetch(`${API_BASE}/surah/${num}`),
+          fetch(`${API_BASE}/surah/${num}/id.indonesian`)
+        ])
 
-        // Fetch Indonesian translation
-        const transRes = await fetch(`${API_BASE}/surah/${num}/id.indonesian`)
+        if (!arabicRes.ok) throw new Error(`Failed to fetch surah ${num} arabic`)
         if (!transRes.ok) throw new Error(`Failed to fetch surah ${num} translation`)
-        const transData = await (transRes.json())
+        
+        const [arabicData, transData] = await Promise.all([
+          arabicRes.json(),
+          transRes.json()
+        ])
 
         const surahInfo = arabicData.data
         const transInfo = transData.data
@@ -95,7 +110,7 @@ Deno.serve(async (req) => {
           })
           .eq('number', num)
 
-        // Upsert ayahs
+        // Upsert ayahs in one go
         const ayahRows = surahInfo.ayahs.map((ayah: any, idx: number) => ({
           surah_number: num,
           ayah_number: ayah.numberInSurah,
@@ -115,8 +130,8 @@ Deno.serve(async (req) => {
         totalAyahs += ayahRows.length
         totalSurahs++
 
-        // Rate limit - reduced to 100ms to prevent timeouts
-        if (surahsToSync.length > 1) await delay(100)
+        // Smaller delay, only if many surahs
+        if (surahsToSync.length > 5) await delay(50)
       }
 
       // Update log success
@@ -127,6 +142,7 @@ Deno.serve(async (req) => {
           surahs_synced: totalSurahs,
           ayahs_synced: totalAyahs,
           completed_at: new Date().toISOString(),
+          error_message: null
         })
         .eq('id', logId)
 

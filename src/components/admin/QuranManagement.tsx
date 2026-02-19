@@ -55,22 +55,50 @@ export const QuranManagement = () => {
   const handleSync = async (mode: 'full' | 'surah', surahNumber?: number) => {
     try {
       setSyncing(true);
-      const { data, error } = await supabase.functions.invoke('sync-quran-data', {
-        body: { mode, surah_number: surahNumber }
-      });
-
-      if (error) throw error;
-
-      toast.success(mode === 'full' ? 'Sinkronisasi penuh dimulai...' : `Sinkronisasi Surat ${surahNumber} dimulai...`);
       
-      // Poll for updates or just wait a bit and refetch
-      setTimeout(() => {
-        refetchStats();
-        refetchLogs();
-        setSyncing(false);
-      }, 2000);
+      if (mode === 'surah') {
+        const { error } = await supabase.functions.invoke('sync-quran-data', {
+          body: { mode, surah_number: surahNumber }
+        });
+        if (error) throw error;
+        toast.success(`Sinkronisasi Surat ${surahNumber} berhasil`);
+      } else {
+        // Full sync in batches of 10 surahs to avoid timeouts
+        const batchSize = 10;
+        const totalSurahs = 114;
+        let completed = 0;
+        
+        toast.info('Memulai sinkronisasi penuh dalam 12 batch...');
+        
+        for (let i = 1; i <= totalSurahs; i += batchSize) {
+          const end = Math.min(i + batchSize - 1, totalSurahs);
+          const { error } = await supabase.functions.invoke('sync-quran-data', {
+            body: { 
+              mode: 'full', 
+              start_surah: i, 
+              end_surah: end 
+            }
+          });
+          
+          if (error) {
+            console.error(`Error syncing batch ${i}-${end}:`, error);
+            toast.error(`Gagal pada batch ${i}-${end}: ${error.message}`);
+            // Continue with next batch instead of failing everything
+          } else {
+            completed += (end - i + 1);
+            // Optional: update progress UI if you have a progress state
+          }
+        }
+        toast.success('Sinkronisasi penuh selesai');
+      }
+
+      // Refresh data
+      refetchStats();
+      refetchLogs();
+      setSyncing(false);
 
     } catch (err: any) {
+      console.error('Sync error:', err);
       toast.error('Gagal sinkronisasi: ' + err.message);
       setSyncing(false);
     }
