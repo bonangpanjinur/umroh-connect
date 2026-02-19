@@ -10,6 +10,7 @@ export interface Profile {
   user_id: string;
   role: AppRole;
   full_name: string | null;
+  email: string | null;
   phone: string | null;
   avatar_url: string | null;
   is_suspended: boolean;

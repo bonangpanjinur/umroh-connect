@@ -24,6 +24,8 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -194,6 +196,7 @@ export function VisualBlockBuilder({
   onKeywordsChange = () => {},
 }: VisualBlockBuilderProps) {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [history, setHistory] = useState<BlockData[][]>([blocks]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -354,7 +357,12 @@ export function VisualBlockBuilder({
     toast.info('Pindah ke bawah');
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -368,6 +376,8 @@ export function VisualBlockBuilder({
       handleBlocksChange(newBlocks);
     }
   };
+
+  const activeBlock = activeId ? blocks.find(b => b.id === activeId) : null;
 
   const getPreviewSize = () => {
     switch (previewDevice) {
@@ -485,6 +495,7 @@ export function VisualBlockBuilder({
                     <DndContext 
                       sensors={sensors}
                       collisionDetection={closestCenter}
+                      onDragStart={handleDragStart}
                       onDragEnd={handleDragEnd}
                     >
                       <SortableContext 
@@ -509,6 +520,18 @@ export function VisualBlockBuilder({
                           ))}
                         </div>
                       </SortableContext>
+                      <DragOverlay>
+                        {activeBlock ? (
+                          <div className="flex items-center gap-2 p-2 border-2 border-primary rounded-lg bg-card shadow-xl opacity-90">
+                            <GripVertical className="h-4 w-4 text-primary" />
+                            <span className="text-xs font-bold text-muted-foreground w-4">
+                              {blocks.findIndex(b => b.id === activeBlock.id) + 1}
+                            </span>
+                            {BLOCK_ICONS[activeBlock.type]}
+                            <span className="font-medium text-xs">{BLOCK_REGISTRY[activeBlock.type].label}</span>
+                          </div>
+                        ) : null}
+                      </DragOverlay>
                     </DndContext>
                   )}
                 </CardContent>
