@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Plane, Hotel, MessageCircle, Crown, Star, Send, FileText, ShoppingCart } from 'lucide-react';
+import { X, Plane, Hotel, MessageCircle, Crown, Star, Send, FileText, ShoppingCart, MessagesSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageWithDetails, Departure } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { useTrackInterest } from '@/hooks/usePackageInterests';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TravelReviewSection } from '@/components/reviews/TravelReviewSection';
 import { InquiryForm } from '@/components/inquiry/InquiryForm';
+import { ChatView } from '@/components/chat/ChatView';
 import { HajiRegistrationForm } from '@/components/haji/HajiRegistrationForm';
 import { PackageType, packageTypeLabels, packageTypeColors } from '@/hooks/useHaji';
 import { Badge } from '@/components/ui/badge';
@@ -244,7 +245,7 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
               />
             ) : (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className={`grid w-full mb-4 ${isHajiPackage ? 'grid-cols-4' : 'grid-cols-3'} h-auto`}>
+                <TabsList className={`grid w-full mb-4 ${isHajiPackage ? 'grid-cols-5' : 'grid-cols-4'} h-auto`}>
                   <TabsTrigger value="jadwal" className="text-xs sm:text-sm py-2">
                     Jadwal
                   </TabsTrigger>
@@ -254,6 +255,10 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                       Daftar
                     </TabsTrigger>
                   )}
+                  <TabsTrigger value="chat" className="text-xs sm:text-sm py-2 flex items-center gap-1">
+                    <MessagesSquare className="h-3 w-3 hidden sm:block" />
+                    Chat
+                  </TabsTrigger>
                   <TabsTrigger value="inquiry" className="text-xs sm:text-sm py-2 flex items-center gap-1">
                     <Send className="h-3 w-3 hidden sm:block" />
                     Inquiry
@@ -336,6 +341,26 @@ const PackageDetailModal = ({ package: pkg, onClose }: PackageDetailModalProps) 
                     )}
                   </TabsContent>
                 )}
+
+                <TabsContent value="chat" className="mt-0">
+                  {user ? (
+                    <div className="h-[350px]">
+                      <ChatView
+                        bookingId={null}
+                        travelId={pkg.travel.id}
+                        travelName={pkg.travel.name}
+                        senderType="jamaah"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 space-y-3">
+                      <MessagesSquare className="h-12 w-12 text-muted-foreground mx-auto" />
+                      <h3 className="font-semibold">Login untuk Chat</h3>
+                      <p className="text-sm text-muted-foreground">Masuk untuk mengirim pesan langsung ke agen travel</p>
+                      <Button variant="outline" asChild><a href="/auth">Masuk / Daftar</a></Button>
+                    </div>
+                  )}
+                </TabsContent>
 
                 <TabsContent value="inquiry" className="mt-0">
                   <InquiryForm 
