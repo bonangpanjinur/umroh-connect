@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, Search, ChevronRight, ChevronLeft, 
@@ -11,11 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   useSurahList, 
-  useSurahArabic, 
-  useSurahTranslation,
   POPULAR_SURAHS,
   Surah
 } from '@/hooks/useQuranAPI';
+import { useQuranLocal } from '@/hooks/useQuranLocal';
 import { useAddQuranLog, useQuranLastRead } from '@/hooks/useQuranTracking';
 import { useAuthContext } from '@/contexts/AuthContext';
 import QuranAudioPlayer from './QuranAudioPlayer';
@@ -34,8 +33,15 @@ const QuranView = ({ onBack }: QuranViewProps) => {
   const [startAyah, setStartAyah] = useState(1);
   
   const { data: surahList, isLoading: listLoading } = useSurahList();
-  const { data: surahArabic, isLoading: arabicLoading } = useSurahArabic(selectedSurah);
-  const { data: surahTranslation, isLoading: translationLoading } = useSurahTranslation(selectedSurah);
+  
+  // Use the new local-first hook
+  const { 
+    surahArabic, 
+    surahTranslation, 
+    isLoading: detailLoading, 
+    source 
+  } = useQuranLocal(selectedSurah);
+
   const { data: lastRead } = useQuranLastRead(user?.id);
   const addLog = useAddQuranLog();
   const ayahRefs = useRef<{[key: number]: HTMLDivElement | null}>({});
@@ -45,8 +51,6 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     surah.name.includes(searchQuery) ||
     surah.number.toString() === searchQuery
   );
-
-  const isLoading = arabicLoading || translationLoading;
 
   useEffect(() => {
     if (showAudioPlayer && currentAyah && ayahRefs.current[currentAyah]) {
@@ -72,13 +76,11 @@ const QuranView = ({ onBack }: QuranViewProps) => {
     }
 
     // Determine the actual start point
-    // If we're in the same surah as last read, start from the next ayah
     const effectiveStartAyah = (typedLastRead?.surah_number === selectedSurah) 
       ? Math.min(targetAyah, (typedLastRead?.ayah_number || 0) + 1)
       : 1;
 
     // Correctly get juz numbers
-    // Note: ayahs array index is 0-based, while ayah numberInSurah is 1-based
     const startAyahIndex = Math.max(0, effectiveStartAyah - 1);
     const targetAyahIndex = Math.max(0, targetAyah - 1);
     
@@ -96,7 +98,6 @@ const QuranView = ({ onBack }: QuranViewProps) => {
       juzEnd: juzEnd,
     });
     
-    // Update start ayah for next potential session in same view
     setStartAyah(targetAyah + 1 > surahArabic.numberOfAyahs ? 1 : targetAyah + 1);
     if (typeof ayahOverride === 'number') setCurrentAyah(targetAyah);
   };
@@ -288,8 +289,17 @@ const QuranView = ({ onBack }: QuranViewProps) => {
             </div>
           )}
 
+          {/* Source Indicator */}
+          {source === 'local' && (
+            <div className="text-center mb-2">
+              <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                Offline Mode (Local DB)
+              </Badge>
+            </div>
+          )}
+
           {/* Ayahs */}
-          {isLoading ? (
+          {detailLoading ? (
             <div className="space-y-4">
               {[1,2,3].map(i => (
                 <div key={i} className="space-y-2">
