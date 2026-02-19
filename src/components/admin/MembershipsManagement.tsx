@@ -28,27 +28,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMemberships, useUpdateMembership, usePlatformSettings } from '@/hooks/useAdminData';
-import { MEMBERSHIP_PLANS, getPlanById } from '@/hooks/useAgentMembership';
+import { useMemberships, useUpdateMembership } from '@/hooks/useAdminData';
+import { MEMBERSHIP_PLANS } from '@/hooks/useAgentMembership';
 import type { MembershipPlan } from '@/hooks/useAgentMembership';
-import { 
-  CheckCircle2, Clock, XCircle, Building2, Search, 
-  Filter, Eye, Crown, Sparkles, Shield, 
+import { useMembershipConfig } from '@/hooks/useMembershipConfig';
+import {
+  CheckCircle2, Clock, XCircle, Building2, Search,
+  Filter, Eye, Crown, Sparkles, Shield,
   CreditCard, FileCheck, AlertTriangle,
   Package, Globe, Zap, Users
 } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { toast } from 'sonner';
-
-// Helper to merge DB prices into hardcoded plans
-const getMergedPlans = (dbPrices?: { free: number; pro: number; premium: number }): MembershipPlan[] => {
-  if (!dbPrices) return MEMBERSHIP_PLANS;
-  return MEMBERSHIP_PLANS.map(plan => ({
-    ...plan,
-    price: dbPrices[plan.id as keyof typeof dbPrices] ?? plan.price,
-  }));
-};
 
 // Plan comparison component
 const PlanComparisonCards = ({ plans }: { plans: MembershipPlan[] }) => (
@@ -130,12 +122,10 @@ const PlanComparisonCards = ({ plans }: { plans: MembershipPlan[] }) => (
 
 export const MembershipsManagement = () => {
   const { data: memberships, isLoading } = useMemberships();
-  const { data: platformSettings } = usePlatformSettings();
+  const { data: configPlans } = useMembershipConfig();
   const updateMembership = useUpdateMembership();
   
-  // Merge DB prices with hardcoded plans
-  const dbPrices = platformSettings?.find((s: any) => s.key === 'membership_prices')?.value as { free: number; pro: number; premium: number } | undefined;
-  const mergedPlans = getMergedPlans(dbPrices);
+  const mergedPlans = configPlans || MEMBERSHIP_PLANS;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
