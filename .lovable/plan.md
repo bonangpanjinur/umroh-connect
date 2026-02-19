@@ -1,148 +1,156 @@
 
+# Mega Kalkulator Islami + Penyempurnaan UX Tracker Ramadhan
 
-# Analisis & Peningkatan Menu Tracker/Ibadah
+## Ringkasan
 
-## Analisis Kekurangan Saat Ini
-
-### 1. Model Bisnis Lemah
-- **Gratis vs Premium tidak jelas**: Saat ini hanya membedakan "local storage" (gratis) vs "cloud sync" (premium). Ini bukan value proposition yang kuat karena user merasa fitur gratis sudah cukup.
-- **Tidak ada trial period**: User langsung diminta bayar tanpa merasakan manfaat premium terlebih dahulu.
-- **Fitur premium kurang menarik**: Hanya cloud sync dan backup -- tidak ada konten eksklusif.
-
-### 2. UX Kekurangan
-- **Tidak ada onboarding/guided tour**: User baru langsung dihadapkan interface kompleks tanpa arahan.
-- **Tadarus tanpa kalkulator khatam**: Tidak ada estimasi kapan user bisa khatam berdasarkan kecepatan baca.
-- **Tips statis**: Hanya 1 tips hardcoded di TadarusView ("Baca minimal 1 halaman...").
-- **Tidak ada achievement/gamification**: Tidak ada badge, milestone celebration, atau reward visual.
-- **Tidak ada daily motivation/reminder konten**: Tidak ada konten inspiratif harian yang membuat user kembali.
-
-### 3. Fitur yang Hilang
-- Kalkulator Khatam (estimasi target berdasarkan pace)
-- Tips & trik hatam Quran yang berputar/dinamis
-- Achievement badges (7 hari berturut, khatam 1 juz, dll)
-- Daily Islamic motivation/hadits
-- Sharing progress ke sosial media
-- Streak protection (gratis 1x, premium unlimited)
+Mengubah menu "Kalkulator" dari hanya kalkulator umroh menjadi **Hub Kalkulator Islami** dengan 8 sub-kalkulator, serta memperbaiki UX Tracker agar **Ramadhan-first** karena sedang bulan Ramadhan. Semua data disimpan di localStorage (gratis), dengan ajakan upgrade yang natural dan tidak mengganggu.
 
 ---
 
-## Rencana Implementasi
+## Bagian 1: Hub Kalkulator Islami
 
-### Tahap A: Free Trial 30 Hari + Kalkulator Khatam
+### Arsitektur Baru
 
-**1. Free Trial System**
-- Tambah kolom `trial_start_date` dan `trial_end_date` di tabel `user_subscriptions`
-- User baru otomatis mendapat 30 hari full access saat pertama kali menggunakan tracker
-- Setelah 30 hari, fitur premium (cloud sync, statistik lengkap, kalkulator khatam) terkunci
-- UI menampilkan countdown sisa trial ("15 hari lagi trial berakhir")
+Menu "Kalkulator" di Quick Menu akan membuka halaman hub berisi grid sub-menu kalkulator:
 
-**2. Kalkulator Khatam Al-Quran**
-- Komponen baru: `KhatamCalculator`
-- Input: target khatam (tanggal atau jumlah hari)
-- Output: berapa halaman/ayat per hari yang harus dibaca
-- Integrasi dengan data tadarus aktual untuk menampilkan apakah user on-track atau behind
-- Menampilkan estimasi tanggal khatam berdasarkan pace saat ini
+**Kategori Ibadah:**
+1. **Kalkulator Khatam Qur'an** (sudah ada, dipindah ke sini + tambah mode preset)
+   - Mode custom (pilih tanggal)
+   - Mode 1 Juz/hari (30 hari)
+   - Mode cepat 10 hari
+   - Mode I'tikaf 7 hari
+   - Target per waktu sholat (bagi bacaan ke 5 waktu)
+2. **Kalkulator Qadha Puasa** (baru)
+   - Input: total hutang puasa, target selesai dalam X hari
+   - Output: estimasi tanggal selesai, jadwal puasa per minggu
+3. **Kalkulator Fidyah** (baru)
+   - Input: jumlah hari tidak puasa, harga makanan/hari
+   - Output: total fidyah yang harus dibayar
+4. **Kalkulator Zakat** (baru)
+   - Zakat penghasilan (2.5% dari penghasilan)
+   - Zakat emas/perak
+   - Zakat fitrah
 
-**3. Tips & Trik Dinamis**
-- Koleksi 30+ tips hatam Quran yang berputar harian
-- Kategori: motivasi, teknik membaca, adab tilawah, keutamaan surat
-- Ditampilkan sebagai card yang berubah setiap hari di halaman Tadarus
-- Premium: akses semua tips sekaligus + tips audio dari ustadz
-
-### Tahap B: Achievement & Gamification
-
-**4. Achievement System**
-- Badge milestones: "7 Hari Berturut", "1 Juz Tercapai", "Khatam!", "100 Hari Istiqomah"
-- Visual celebration (confetti animation) saat unlock badge
-- Streak counter yang lebih prominent dengan streak protection (1x gratis, premium unlimited)
-
-**5. Daily Motivation Card**
-- Hadits/ayat harian yang relevan dengan ibadah user
-- Rotasi otomatis setiap hari
-- Fitur share ke WhatsApp/media sosial
-
----
-
-## Detail Teknis
-
-### Database Migration
-
-```text
--- Free trial tracking
-ALTER TABLE user_subscriptions 
-  ADD COLUMN trial_start_date TIMESTAMPTZ,
-  ADD COLUMN trial_end_date TIMESTAMPTZ;
-
--- Khatam target
-CREATE TABLE quran_khatam_targets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  target_date DATE NOT NULL,
-  pages_per_day NUMERIC(5,1) DEFAULT 0,
-  ayat_per_day INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, is_active)
-);
-ALTER TABLE quran_khatam_targets ENABLE ROW LEVEL SECURITY;
-
--- Tips collection
-CREATE TABLE quran_tips (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  category TEXT DEFAULT 'motivasi',
-  day_number INTEGER, -- for daily rotation
-  is_premium BOOLEAN DEFAULT false,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE quran_tips ENABLE ROW LEVEL SECURITY;
-
--- Achievement badges
-CREATE TABLE user_achievements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  achievement_key TEXT NOT NULL,
-  unlocked_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, achievement_key)
-);
-ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Users manage own khatam targets" ON quran_khatam_targets
-  FOR ALL USING (auth.uid() = user_id);
-
-CREATE POLICY "Tips readable by all authenticated" ON quran_tips
-  FOR SELECT TO authenticated USING (is_active = true);
-
-CREATE POLICY "Users manage own achievements" ON user_achievements
-  FOR ALL USING (auth.uid() = user_id);
-```
+**Kategori Keuangan Islami:**
+5. **Kalkulator Biaya Umroh** (sudah ada, tetap di sini)
+6. **Kalkulator Tabungan Haji** (baru)
+   - Input: target biaya haji, tabungan/bulan
+   - Output: estimasi tahun tercapai
+7. **Kalkulator Cicilan Tanpa Riba** (baru)
+   - Input: harga barang, DP, tenor, margin
+   - Output: total bayar, cicilan/bulan
+8. **Kalkulator Emas Syariah** (baru)
+   - Input: harga emas, target beli, simulasi cicilan
 
 ### File Baru
-1. `src/components/habit/KhatamCalculator.tsx` -- Kalkulator target khatam dengan visual progress
-2. `src/components/habit/QuranTipsCard.tsx` -- Card tips harian yang berputar
-3. `src/components/habit/AchievementBadges.tsx` -- Display achievement dan celebration
-4. `src/hooks/useKhatamTarget.ts` -- Hook CRUD khatam target
-5. `src/hooks/useQuranTips.ts` -- Hook fetch tips harian
-6. `src/hooks/useAchievements.ts` -- Hook achievement tracking
-7. `src/hooks/useFreeTrial.ts` -- Hook cek status trial 30 hari
+- `src/components/calculator/CalculatorHub.tsx` -- Grid menu semua kalkulator
+- `src/components/calculator/KhatamCalculatorFull.tsx` -- Kalkulator khatam versi lengkap dengan mode preset
+- `src/components/calculator/QadhaPuasaCalculator.tsx` -- Kalkulator qadha puasa
+- `src/components/calculator/FidyahCalculator.tsx` -- Kalkulator fidyah
+- `src/components/calculator/ZakatCalculator.tsx` -- Kalkulator zakat (penghasilan, emas, fitrah)
+- `src/components/calculator/TabunganHajiCalculator.tsx` -- Kalkulator tabungan haji
+- `src/components/calculator/CicilanSyariahCalculator.tsx` -- Kalkulator cicilan tanpa riba
+- `src/components/calculator/EmasSyariahCalculator.tsx` -- Kalkulator emas syariah
 
 ### File yang Dimodifikasi
-1. `src/components/habit/TadarusView.tsx` -- Tambah KhatamCalculator + QuranTipsCard
-2. `src/components/habit/IbadahHubView.tsx` -- Tambah trial banner + achievement summary
-3. `src/components/premium/PremiumUpgradeModal.tsx` -- Update untuk trial flow
-4. `src/hooks/usePremiumSubscription.ts` -- Tambah logic trial period
-5. `src/hooks/useQuranTracking.ts` -- Tambah achievement trigger saat log tadarus
+- `src/pages/Index.tsx` -- Ganti `showSavings` handler agar membuka `CalculatorHub` bukan langsung `SavingsCalculatorView`
+- `src/components/home/QuickMenu.tsx` -- Update label dari "Kalkulator" menjadi tetap "Kalkulator" tapi audioLabel menjadi "Kalkulator Islami"
 
-### Alur Trial 30 Hari
-1. User pertama kali buka Tracker -> sistem set `trial_start_date = now()`, `trial_end_date = now + 30 days`
-2. Selama trial: semua fitur premium terbuka (cloud sync, kalkulator khatam, tips premium)
-3. Banner kecil: "Trial Premium: 25 hari tersisa"
-4. Hari ke-25: notifikasi "5 hari lagi trial berakhir"
-5. Setelah expired: fitur premium terkunci, tampilkan modal upgrade dengan highlight fitur yang sudah dipakai
+---
 
-### Seed Data Tips (20+ tips)
-Tips akan di-seed langsung ke tabel `quran_tips` mencakup kategori: motivasi, teknik, adab, dan keutamaan surat.
+## Bagian 2: Penyempurnaan UX Tracker (Ramadhan-First)
 
+### Perubahan Utama
+
+**A. Auto-Activate Ramadhan Mode**
+- Karena sekarang bulan Ramadhan (17 Feb - 18 Mar 2026), mode Ramadhan harus **aktif otomatis** saat pertama kali dibuka
+- Ubah default `isRamadhanMode` di `IbadahHubView.tsx`: deteksi tanggal saat ini, jika dalam range Ramadhan maka otomatis true
+- Tetap bisa dimatikan manual
+
+**B. Restruktur Tab Ramadhan-First**
+- Saat mode Ramadhan aktif, urutan tab berubah: **Ramadan | Ibadah | Makan | Sedekah**
+- Tab "Ramadan" menjadi tab pertama yang aktif saat mode Ramadhan on
+- Dashboard Ramadhan tidak memerlukan login (tampilkan versi lokal untuk yang belum login)
+
+**C. Dashboard Ramadhan Tanpa Login**
+- Buat versi lokal `RamadhanDashboard` yang bisa berjalan tanpa auth
+- Tampilkan: hari ke-berapa Ramadhan, countdown ke Idul Fitri, jadwal imsakiyah link, motivasi harian
+- Data ibadah diambil dari localStorage
+
+**D. Upgrade CTA yang Natural**
+- Hapus `StorageIndicator` yang terlalu teknis ("localStorage 45% terpakai")
+- Ganti dengan CTA yang value-driven:
+  - "Simpan progress ke cloud agar tidak hilang" (muncul setelah 7 hari aktif)
+  - "Lihat statistik lengkap Ramadhan Anda" (di dashboard Ramadhan)
+  - Badge "PRO" kecil di fitur premium, bukan pop-up besar
+
+**E. Iftar Countdown**
+- Tambahkan countdown ke waktu berbuka puasa di header Stats Card saat Ramadhan mode aktif
+- Menggunakan data prayer times yang sudah ada (`usePrayerTimes`)
+
+**F. Quick Actions Ramadhan**
+- Di bawah Stats Card, tampilkan quick action buttons: "Sudah Sahur", "Sudah Berbuka", "Tarawih", "Tadarus"
+- Satu tap untuk log tanpa harus masuk ke sub-menu
+
+### File yang Dimodifikasi
+- `src/components/habit/IbadahHubView.tsx`
+  - Auto-detect Ramadhan mode
+  - Reorder tabs saat Ramadhan
+  - Ganti StorageIndicator dengan CTA natural
+  - Tambah iftar countdown
+  - Tambah quick actions
+- `src/components/habit/RamadhanDashboard.tsx`
+  - Buat bisa berfungsi tanpa login (versi localStorage)
+  - Tambah countdown Idul Fitri
+  - Tambah motivasi harian yang lebih kaya
+- `src/hooks/useRamadhanDashboard.ts`
+  - Tambah fungsi helper untuk cek apakah dalam bulan Ramadhan
+  - Export `isCurrentlyRamadan()` untuk auto-detect
+
+---
+
+## Bagian 3: Detail Teknis
+
+### Semua kalkulator baru menggunakan localStorage
+Tidak perlu database migration. Semua kalkulasi bersifat client-side murni.
+
+### Struktur localStorage keys baru:
+- `qadha_puasa_data` -- data hutang puasa
+- `fidyah_calc` -- data kalkulasi fidyah
+- `zakat_calc` -- data kalkulasi zakat
+- `tabungan_haji_goal` -- target tabungan haji
+- `cicilan_syariah_data` -- data simulasi cicilan
+- `emas_syariah_data` -- data simulasi emas
+- `ramadhan_quick_actions` -- log quick actions harian
+
+### Khatam Calculator Enhancement
+KhatamCalculator yang sudah ada di TadarusView tetap, tapi versi lengkap di CalculatorHub punya tambahan:
+- 4 mode preset (1 juz/hari, 10 hari, 7 hari i'tikaf, per waktu sholat)
+- Tabel breakdown bacaan per waktu sholat (Subuh: 4 halaman, Dzuhur: 4 halaman, dst)
+- Disimpan di localStorage key `khatam_calculator_preset`
+
+### Flow Navigasi Baru
+
+```text
+Quick Menu "Kalkulator"
+  |
+  v
+CalculatorHub (grid 2x4 icon menu)
+  |-- Khatam Quran (mode preset + custom)
+  |-- Qadha Puasa
+  |-- Fidyah
+  |-- Zakat
+  |-- Biaya Umroh (existing SavingsCalculatorView)
+  |-- Tabungan Haji
+  |-- Cicilan Syariah
+  |-- Emas Syariah
+```
+
+### Urutan Implementasi
+1. `CalculatorHub.tsx` -- container hub
+2. 6 kalkulator baru (Qadha, Fidyah, Zakat, Haji, Cicilan, Emas)
+3. `KhatamCalculatorFull.tsx` -- versi lengkap dengan mode preset
+4. Update `Index.tsx` -- routing
+5. Update `IbadahHubView.tsx` -- Ramadhan-first UX
+6. Update `RamadhanDashboard.tsx` -- versi tanpa login + countdown
+7. Update `useRamadhanDashboard.ts` -- helper auto-detect
