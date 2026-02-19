@@ -19,10 +19,12 @@ CREATE TABLE IF NOT EXISTS public.prayer_categories (
 
 ALTER TABLE public.prayer_categories ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view active prayer categories" ON public.prayer_categories;
 CREATE POLICY "Anyone can view active prayer categories"
 ON public.prayer_categories FOR SELECT
 USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage prayer categories" ON public.prayer_categories;
 CREATE POLICY "Admins can manage prayer categories"
 ON public.prayer_categories FOR ALL
 USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
@@ -47,10 +49,12 @@ CREATE TABLE IF NOT EXISTS public.prayers (
 
 ALTER TABLE public.prayers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view active prayers" ON public.prayers;
 CREATE POLICY "Anyone can view active prayers"
 ON public.prayers FOR SELECT
 USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage prayers" ON public.prayers;
 CREATE POLICY "Admins can manage prayers"
 ON public.prayers FOR ALL
 USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'));
@@ -61,10 +65,12 @@ VALUES ('prayer-audio', 'prayer-audio', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- 4. Trigger updated_at
+DROP TRIGGER IF EXISTS update_prayer_categories_updated_at ON public.prayer_categories;
 CREATE TRIGGER update_prayer_categories_updated_at
     BEFORE UPDATE ON public.prayer_categories
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_prayers_updated_at ON public.prayers;
 CREATE TRIGGER update_prayers_updated_at
     BEFORE UPDATE ON public.prayers
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
