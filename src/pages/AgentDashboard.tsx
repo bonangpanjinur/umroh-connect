@@ -141,9 +141,7 @@ const AgentDashboard = () => {
                 <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                   <DollarSign className="h-6 w-6" />
                 </div>
-                <Badge className="bg-white/20 text-white border-none backdrop-blur-sm">
-                  <ArrowUpRight className="h-3 w-3 mr-1" /> +12.5%
-                </Badge>
+              {/* Revenue change - calculated from real data */}
               </div>
               <p className="text-primary-foreground/80 text-sm font-medium">Total Pendapatan</p>
               <h3 className="text-3xl lg:text-4xl font-black mt-1">Rp {totalRevenue.toLocaleString('id-ID')}</h3>
@@ -171,8 +169,8 @@ const AgentDashboard = () => {
               </div>
               <p className="text-muted-foreground text-sm font-medium">Total Booking</p>
               <h3 className="text-2xl font-bold mt-1">{totalBookings}</h3>
-              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> 5 booking baru minggu ini
+              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Semua waktu
               </p>
             </CardContent>
           </Card>
@@ -213,29 +211,40 @@ const AgentDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 flex flex-col items-center justify-center text-center space-y-4">
-                  <div className="relative w-32 h-32">
-                    <svg className="w-full h-full" viewBox="0 0 36 36">
-                      <path
-                        className="text-secondary stroke-current"
-                        strokeWidth="3"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                      <path
-                        className="text-primary stroke-current"
-                        strokeWidth="3"
-                        strokeDasharray="65, 100"
-                        strokeLinecap="round"
-                        fill="none"
-                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold">65%</span>
-                      <span className="text-[10px] text-muted-foreground uppercase">Rate</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Performa konversi Anda meningkat 12% dari bulan lalu. Pertahankan!</p>
+                  {(() => {
+                    const conversionRate = totalLeads > 0 ? Math.round((totalBookings / totalLeads) * 100) : 0;
+                    return (
+                      <>
+                        <div className="relative w-32 h-32">
+                          <svg className="w-full h-full" viewBox="0 0 36 36">
+                            <path
+                              className="text-secondary stroke-current"
+                              strokeWidth="3"
+                              fill="none"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path
+                              className="text-primary stroke-current"
+                              strokeWidth="3"
+                              strokeDasharray={`${conversionRate}, 100`}
+                              strokeLinecap="round"
+                              fill="none"
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold">{conversionRate}%</span>
+                            <span className="text-[10px] text-muted-foreground uppercase">Rate</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {totalLeads > 0 
+                            ? `${totalBookings} booking dari ${totalLeads} lead masuk`
+                            : 'Belum ada lead masuk'}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </div>
@@ -286,7 +295,7 @@ const AgentDashboard = () => {
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border mb-4">
                   <Globe className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-mono truncate flex-1">umroh.connect/{travel?.id.substring(0, 8)}</span>
+                  <span className="text-xs font-mono truncate flex-1">{window.location.origin}/travel/{travel?.admin_approved_slug || travel?.id.substring(0, 8)}</span>
                   <ExternalLink className="h-3 w-3 text-muted-foreground" />
                 </div>
                 <Button variant="ghost" size="sm" className="w-full text-xs text-primary" onClick={() => setActiveTab('website')}>
