@@ -14,9 +14,9 @@ export const PlatformSettings = () => {
   const updateSetting = useUpdatePlatformSetting();
   
   const [membershipPrices, setMembershipPrices] = useState({
-    basic: 500000,
-    premium: 1500000,
-    enterprise: 5000000
+    free: 0,
+    pro: 2000000,
+    premium: 7500000
   });
   
   const [creditPrices, setCreditPrices] = useState({
@@ -200,11 +200,21 @@ export const PlatformSettings = () => {
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>Basic</Label>
+                  <Label>Free (Gratis)</Label>
                   <Input 
                     type="number" 
-                    value={membershipPrices.basic} 
-                    onChange={(e) => setMembershipPrices({...membershipPrices, basic: parseInt(e.target.value) || 0})}
+                    value={membershipPrices.free} 
+                    onChange={(e) => setMembershipPrices({...membershipPrices, free: parseInt(e.target.value) || 0})}
+                    disabled
+                  />
+                  <p className="text-[10px] text-muted-foreground">Tier gratis tidak bisa diubah</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pro</Label>
+                  <Input 
+                    type="number" 
+                    value={membershipPrices.pro} 
+                    onChange={(e) => setMembershipPrices({...membershipPrices, pro: parseInt(e.target.value) || 0})}
                   />
                 </div>
                 <div className="space-y-2">
@@ -213,14 +223,6 @@ export const PlatformSettings = () => {
                     type="number" 
                     value={membershipPrices.premium} 
                     onChange={(e) => setMembershipPrices({...membershipPrices, premium: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Enterprise</Label>
-                  <Input 
-                    type="number" 
-                    value={membershipPrices.enterprise} 
-                    onChange={(e) => setMembershipPrices({...membershipPrices, enterprise: parseInt(e.target.value) || 0})}
                   />
                 </div>
               </div>

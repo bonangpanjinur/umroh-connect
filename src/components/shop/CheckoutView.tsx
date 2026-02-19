@@ -127,6 +127,11 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
                   Kode: <span className="font-mono font-bold">{createdOrder.order_code}</span>
                 </p>
                 <p className="text-lg font-bold text-primary mt-1">{formatRupiah(createdOrder.total_amount)}</p>
+                {paymentConfig && (paymentConfig as any).paymentDeadlineHours && (
+                  <p className="text-xs text-destructive mt-1 font-medium">
+                    ⏰ Bayar sebelum {(paymentConfig as any).paymentDeadlineHours} jam dari sekarang
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -15,6 +15,7 @@ import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { PremiumUpgradeModal } from '@/components/premium/PremiumUpgradeModal';
+import TrialStatusBanner from '@/components/premium/TrialStatusBanner';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
 import { useFreeTrial } from '@/hooks/useFreeTrial';
 import { useLocalHabits, useLocalHabitStats, useLocalWeeklyProgress } from '@/hooks/useLocalHabitTracking';
@@ -273,66 +274,13 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
         </Card>
       </div>
 
-      {/* Natural CTA instead of StorageIndicator */}
-      {!isPremium && !isInTrial && daysActive >= 7 && (
-        <div className="px-4 pt-2">
-          <Card className="bg-gradient-to-r from-sky-500/10 to-blue-500/10 border-sky-200 dark:border-sky-800">
-            <CardContent className="py-2.5 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-sky-500" />
-                <span className="text-xs text-sky-700 dark:text-sky-300">
-                  Simpan progress ke cloud agar tidak hilang
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-[10px] text-sky-600"
-                onClick={() => setShowPremiumModal(true)}
-              >
-                Upgrade
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Trial Banner */}
-      {user && isInTrial && (
-        <div className="px-4 pt-2">
-          <Card className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border-violet-200 dark:border-violet-800">
-            <CardContent className="py-2.5 px-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-500" />
-                <span className="text-xs font-medium text-violet-700 dark:text-violet-300">
-                  Trial Premium: {daysRemaining} hari tersisa
-                </span>
-              </div>
-              <Badge className="bg-violet-500 text-white text-[10px]">GRATIS</Badge>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-      {user && !hasEverStartedTrial && !isPremium && (
-        <div className="px-4 pt-2">
-          <Card className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-200 dark:border-emerald-800">
-            <CardContent className="py-3 px-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">🎁 Coba Premium 30 Hari Gratis!</p>
-                <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">Cloud sync, kalkulator khatam, tips eksklusif</p>
-              </div>
-              <Button 
-                size="sm" 
-                className="h-7 text-[10px] bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => startTrial.mutate()}
-                disabled={startTrial.isPending}
-              >
-                Mulai Trial
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Premium / Trial Status Banner */}
+      <div className="px-4 pt-2">
+        <TrialStatusBanner 
+          onUpgrade={() => setShowPremiumModal(true)} 
+          onNavigateToAuth={onNavigateToAuth}
+        />
+      </div>
 
       {/* Main Tabs - Ramadhan first when active */}
       <div className="px-4 pt-3">

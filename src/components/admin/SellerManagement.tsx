@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Store, Users } from 'lucide-react';
+import { CheckCircle, XCircle, Store, Users, Link2, Copy } from 'lucide-react';
 
 const SellerManagement = () => {
   const { toast } = useToast();
@@ -104,8 +104,32 @@ const SellerManagement = () => {
 
   const pendingApps = applications.filter((a: any) => a.status === 'pending');
 
+  const sellerRegistrationUrl = `${window.location.origin}/daftar-seller`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(sellerRegistrationUrl);
+    toast({ title: 'Link disalin! 📋', description: 'Link pendaftaran seller berhasil disalin.' });
+  };
+
   return (
     <div className="space-y-6">
+      {/* Registration Link Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-3 mb-2">
+            <Link2 className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-sm">Link Pendaftaran Seller</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Bagikan link ini kepada calon seller untuk mendaftar.</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs bg-background border rounded-md px-3 py-2 truncate">{sellerRegistrationUrl}</code>
+            <Button size="sm" variant="outline" onClick={copyLink}>
+              <Copy className="h-4 w-4 mr-1" /> Salin
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="applications">
         <TabsList>
           <TabsTrigger value="applications" className="gap-1.5">
