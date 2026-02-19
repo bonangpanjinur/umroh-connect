@@ -1,144 +1,128 @@
 
-# Rencana: Perbaikan Alur Monetisasi Premium & Pengaturan Admin
+# Rencana: Pengelolaan Al-Quran di Dashboard Admin
 
-## Diagnosis Masalah
+## Ringkasan
 
-Saat ini ada **2 sistem monetisasi terpisah** yang tidak terhubung satu sama lain di dashboard admin:
+Saat ini, teks Al-Quran (Arab + terjemahan) diambil langsung dari API eksternal `api.alquran.cloud` setiap kali user membuka surah. Ini berarti:
+- Bergantung penuh pada API eksternal (jika down, Quran tidak bisa dibaca)
+- Lambat karena setiap surah perlu 2 request (Arab + terjemahan)
+- Admin tidak punya kontrol atas konten
 
-1. **Membership Agen** (Free/Pro/Premium) -- untuk travel agent, dikelola di menu "Membership"
-2. **Premium Tracker** (Langganan tahunan) -- untuk pengguna biasa (jamaah), dikelola di menu "Pembayaran > Premium"
+Solusi: Simpan semua ayat di database internal, buat mekanisme sinkronisasi, dan tambah halaman admin untuk mengelolanya.
 
-Keduanya memiliki masalah:
+## Arsitektur
 
-| Masalah | Detail |
-|---------|--------|
-| Nama tier tidak sinkron | `membership_prices` di database menyimpan `basic/premium/enterprise`, tapi kode menggunakan `free/pro/premium` |
-| Config belum tersimpan | Key `membership_config` belum pernah disimpan ke database -- masih pakai hardcoded |
-| Trial 30 hari hardcoded | Durasi trial di-hardcode di `useFreeTrial.ts`, admin tidak bisa mengubah |
-| Fitur premium hardcoded | Daftar fitur premium Tracker di-hardcode di `PremiumUpgradeModal.tsx` |
-| Harga premium Tracker terpisah | Harga disimpan di 2 tempat: tabel `subscription_plans` (Rp 29.000) dan `platform_settings` key `subscription_price_yearly` |
-| User ID saja di admin | Halaman Subscriptions hanya menampilkan user ID (UUID), bukan nama/email |
-| Tidak ada pengaturan terpusat | Admin harus buka beberapa menu terpisah untuk mengatur monetisasi |
+### Database
 
-## Solusi
+**Tabel baru: `quran_ayahs`**
 
-### 1. Perbaiki Sinkronisasi Data Membership Agen
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | UUID | Primary key |
+| surah_number | INTEGER | Nomor surat (1-114) |
+| ayah_number | INTEGER | Nomor ayat dalam surat |
+| ayah_global | INTEGER | Nomor ayat global (1-6236) |
+| arabic_text | TEXT | Teks Arab |
+| translation_id | TEXT | Terjemahan Indonesia |
+| juz | INTEGER | Nomor juz |
+| page | INTEGER | Nomor halaman mushaf |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
-**File**: `src/hooks/useMembershipConfig.ts`
+- Index unik pada (surah_number, ayah_number)
+- RLS: public read, admin-only write
 
-- Saat pertama kali admin menyimpan config, pastikan key `membership_prices` diupdate dengan nama tier yang benar (`free/pro/premium`), bukan `basic/premium/enterprise`
-- Ini sudah dilakukan di `useSaveMembershipConfig` -- hanya perlu memastikan tidak ada sisa data lama yang bentrok
+**Kolom baru di `quran_surahs`**:
+- `revelation_type` (TEXT) -- Makkiyah/Madaniyah
+- `english_name` (TEXT) -- Nama dalam bahasa Inggris
+- `translation_name` (TEXT) -- Arti nama surat
 
-**File**: `src/components/admin/MembershipConfigPanel.tsx`
+**Tabel baru: `quran_sync_logs`**
 
-- Tambah tombol "Reset ke Default" jika admin ingin kembali ke konfigurasi bawaan
-- Tambah preview card di bawah editor agar admin bisa lihat tampilan akhir sebelum save
+| Kolom | Tipe | Keterangan |
+|-------|------|------------|
+| id | UUID | Primary key |
+| sync_type | TEXT | 'full' atau 'partial' |
+| surahs_synced | INTEGER | Jumlah surat yang disinkron |
+| ayahs_synced | INTEGER | Jumlah ayat yang disinkron |
+| status | TEXT | 'running', 'completed', 'failed' |
+| error_message | TEXT | Pesan error jika gagal |
+| started_at | TIMESTAMPTZ | |
+| completed_at | TIMESTAMPTZ | |
 
-### 2. Pengaturan Premium Tracker yang Lengkap
+### Edge Function: `sync-quran-data`
 
-Saat ini menu "Pembayaran > Premium" (`SubscriptionsManagement`) hanya bisa:
-- Melihat daftar subscriber
-- Mengubah harga tahunan
-- Memverifikasi pembayaran
+- Menerima parameter: `mode` ('full' | 'surah'), `surah_number` (opsional)
+- Mode full: loop surat 1-114, fetch dari Al-Quran Cloud API (Arab + terjemahan Indonesia), simpan ke `quran_ayahs` via upsert
+- Mode surah: sync satu surat tertentu saja
+- Catat progress di `quran_sync_logs`
+- Hanya admin yang bisa memanggil
 
-Yang perlu ditambahkan:
+### Komponen Admin: `QuranManagement.tsx`
 
-**File**: `src/components/admin/SubscriptionsManagement.tsx`
+Tab-based layout:
 
-- **Pengaturan Plan**: Admin bisa edit nama plan, deskripsi, dan daftar fitur yang muncul di modal upgrade user
-- **Durasi Trial**: Input untuk mengatur berapa hari trial gratis (default 30 hari), disimpan ke `platform_settings` key `premium_trial_config`
-- **Toggle Trial**: Switch untuk mengaktifkan/menonaktifkan fitur trial gratis
-- **Tampilkan Nama User**: Join query ke tabel `profiles` agar menampilkan nama & email user, bukan UUID
-- **Panel Pengaturan**: Tab baru "Pengaturan" di samping daftar subscriber
+**Tab 1 - Status Data**
+- Statistik: total ayat tersimpan (target 6.236), total surat (target 114), terakhir sync
+- Progress bar per-surat (hijau = lengkap, abu = belum)
+- Tombol "Sinkronisasi Penuh" dan "Sinkronisasi Ulang Surat [X]"
+- Log riwayat sinkronisasi dari `quran_sync_logs`
 
-**Struktur data baru di `platform_settings`**:
+**Tab 2 - Daftar Surat**
+- Tabel 114 surat: nomor, nama Arab, nama Inggris, jumlah ayat, status data (lengkap/tidak)
+- Klik surat untuk melihat detail ayat
+- Tombol sync per-surat
+
+**Tab 3 - Editor Ayat**
+- Pilih surat, lalu tampilkan daftar ayat
+- Admin bisa mengedit teks Arab atau terjemahan jika ada koreksi
+- Perubahan langsung disimpan ke `quran_ayahs`
+
+### Perubahan pada QuranView
+
+- Hook baru `useQuranLocal` yang prioritaskan data dari `quran_ayahs`
+- Jika data lokal ada, gunakan langsung (tanpa API call)
+- Jika data lokal belum ada, fallback ke API eksternal seperti saat ini
+- Ini menjamin backward compatibility
+
+### Navigasi Admin
+
+- Tambah menu "Al-Quran" di grup "Konten" pada sidebar admin (icon: Book)
+
+## File yang Dibuat/Diubah
+
+| File | Aksi | Keterangan |
+|------|------|------------|
+| Migration SQL | Baru | Tabel `quran_ayahs`, `quran_sync_logs`, kolom baru di `quran_surahs` |
+| `supabase/functions/sync-quran-data/index.ts` | Baru | Edge function untuk fetch dan simpan data dari API |
+| `src/components/admin/QuranManagement.tsx` | Baru | Halaman admin pengelolaan Al-Quran |
+| `src/hooks/useQuranLocal.ts` | Baru | Hook untuk baca ayat dari database lokal dengan fallback API |
+| `src/hooks/useQuranAdmin.ts` | Baru | Hook untuk admin: statistik, trigger sync, edit ayat |
+| `src/components/quran/QuranView.tsx` | Ubah | Gunakan `useQuranLocal` sebagai sumber data utama |
+| `src/pages/AdminDashboard.tsx` | Ubah | Tambah menu "Al-Quran" di sidebar dan render `QuranManagement` |
+
+## Detail Teknis
+
+### Edge Function `sync-quran-data`
+- Memanggil `api.alquran.cloud/v1/surah/{n}` untuk teks Arab
+- Memanggil `api.alquran.cloud/v1/surah/{n}/id.indonesian` untuk terjemahan
+- Upsert ke `quran_ayahs` berdasarkan (surah_number, ayah_number)
+- Update metadata di `quran_surahs` (revelation_type, english_name, translation_name)
+- Rate limit: delay 500ms antar surat untuk menghindari throttling API
+
+### Hook `useQuranLocal`
 ```text
-key: "premium_trial_config"
-value: {
-  "enabled": true,
-  "durationDays": 30,
-  "features": ["Sync data ke cloud", "Backup otomatis", ...]
-}
-
-key: "premium_plan_config"  
-value: {
-  "name": "Premium Ibadah Tracker",
-  "description": "Akses penuh fitur cloud & statistik",
-  "priceYearly": 29000,
-  "features": ["Sync data ke cloud", "Backup otomatis", "Akses multi-device", "Statistik lengkap", "Export data"]
-}
+1. Query quran_ayahs WHERE surah_number = X
+2. Jika hasil > 0 -> return data lokal
+3. Jika hasil = 0 -> fallback ke useQuranAPI (fetch dari API eksternal)
 ```
 
-### 3. Hook Trial Dinamis
-
-**File**: `src/hooks/useFreeTrial.ts`
-
-- Baca durasi trial dari `platform_settings` key `premium_trial_config` alih-alih hardcode 30 hari
-- Jika trial dinonaktifkan admin, `startTrial` tidak bisa dipanggil
-- Fallback ke 30 hari jika config belum disimpan
-
-### 4. Modal Upgrade Dinamis
-
-**File**: `src/components/premium/PremiumUpgradeModal.tsx`
-
-- Baca nama plan, deskripsi, dan fitur dari `platform_settings` key `premium_plan_config` 
-- Fallback ke data dari tabel `subscription_plans` jika config belum ada
-- Hapus fallback hardcoded harga Rp 50.000
-
-### 5. Trial Banner Dinamis
-
-**File**: `src/components/premium/TrialStatusBanner.tsx`
-
-- Jika trial dinonaktifkan admin, sembunyikan banner "Coba Premium Gratis"
-- Tampilkan durasi trial sesuai setting (bukan hardcode "30 hari")
-
-### 6. Perbaiki Query Subscriptions Admin
-
-**File**: `src/hooks/usePremiumSubscription.ts`
-
-- `useAllSubscriptions`: join ke `profiles` untuk ambil `full_name` dan `email`
-- Tambah hook `usePremiumPlanConfig` untuk baca/simpan config plan dari `platform_settings`
-- Tambah hook `usePremiumTrialConfig` untuk baca/simpan config trial
-
-### 7. Navigasi Admin yang Lebih Jelas
-
-**File**: `src/pages/AdminDashboard.tsx`
-
-- Rename menu "Premium" menjadi "Langganan Tracker" agar jelas ini untuk fitur tracker
-- Rename menu "Membership" tetap "Membership" (untuk agen)
-- Tambah tooltip atau deskripsi singkat di sidebar
-
-## Alur Monetisasi yang Jelas (Setelah Perbaikan)
-
-### Alur Pengguna (Jamaah) -- Premium Tracker:
-1. User membuka menu Tracker dan menggunakan fitur gratis (data tersimpan lokal)
-2. Muncul banner "Coba Premium X Hari Gratis" (durasi sesuai setting admin)
-3. User klik "Mulai Trial" -- data trial tersimpan di `user_subscriptions`
-4. Selama trial: banner menunjukkan "Premium Trial - Sisa X hari" dengan progress bar
-5. Saat trial habis: banner "Trial Berakhir" + tombol "Upgrade Premium"
-6. User klik upgrade -- muncul modal dengan harga, fitur, dan metode pembayaran (semua dari database)
-7. User upload bukti bayar / bayar via gateway
-8. Admin verifikasi di dashboard -- status berubah jadi aktif
-
-### Alur Agen Travel -- Membership:
-1. Agen baru otomatis di tier Free (3 listing, tanpa fitur premium)
-2. Agen melihat perbandingan paket Free/Pro/Premium (semua dari database via `membership_config`)
-3. Agen memilih upgrade dan upload bukti bayar
-4. Admin verifikasi -- membership aktif dengan batasan sesuai tier
-
-### Pengaturan Admin Terpusat:
-- **Setting > Umum & Harga**: Konfigurasi detail membership agen (harga, fitur, limits per tier)
-- **Pembayaran > Langganan Tracker**: Konfigurasi plan premium tracker + trial + verifikasi subscriber
-- **Pembayaran > Gateway**: Konfigurasi metode pembayaran (bank, QRIS, gateway)
-
-## File yang Diubah
-
-| File | Perubahan |
-|------|-----------|
-| `src/components/admin/SubscriptionsManagement.tsx` | Redesign: tambah tab Pengaturan (plan, trial, fitur), tampilkan nama/email user |
-| `src/hooks/usePremiumSubscription.ts` | Join profiles di `useAllSubscriptions`, tambah hooks config plan & trial |
-| `src/hooks/useFreeTrial.ts` | Baca durasi trial dari DB, cek apakah trial enabled |
-| `src/components/premium/PremiumUpgradeModal.tsx` | Baca config plan dari DB untuk nama, deskripsi, fitur |
-| `src/components/premium/TrialStatusBanner.tsx` | Sembunyikan jika trial disabled, durasi dinamis |
-| `src/pages/AdminDashboard.tsx` | Rename label menu "Premium" jadi "Langganan Tracker" |
-| `src/components/admin/MembershipConfigPanel.tsx` | Tambah preview card paket |
+### Alur Sinkronisasi Admin
+```text
+Admin klik "Sinkronisasi Penuh"
+  -> Insert quran_sync_logs (status: running)
+  -> Panggil edge function sync-quran-data (mode: full)
+  -> Edge function loop 114 surat, fetch + upsert
+  -> Update quran_sync_logs (status: completed, ayahs_synced: 6236)
+  -> Admin melihat progress bar berubah hijau
+```
