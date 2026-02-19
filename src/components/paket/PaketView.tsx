@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Sparkles } from 'lucide-react';
+import { Search, X, Sparkles, ArrowUpDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePackages } from '@/hooks/usePackages';
 import { PackageWithDetails, PackageFilters as FilterType } from '@/types/database';
@@ -27,6 +27,7 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
   });
   const [selectedPackage, setSelectedPackage] = useState<PackageWithDetails | null>(null);
   const [showAIWizard, setShowAIWizard] = useState(false);
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'departure_nearest'>('default');
   
   const { data: packages, isLoading, error } = usePackages();
 
@@ -88,7 +89,7 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
 
   // Apply all filters
   const filteredPackages = useMemo(() => {
-    return displayPackages.filter(pkg => {
+    let result = displayPackages.filter(pkg => {
       // Search filter
       if (filters.search) {
         const query = filters.search.toLowerCase();
@@ -150,7 +151,30 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
 
       return true;
     });
-  }, [displayPackages, filters]);
+
+    // Apply sorting
+    if (sortBy !== 'default') {
+      result = [...result].sort((a, b) => {
+        const getLowestPrice = (pkg: PackageWithDetails) =>
+          pkg.departures.length > 0 ? Math.min(...pkg.departures.map(d => d.price)) : 0;
+        const getNearestDeparture = (pkg: PackageWithDetails) => {
+          const future = pkg.departures
+            .map(d => new Date(d.departure_date).getTime())
+            .filter(t => t > Date.now());
+          return future.length > 0 ? Math.min(...future) : Infinity;
+        };
+
+        switch (sortBy) {
+          case 'price_asc': return getLowestPrice(a) - getLowestPrice(b);
+          case 'price_desc': return getLowestPrice(b) - getLowestPrice(a);
+          case 'departure_nearest': return getNearestDeparture(a) - getNearestDeparture(b);
+          default: return 0;
+        }
+      });
+    }
+
+    return result;
+  }, [displayPackages, filters, sortBy]);
 
   return (
     <motion.div
@@ -182,8 +206,22 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
           <PackageFiltersSheet filters={filters} onFiltersChange={setFilters} />
         </div>
         
-        {/* Quick Filter Tags */}
-        <QuickFilterTags filters={filters} onFiltersChange={setFilters} />
+        {/* Quick Filter Tags + Sort */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 overflow-hidden">
+            <QuickFilterTags filters={filters} onFiltersChange={setFilters} />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="text-xs bg-secondary border border-border rounded-lg px-2 py-1.5 text-muted-foreground flex-shrink-0"
+          >
+            <option value="default">Urutkan</option>
+            <option value="price_asc">Harga ↑</option>
+            <option value="price_desc">Harga ↓</option>
+            <option value="departure_nearest">Terdekat</option>
+          </select>
+        </div>
       </div>
 
       {/* AI Recommendation CTA */}
