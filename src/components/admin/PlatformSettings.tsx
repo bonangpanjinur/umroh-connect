@@ -9,6 +9,7 @@ import { usePlatformSettings, useUpdatePlatformSetting } from '@/hooks/useAdminD
 import { toast } from 'sonner';
 import { Settings, Save, Sparkles, Layout, CreditCard } from 'lucide-react';
 import { MembershipConfigPanel } from './MembershipConfigPanel';
+import { ImageUpload } from '../common/ImageUpload';
 
 export const PlatformSettings = () => {
   const { data: settings, isLoading } = usePlatformSettings();
@@ -442,22 +443,32 @@ export const PlatformSettings = () => {
                   onChange={(e) => setWhitelabelSettings({...whitelabelSettings, site_description: e.target.value})}
                 />
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>URL Logo</Label>
-                  <Input 
-                    value={whitelabelSettings.logo_url} 
-                    onChange={(e) => setWhitelabelSettings({...whitelabelSettings, logo_url: e.target.value})}
-                    placeholder="https://example.com/logo.png"
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Logo Platform</Label>
+                  <ImageUpload
+                    bucket="uploads"
+                    folder="whitelabel"
+                    currentUrl={whitelabelSettings.logo_url}
+                    onUpload={(url) => setWhitelabelSettings({ ...whitelabelSettings, logo_url: url })}
+                    onRemove={() => setWhitelabelSettings({ ...whitelabelSettings, logo_url: '' })}
+                    aspectRatio="landscape"
+                    className="w-full max-w-sm"
                   />
+                  <p className="text-xs text-muted-foreground italic">Rekomendasi: PNG transparan, rasio 3:1 atau 4:1</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>URL Favicon</Label>
-                  <Input 
-                    value={whitelabelSettings.favicon_url} 
-                    onChange={(e) => setWhitelabelSettings({...whitelabelSettings, favicon_url: e.target.value})}
-                    placeholder="https://example.com/favicon.ico"
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Favicon Platform</Label>
+                  <ImageUpload
+                    bucket="uploads"
+                    folder="whitelabel"
+                    currentUrl={whitelabelSettings.favicon_url}
+                    onUpload={(url) => setWhitelabelSettings({ ...whitelabelSettings, favicon_url: url })}
+                    onRemove={() => setWhitelabelSettings({ ...whitelabelSettings, favicon_url: '' })}
+                    aspectRatio="square"
+                    className="w-32"
                   />
+                  <p className="text-xs text-muted-foreground italic">Rekomendasi: ICO atau PNG, 32x32 atau 64x64 pixel</p>
                 </div>
               </div>
             </CardContent>
