@@ -26,6 +26,7 @@ import PublicReviewsView from '@/components/reviews/PublicReviewsView';
 import QuranView from '@/components/quran/QuranView';
 import IbadahHubView from '@/components/habit/IbadahHubView';
 import SavingsCalculatorView from '@/components/savings/SavingsCalculatorView';
+import CalculatorHub from '@/components/calculator/CalculatorHub';
 import ShopView from '@/components/shop/ShopView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
@@ -171,10 +172,10 @@ const Index = () => {
       );
     }
 
-    // Show Savings Calculator
+    // Show Calculator Hub
     if (showSavings) {
       return (
-        <SavingsCalculatorView 
+        <CalculatorHub 
           onBack={() => setShowSavings(false)} 
           onViewPackages={() => {
             setShowSavings(false);
