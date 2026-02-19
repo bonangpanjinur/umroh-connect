@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useSubscriptionPlans, useCreateSubscription, useIsPremium } from '@/hooks/usePremiumSubscription';
+import { usePremiumPlanConfig } from '@/hooks/usePremiumConfig';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +41,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
 }) => {
   const { user, profile } = useAuthContext();
   const { data: plans, isLoading: plansLoading } = useSubscriptionPlans();
+  const { data: planConfig } = usePremiumPlanConfig();
   const { data: paymentConfig, isLoading: paymentConfigLoading } = usePublicPaymentConfig();
   const { isPremium, subscription } = useIsPremium();
   const createSubscription = useCreateSubscription();
@@ -54,13 +56,13 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
 
-  // Fallback plan if data is missing
+  // Build plan from dynamic config first, then DB subscription_plans, then fallback
   const fallbackPlan = {
     id: 'premium-yearly',
-    name: 'Premium Yearly',
-    description: 'Akses penuh fitur cloud & statistik',
-    price_yearly: 50000,
-    features: ['Sync data ke cloud', 'Backup otomatis', 'Akses multi-device', 'Statistik lengkap']
+    name: planConfig?.name || 'Premium Yearly',
+    description: planConfig?.description || 'Akses penuh fitur cloud & statistik',
+    price_yearly: planConfig?.priceYearly || 29000,
+    features: planConfig?.features || ['Sync data ke cloud', 'Backup otomatis', 'Akses multi-device', 'Statistik lengkap'],
   };
 
   const plan = (plans && plans.length > 0) ? plans[0] : fallbackPlan;
