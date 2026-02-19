@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Flame, Moon, Sparkles, Crown, Zap, ChevronRight, Plus,
-  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset
+  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -26,6 +26,7 @@ import MealTrackingView from './MealTrackingView';
 import DzikirStatsView from './DzikirStatsView';
 import SedekahView from './SedekahView';
 import RamadhanDashboard from './RamadhanDashboard';
+import PdfTrackerBuilder from './PdfTrackerBuilder';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
@@ -49,6 +50,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
   const [activeTab, setActiveTab] = useState(() => isRamadhanMode ? 'ramadhan' : 'ibadah');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showHabitLibrary, setShowHabitLibrary] = useState(false);
+  const [showPdfBuilder, setShowPdfBuilder] = useState(false);
 
   const { habits, addHabit, removeHabit } = useLocalHabits(isRamadhanMode);
   const stats = useLocalHabitStats();
@@ -113,7 +115,15 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
               <span className="text-sm opacity-90">
                 {format(new Date(), 'EEEE, d MMM', { locale: id })}
               </span>
-              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[10px] h-5 px-1.5 text-white/80 hover:text-white hover:bg-white/10"
+                    onClick={() => setShowPdfBuilder(true)}
+                  >
+                    <Printer className="h-3 w-3" />
+                  </Button>
                 {todayMood && (
                   <Badge className="bg-white/20 text-white text-[10px] gap-1">
                     {currentMoodConfig?.label}
@@ -424,6 +434,13 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
         isRamadhanMode={isRamadhanMode}
         onAddHabit={addHabit}
         onRemoveHabit={removeHabit}
+      />
+
+      {/* PDF Tracker Builder */}
+      <PdfTrackerBuilder
+        open={showPdfBuilder}
+        onOpenChange={setShowPdfBuilder}
+        onShowPremium={() => setShowPremiumModal(true)}
       />
 
       {/* Premium Modal */}
