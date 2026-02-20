@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Package, Upload, Truck, Copy, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Package, Upload, Truck, Copy, CheckCircle2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,11 +9,22 @@ import OrderDetailsDialog from '@/components/order/OrderDetailsDialog';
 import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
 import OrderStatusStepper from '@/components/shop/OrderStatusStepper';
 import ProductReviewForm from '@/components/shop/ProductReviewForm';
+import ShopChatView from '@/components/shop/ShopChatView';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+const lookupSeller = async (productId: string) => {
+  const { data } = await supabase
+    .from('shop_products')
+    .select('seller_id, seller:seller_profiles!shop_products_seller_id_fkey(id, shop_name)')
+    .eq('id', productId)
+    .single();
+  return data?.seller as { id: string; shop_name: string } | null;
+};
 
 const statusLabels: Record<ShopOrderStatus, string> = {
   pending: 'Menunggu Bayar',
@@ -40,6 +51,10 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const [paymentOrder, setPaymentOrder] = useState<ShopOrder | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reviewingOrder, setReviewingOrder] = useState<ShopOrder | null>(null);
+  const [chatOrder, setChatOrder] = useState<{ sellerId: string; sellerName: string; orderId: string } | null>(null);
+
+  // Enable realtime updates
+  useRealtimeOrders();
 
   const handleConfirmDelivery = async (orderId: string) => {
     setConfirmingId(orderId);
@@ -62,6 +77,23 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
     navigator.clipboard.writeText(num);
     toast({ title: 'Nomor resi disalin' });
   };
+
+  // Show chat view if active
+  if (chatOrder) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="h-screen">
+          <ShopChatView
+            sellerId={chatOrder.sellerId}
+            sellerName={chatOrder.sellerName}
+            orderId={chatOrder.orderId}
+            senderRole="buyer"
+            onBack={() => setChatOrder(null)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,6 +188,32 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
                   onClick={(e) => { e.stopPropagation(); setReviewingOrder(reviewingOrder?.id === order.id ? null : order); }}
                 >
                   ⭐ Beri Review
+                </Button>
+              )}
+
+              {/* Chat seller button - show for non-cancelled orders */}
+              {order.status !== 'cancelled' && order.status !== 'pending' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const firstItem = order.items?.[0];
+                    if (firstItem?.product_id) {
+                      const seller = await lookupSeller(firstItem.product_id);
+                      if (seller) {
+                        setChatOrder({
+                          sellerId: seller.id,
+                          sellerName: seller.shop_name,
+                          orderId: order.id,
+                        });
+                      }
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                  Chat Penjual
                 </Button>
               )}
 

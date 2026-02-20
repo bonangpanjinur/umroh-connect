@@ -7,13 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import SellerProductForm from '@/components/seller/SellerProductForm';
 import SellerStatsTab from '@/components/seller/SellerStatsTab';
 import SellerOrdersTab from '@/components/seller/SellerOrdersTab';
 import SellerSettingsTab from '@/components/seller/SellerSettingsTab';
+import SellerChatTab from '@/components/seller/SellerChatTab';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { ShopProduct } from '@/types/shop';
 
 const formatRupiah = (n: number) =>
@@ -31,6 +33,9 @@ const SellerDashboard = () => {
   const [activeTab, setActiveTab] = useState('products');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
+
+  // Enable realtime order updates
+  useRealtimeOrders();
 
   useEffect(() => {
     if (!loading && !user) navigate('/auth');
@@ -144,22 +149,26 @@ const SellerDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-4 gap-2 h-auto p-1">
-            <TabsTrigger value="products" className="flex items-center gap-1.5 py-2 text-xs">
-              <ShoppingBag className="h-4 w-4" />
+          <TabsList className="grid grid-cols-5 gap-1 h-auto p-1">
+            <TabsTrigger value="products" className="flex items-center gap-1 py-2 text-[11px]">
+              <ShoppingBag className="h-3.5 w-3.5" />
               Produk
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-1.5 py-2 text-xs">
-              <ClipboardList className="h-4 w-4" />
+            <TabsTrigger value="orders" className="flex items-center gap-1 py-2 text-[11px]">
+              <ClipboardList className="h-3.5 w-3.5" />
               Pesanan
             </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-1.5 py-2 text-xs">
-              <BarChart3 className="h-4 w-4" />
+            <TabsTrigger value="chat" className="flex items-center gap-1 py-2 text-[11px]">
+              <MessageSquare className="h-3.5 w-3.5" />
+              Chat
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-1 py-2 text-[11px]">
+              <BarChart3 className="h-3.5 w-3.5" />
               Statistik
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-1.5 py-2 text-xs">
-              <Settings className="h-4 w-4" />
-              Pengaturan
+            <TabsTrigger value="settings" className="flex items-center gap-1 py-2 text-[11px]">
+              <Settings className="h-3.5 w-3.5" />
+              Setting
             </TabsTrigger>
           </TabsList>
 
@@ -233,6 +242,10 @@ const SellerDashboard = () => {
 
           <TabsContent value="orders">
             <SellerOrdersTab items={orderItems} isLoading={loadingStats} />
+          </TabsContent>
+
+          <TabsContent value="chat">
+            <SellerChatTab sellerId={sellerProfile.id} sellerName={sellerProfile.shop_name} />
           </TabsContent>
 
           <TabsContent value="stats">
