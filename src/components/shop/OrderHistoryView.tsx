@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Package, Upload } from 'lucide-react';
+import { ArrowLeft, Package, Upload, Truck, Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,18 +7,13 @@ import { useShopOrders } from '@/hooks/useShopOrders';
 import { ShopOrder, ShopOrderStatus } from '@/types/shop';
 import OrderDetailsDialog from '@/components/order/OrderDetailsDialog';
 import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
+import OrderStatusStepper from '@/components/shop/OrderStatusStepper';
+import ProductReviewForm from '@/components/shop/ProductReviewForm';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '@/contexts/AuthContext';
-
-const statusColors: Record<ShopOrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  paid: 'bg-blue-100 text-blue-800',
-  processing: 'bg-purple-100 text-purple-800',
-  shipped: 'bg-indigo-100 text-indigo-800',
-  delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-};
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const statusLabels: Record<ShopOrderStatus, string> = {
   pending: 'Menunggu Bayar',
@@ -43,6 +38,30 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const [selectedOrder, setSelectedOrder] = useState<ShopOrder | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [paymentOrder, setPaymentOrder] = useState<ShopOrder | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [reviewingOrder, setReviewingOrder] = useState<ShopOrder | null>(null);
+
+  const handleConfirmDelivery = async (orderId: string) => {
+    setConfirmingId(orderId);
+    try {
+      const { error } = await supabase
+        .from('shop_orders')
+        .update({ status: 'delivered' })
+        .eq('id', orderId);
+      if (error) throw error;
+      toast({ title: 'Pesanan dikonfirmasi diterima ✅' });
+      queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
+    } catch (err: any) {
+      toast({ title: 'Gagal konfirmasi', description: err.message, variant: 'destructive' });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const copyTracking = (num: string) => {
+    navigator.clipboard.writeText(num);
+    toast({ title: 'Nomor resi disalin' });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -68,36 +87,88 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
         )}
 
         {orders.map((order) => (
-          <Card key={order.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true); }}>
+          <Card key={order.id} className="overflow-hidden">
+            <CardContent className="p-4 space-y-3">
+              {/* Header */}
+              <div className="flex justify-between items-start cursor-pointer" onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true); }}>
                 <div>
                   <p className="font-mono text-sm font-medium">{order.order_code}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')}
                   </p>
                 </div>
-                <Badge className={statusColors[order.status as ShopOrderStatus] || ''}>
+                <Badge variant="outline" className="text-xs capitalize">
                   {statusLabels[order.status as ShopOrderStatus] || order.status}
                 </Badge>
               </div>
+
+              {/* Stepper */}
+              <OrderStatusStepper status={order.status} />
+
+              {/* Tracking info */}
+              {order.tracking_number && (
+                <div className="flex items-center gap-2 text-xs bg-muted/50 rounded-lg p-2">
+                  <Truck className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-muted-foreground">{order.courier || 'Kurir'}</span>
+                  <span className="font-mono font-medium">{order.tracking_number}</span>
+                  <button onClick={(e) => { e.stopPropagation(); copyTracking(order.tracking_number!); }} className="p-1 hover:bg-muted rounded">
+                    <Copy className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
+              )}
+
+              {/* Amount */}
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">{order.items?.length || 0} item</span>
                 <span className="font-semibold">{formatRupiah(order.total_amount)}</span>
               </div>
 
-              {/* Upload bukti bayar button for pending orders */}
+              {/* Actions */}
               {order.status === 'pending' && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full mt-3"
+                  className="w-full"
                   onClick={(e) => { e.stopPropagation(); setPaymentOrder(order); }}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {order.payment_proof_url ? 'Lihat/Ganti Bukti Bayar' : 'Upload Bukti Pembayaran'}
                 </Button>
               )}
+
+              {order.status === 'shipped' && (
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={confirmingId === order.id}
+                  onClick={(e) => { e.stopPropagation(); handleConfirmDelivery(order.id); }}
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  {confirmingId === order.id ? 'Mengkonfirmasi...' : 'Barang Diterima'}
+                </Button>
+              )}
+
+              {order.status === 'delivered' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={(e) => { e.stopPropagation(); setReviewingOrder(reviewingOrder?.id === order.id ? null : order); }}
+                >
+                  ⭐ Beri Review
+                </Button>
+              )}
+
+              {/* Review forms for delivered orders */}
+              {reviewingOrder?.id === order.id && order.items?.map(item => (
+                <ProductReviewForm
+                  key={item.id}
+                  productId={item.product_id || ''}
+                  orderId={order.id}
+                  productName={item.product_name}
+                  onDone={() => setReviewingOrder(null)}
+                />
+              ))}
             </CardContent>
           </Card>
         ))}
