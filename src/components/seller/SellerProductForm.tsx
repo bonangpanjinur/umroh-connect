@@ -10,6 +10,7 @@ import { useShopCategories } from '@/hooks/useShopProducts';
 import { useUpsertSellerProduct } from '@/hooks/useSeller';
 import { ShopProduct } from '@/types/shop';
 import { ArrowLeft } from 'lucide-react';
+import { ImageUpload } from '@/components/common/ImageUpload';
 
 interface SellerProductFormProps {
   sellerId: string;
@@ -141,8 +142,15 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
           </div>
 
           <div className="space-y-2">
-            <Label>URL Thumbnail</Label>
-            <Input value={form.thumbnail_url} onChange={e => setForm(f => ({ ...f, thumbnail_url: e.target.value }))} placeholder="https://..." />
+            <Label>Gambar Produk</Label>
+            <ImageUpload
+              bucket="shop-images"
+              folder="products"
+              currentUrl={form.thumbnail_url || null}
+              onUpload={(url) => setForm(f => ({ ...f, thumbnail_url: url }))}
+              onRemove={() => setForm(f => ({ ...f, thumbnail_url: '' }))}
+              aspectRatio="square"
+            />
           </div>
 
           <div className="flex items-center justify-between">

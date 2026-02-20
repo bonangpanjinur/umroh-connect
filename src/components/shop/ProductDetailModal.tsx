@@ -5,9 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { ShopProduct } from '@/types/shop';
 import { useShopCart } from '@/hooks/useShopCart';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Minus, Plus, ShoppingCart, ShoppingBag, LogIn } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, ShoppingBag, LogIn, Store } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import ProductReviews from './ProductReviews';
+import { useProductRatingStats } from '@/hooks/useProductReviews';
+import { Star } from 'lucide-react';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -74,6 +77,21 @@ const ProductDetailModal = ({ product, open, onOpenChange }: ProductDetailModalP
           </div>
 
           {product.description && <p className="text-sm text-muted-foreground">{product.description}</p>}
+
+          {/* Seller link */}
+          {product.seller && (
+            <button
+              className="flex items-center gap-2 text-sm text-primary hover:underline"
+              onClick={() => { onOpenChange(false); navigate(`/store/${product.seller_id}`); }}
+            >
+              <Store className="h-4 w-4" />
+              {product.seller.shop_name}
+              {product.seller.is_verified && ' ✓'}
+            </button>
+          )}
+
+          {/* Reviews */}
+          <ProductReviews productId={product.id} />
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Stok: <strong className={product.stock > 0 ? 'text-foreground' : 'text-destructive'}>{product.stock > 0 ? product.stock : 'Habis'}</strong></span>
