@@ -7,6 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import ProductDetailModal from '@/components/shop/ProductDetailModal';
+import ShopChatView from '@/components/shop/ShopChatView';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { ShopProduct } from '@/types/shop';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +18,9 @@ const formatRupiah = (n: number) =>
 const StorePage = () => {
   const { sellerId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuthContext();
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
+  const [showChat, setShowChat] = useState(false);
 
   const { data: seller, isLoading: loadingSeller } = useQuery({
     queryKey: ['store-profile', sellerId],
@@ -70,6 +74,22 @@ const StorePage = () => {
   const whatsappLink = seller.whatsapp
     ? `https://wa.me/${seller.whatsapp.replace(/\D/g, '')}`
     : null;
+
+  // Show chat view
+  if (showChat && sellerId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="h-screen">
+          <ShopChatView
+            sellerId={sellerId}
+            sellerName={seller.shop_name}
+            senderRole="buyer"
+            onBack={() => setShowChat(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -137,11 +157,17 @@ const StorePage = () => {
 
         {/* Contact buttons */}
         <div className="flex gap-2">
+          {user && (
+            <Button size="sm" variant="default" className="text-xs h-8" onClick={() => setShowChat(true)}>
+              <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+              Chat Penjual
+            </Button>
+          )}
           {whatsappLink && (
             <Button size="sm" variant="outline" className="text-xs h-8" asChild>
               <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
-                Chat Penjual
+                WhatsApp
               </a>
             </Button>
           )}
