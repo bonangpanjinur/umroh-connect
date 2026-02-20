@@ -13,6 +13,7 @@ import ProductDetailModal from './ProductDetailModal';
 import CartSheet from './CartSheet';
 import CheckoutView from './CheckoutView';
 import OrderHistoryView from './OrderHistoryView';
+import ChatNotificationBell from './ChatNotificationBell';
 
 interface ShopViewProps {
   onBack: () => void;
@@ -94,6 +95,7 @@ const ShopView = ({ onBack }: ShopViewProps) => {
         <div className="flex items-center gap-3 p-4">
           <button onClick={onBack} className="p-2 rounded-full hover:bg-muted"><ArrowLeft className="w-5 h-5" /></button>
           <h2 className="font-bold text-lg flex-1">Oleh-oleh & Perlengkapan</h2>
+          <ChatNotificationBell />
           <Button variant="ghost" size="icon" onClick={() => setShowOrders(true)} title="Riwayat Pesanan">
             <ClipboardList className="h-5 w-5" />
           </Button>

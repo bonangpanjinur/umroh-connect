@@ -11,6 +11,8 @@ export interface ShopChatMessage {
   sender_id: string;
   sender_role: 'buyer' | 'seller';
   message: string;
+  attachment_url: string | null;
+  attachment_type: string | null;
   is_read: boolean;
   read_at: string | null;
   created_at: string;
@@ -89,7 +91,12 @@ export const useShopChat = (sellerId: string | null, orderId?: string | null) =>
   }, [sellerId, orderId, user, queryClient]);
 
   const sendMessage = useMutation({
-    mutationFn: async ({ message, senderRole }: { message: string; senderRole: 'buyer' | 'seller' }) => {
+    mutationFn: async ({ message, senderRole, attachmentUrl, attachmentType }: {
+      message: string;
+      senderRole: 'buyer' | 'seller';
+      attachmentUrl?: string;
+      attachmentType?: string;
+    }) => {
       if (!user || !sellerId) throw new Error('Not authenticated');
       const { data, error } = await supabase
         .from('shop_chat_messages')
@@ -99,6 +106,8 @@ export const useShopChat = (sellerId: string | null, orderId?: string | null) =>
           sender_id: user.id,
           sender_role: senderRole,
           message,
+          attachment_url: attachmentUrl || null,
+          attachment_type: attachmentType || null,
         })
         .select()
         .single();
