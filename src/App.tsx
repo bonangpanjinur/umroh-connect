@@ -19,6 +19,7 @@ import AgentPublicProfile from "./pages/AgentPublicProfile";
 import ShopAdminDashboard from "./pages/ShopAdminDashboard";
 import SellerDashboard from "./pages/SellerDashboard";
 import PageDetail from "./pages/PageDetail";
+import StorePage from "./pages/StorePage";
 import InstallPWA from "./components/pwa/PWAInstallPrompt";
 import SplashScreen from "./components/pwa/SplashScreen";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
@@ -59,6 +60,7 @@ const AppContent = () => {
               <Route path="/seller/*" element={<SellerDashboard />} />
               <Route path="/travel/:slug" element={<AgentPublicProfile />} />
               <Route path="/travel/:slug/:packageSlug" element={<AgentPublicProfile />} />
+              <Route path="/store/:sellerId" element={<StorePage />} />
               <Route path="/:slug" element={<PageDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
