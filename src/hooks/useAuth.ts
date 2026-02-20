@@ -94,6 +94,7 @@ export const useAuth = () => {
   const isAdmin = (): boolean => hasRole('admin');
   const isJamaah = (): boolean => hasRole('jamaah');
   const isShopAdmin = (): boolean => hasRole('shop_admin');
+  const isSeller = (): boolean => hasRole('seller');
 
   return {
     user,
@@ -108,5 +109,6 @@ export const useAuth = () => {
     isAdmin,
     isJamaah,
     isShopAdmin,
+    isSeller,
   };
 };
