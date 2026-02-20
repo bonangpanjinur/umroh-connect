@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUserHajiRegistrations } from '@/hooks/useHaji';
 import { useUserBookings } from '@/hooks/useBookings';
 import { useIsPremium } from '@/hooks/usePremiumSubscription';
+import { useSellerProfile } from '@/hooks/useSeller';
 import UserBookingsView from '@/components/booking/UserBookingsView';
 import PushNotificationSettings from '@/components/notifications/PushNotificationSettings';
 import { LanguageSelector } from '@/components/settings/LanguageSelector';
@@ -119,12 +120,13 @@ const BookingButton = ({ onClick }: { onClick: () => void }) => {
 
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const { user, profile, signOut, loading, isShopAdmin } = useAuthContext();
+  const { user, profile, signOut, loading, isShopAdmin, isSeller } = useAuthContext();
   const { t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isPremium, subscription } = useIsPremium();
+  const { data: sellerProfile } = useSellerProfile();
   const [showBookings, setShowBookings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
@@ -321,6 +323,33 @@ const AkunView = () => {
               <div className="text-left">
                 <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Dashboard Agent</h4>
                 <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola paket umroh Anda</p>
+              </div>
+            </div>
+            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+          </motion.button>
+        )}
+
+        {/* Seller Dashboard Button */}
+        {(isSeller() || !!sellerProfile) && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/seller')}
+            className={`w-full bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+              isElderlyMode ? 'p-5' : 'p-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full bg-orange-500 text-primary-foreground flex items-center justify-center ${
+                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+              }`}>
+                <Store style={{ width: iconSize.md, height: iconSize.md }} />
+              </div>
+              <div className="text-left">
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Dashboard Store</h4>
+                <p className={`text-muted-foreground ${fontSize.xs}`}>
+                  {sellerProfile?.shop_name || 'Kelola produk & penjualan Anda'}
+                </p>
               </div>
             </div>
             <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
