@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare } from 'lucide-react';
+import ChatNotificationBell from '@/components/shop/ChatNotificationBell';
 import { useToast } from '@/hooks/use-toast';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import SellerProductForm from '@/components/seller/SellerProductForm';
@@ -122,6 +123,7 @@ const SellerDashboard = () => {
               )}
             </div>
           </div>
+          <ChatNotificationBell />
         </div>
       </header>
 

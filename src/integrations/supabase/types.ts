@@ -401,6 +401,47 @@ export type Database = {
           },
         ]
       }
+      chat_notifications: {
+        Row: {
+          chat_message_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message_preview: string | null
+          seller_id: string
+          sender_name: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_message_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_preview?: string | null
+          seller_id: string
+          sender_name?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_message_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_preview?: string | null
+          seller_id?: string
+          sender_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notifications_chat_message_id_fkey"
+            columns: ["chat_message_id"]
+            isOneToOne: false
+            referencedRelation: "shop_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checklists: {
         Row: {
           category: Database["public"]["Enums"]["checklist_category"]
@@ -2908,6 +2949,8 @@ export type Database = {
       }
       shop_chat_messages: {
         Row: {
+          attachment_type: string | null
+          attachment_url: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -2919,6 +2962,8 @@ export type Database = {
           sender_role: string
         }
         Insert: {
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -2930,6 +2975,8 @@ export type Database = {
           sender_role: string
         }
         Update: {
+          attachment_type?: string | null
+          attachment_url?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
