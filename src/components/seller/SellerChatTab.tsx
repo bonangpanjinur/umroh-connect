@@ -64,7 +64,7 @@ const SellerChatTab = ({ sellerId, sellerName }: SellerChatTabProps) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium truncate">
-                  {conv.order_id ? `Pesanan` : 'Chat Umum'}
+                  {conv.buyer_name}{conv.order_id ? ' · Pesanan' : ''}
                 </p>
                 {conv.unread > 0 && (
                   <Badge className="bg-destructive text-destructive-foreground text-[10px] h-5 min-w-5 flex items-center justify-center">

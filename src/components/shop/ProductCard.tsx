@@ -2,6 +2,7 @@ import { ShopProduct } from '@/types/shop';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingBag } from 'lucide-react';
+import WishlistButton from './WishlistButton';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -29,6 +30,9 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
         {discount > 0 && (
           <Badge className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs">-{discount}%</Badge>
         )}
+        <div className="absolute top-1 right-1">
+          <WishlistButton productId={product.id} size="sm" className="bg-background/70 backdrop-blur-sm hover:bg-background/90" />
+        </div>
         {product.stock <= 0 && (
           <div className="absolute inset-0 bg-background/70 flex items-center justify-center">
             <Badge variant="secondary">Habis</Badge>
