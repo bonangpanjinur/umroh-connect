@@ -52,9 +52,28 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reviewingOrder, setReviewingOrder] = useState<ShopOrder | null>(null);
   const [chatOrder, setChatOrder] = useState<{ sellerId: string; sellerName: string; orderId: string } | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   // Enable realtime updates
   useRealtimeOrders();
+
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingId(orderId);
+    try {
+      const { error } = await supabase
+        .from('shop_orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId)
+        .eq('status', 'pending');
+      if (error) throw error;
+      toast({ title: 'Pesanan berhasil dibatalkan' });
+      queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
+    } catch (err: any) {
+      toast({ title: 'Gagal membatalkan', description: err.message, variant: 'destructive' });
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const handleConfirmDelivery = async (orderId: string) => {
     setConfirmingId(orderId);
@@ -157,15 +176,26 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
 
               {/* Actions */}
               {order.status === 'pending' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={(e) => { e.stopPropagation(); setPaymentOrder(order); }}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {order.payment_proof_url ? 'Lihat/Ganti Bukti Bayar' : 'Upload Bukti Pembayaran'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={(e) => { e.stopPropagation(); setPaymentOrder(order); }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {order.payment_proof_url ? 'Ganti Bukti' : 'Bayar'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs"
+                    disabled={cancellingId === order.id}
+                    onClick={(e) => { e.stopPropagation(); handleCancelOrder(order.id); }}
+                  >
+                    {cancellingId === order.id ? '...' : 'Batalkan'}
+                  </Button>
+                </div>
               )}
 
               {order.status === 'shipped' && (
