@@ -147,9 +147,28 @@ export const useSellerChatList = (sellerId: string | null) => {
 
       if (error) throw error;
 
-      // Group by sender (buyer) - use sender_id for buyer messages
+      // Collect unique buyer IDs
+      const buyerIds = new Set<string>();
+      (data || []).forEach((msg: any) => {
+        if (msg.sender_role === 'buyer') buyerIds.add(msg.sender_id);
+      });
+
+      // Fetch buyer names from profiles
+      let buyerNames: Record<string, string> = {};
+      if (buyerIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', Array.from(buyerIds));
+        if (profiles) {
+          profiles.forEach((p: any) => { buyerNames[p.user_id] = p.full_name || 'Pembeli'; });
+        }
+      }
+
+      // Group by sender (buyer)
       const convMap = new Map<string, {
         buyer_id: string;
+        buyer_name: string;
         order_id: string | null;
         last_message: string;
         last_time: string;
@@ -158,11 +177,12 @@ export const useSellerChatList = (sellerId: string | null) => {
 
       (data || []).forEach((msg: any) => {
         const buyerId = msg.sender_role === 'buyer' ? msg.sender_id : null;
-        // Find the buyer in this conversation
         const key = msg.order_id || msg.sender_id;
         if (!convMap.has(key)) {
+          const bId = buyerId || msg.sender_id;
           convMap.set(key, {
-            buyer_id: buyerId || msg.sender_id,
+            buyer_id: bId,
+            buyer_name: buyerNames[bId] || 'Pembeli',
             order_id: msg.order_id,
             last_message: msg.message,
             last_time: msg.created_at,

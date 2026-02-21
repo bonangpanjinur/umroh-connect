@@ -5,12 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { ShopProduct } from '@/types/shop';
 import { useShopCart } from '@/hooks/useShopCart';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Minus, Plus, ShoppingCart, ShoppingBag, LogIn, Store } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, ShoppingBag, Store, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ProductReviews from './ProductReviews';
-import { useProductRatingStats } from '@/hooks/useProductReviews';
-import { Star } from 'lucide-react';
+import WishlistButton from './WishlistButton';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -23,11 +22,18 @@ interface ProductDetailModalProps {
 
 const ProductDetailModal = ({ product, open, onOpenChange }: ProductDetailModalProps) => {
   const [qty, setQty] = useState(1);
+  const [currentImage, setCurrentImage] = useState(0);
   const { addToCart } = useShopCart();
   const { user } = useAuthContext();
   const navigate = useNavigate();
 
   if (!product) return null;
+
+  // Combine thumbnail + images array
+  const allImages = [
+    product.thumbnail_url,
+    ...(product.images || []),
+  ].filter(Boolean) as string[];
 
   const handleAddToCart = () => {
     if (!user) {
@@ -48,20 +54,63 @@ const ProductDetailModal = ({ product, open, onOpenChange }: ProductDetailModalP
     ? Math.round(((product.compare_price - product.price) / product.compare_price) * 100)
     : 0;
 
+  const prevImage = () => setCurrentImage((p) => (p - 1 + allImages.length) % allImages.length);
+  const nextImage = () => setCurrentImage((p) => (p + 1) % allImages.length);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setCurrentImage(0); onOpenChange(o); }}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{product.name}</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-            {product.thumbnail_url ? (
-              <img src={product.thumbnail_url} alt={product.name} className="w-full h-full object-cover" />
+          {/* Image carousel */}
+          <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+            {allImages.length > 0 ? (
+              <>
+                <img src={allImages[currentImage]} alt={product.name} className="w-full h-full object-cover" />
+                {allImages.length > 1 && (
+                  <>
+                    <Button variant="ghost" size="icon" className="absolute left-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm" onClick={prevImage}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/60 backdrop-blur-sm" onClick={nextImage}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                      {allImages.map((_, i) => (
+                        <button
+                          key={i}
+                          className={`w-2 h-2 rounded-full transition-colors ${i === currentImage ? 'bg-primary' : 'bg-background/60'}`}
+                          onClick={() => setCurrentImage(i)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground/30" />
               </div>
             )}
+            <div className="absolute top-2 right-2">
+              <WishlistButton productId={product.id} size="default" className="bg-background/70 backdrop-blur-sm hover:bg-background/90" />
+            </div>
           </div>
+
+          {/* Thumbnail strip */}
+          {allImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allImages.map((url, i) => (
+                <button
+                  key={i}
+                  className={`w-14 h-14 rounded-md overflow-hidden border-2 flex-shrink-0 transition-colors ${i === currentImage ? 'border-primary' : 'border-transparent'}`}
+                  onClick={() => setCurrentImage(i)}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
 
           <div>
             <div className="flex items-baseline gap-2 mb-1">
