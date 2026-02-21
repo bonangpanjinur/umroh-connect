@@ -7,8 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare, ExternalLink, Copy } from 'lucide-react';
 import ChatNotificationBell from '@/components/shop/ChatNotificationBell';
+import OrderNotificationBell from '@/components/shop/OrderNotificationBell';
 import { useToast } from '@/hooks/use-toast';
 import SellerApplicationForm from '@/components/seller/SellerApplicationForm';
 import SellerProductForm from '@/components/seller/SellerProductForm';
@@ -123,7 +124,11 @@ const SellerDashboard = () => {
               )}
             </div>
           </div>
+          <OrderNotificationBell />
           <ChatNotificationBell />
+          <Button variant="ghost" size="icon" onClick={() => window.open(`/store/${sellerProfile.id}`, '_blank')} title="Lihat Toko">
+            <ExternalLink className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
@@ -221,8 +226,24 @@ const SellerDashboard = () => {
                         </div>
                       </div>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(product)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(product)} title="Edit">
                           <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Duplikat"
+                          onClick={() => {
+                            setEditingProduct(null);
+                            setShowProductForm(true);
+                            // Pre-fill form with duplicated data (without id)
+                            setTimeout(() => {
+                              setEditingProduct({ ...product, id: undefined as any, name: product.name + ' (copy)', slug: '' } as any);
+                            }, 0);
+                          }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
