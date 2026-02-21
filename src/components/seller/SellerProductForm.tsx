@@ -11,6 +11,7 @@ import { useUpsertSellerProduct } from '@/hooks/useSeller';
 import { ShopProduct } from '@/types/shop';
 import { ArrowLeft } from 'lucide-react';
 import { ImageUpload } from '@/components/common/ImageUpload';
+import MultiImageUpload from '@/components/common/MultiImageUpload';
 
 interface SellerProductFormProps {
   sellerId: string;
@@ -32,6 +33,7 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
     weight_gram: null as number | null,
     category_id: null as string | null,
     thumbnail_url: '',
+    images: [] as string[],
     is_active: true,
   });
 
@@ -47,6 +49,7 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
         weight_gram: product.weight_gram,
         category_id: product.category_id,
         thumbnail_url: product.thumbnail_url || '',
+        images: product.images || [],
         is_active: product.is_active,
       });
     }
@@ -72,6 +75,7 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
         weight_gram: form.weight_gram,
         category_id: form.category_id,
         thumbnail_url: form.thumbnail_url || null,
+        images: form.images.length > 0 ? form.images : undefined,
         is_active: form.is_active,
       },
       { onSuccess: () => onBack() }
@@ -142,7 +146,7 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
           </div>
 
           <div className="space-y-2">
-            <Label>Gambar Produk</Label>
+            <Label>Gambar Utama</Label>
             <ImageUpload
               bucket="shop-images"
               folder="products"
@@ -150,6 +154,17 @@ const SellerProductForm = ({ sellerId, product, onBack }: SellerProductFormProps
               onUpload={(url) => setForm(f => ({ ...f, thumbnail_url: url }))}
               onRemove={() => setForm(f => ({ ...f, thumbnail_url: '' }))}
               aspectRatio="square"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Gambar Tambahan (opsional)</Label>
+            <MultiImageUpload
+              bucket="shop-images"
+              folder="products"
+              value={form.images}
+              onChange={(urls) => setForm(f => ({ ...f, images: urls }))}
+              maxImages={5}
             />
           </div>
 
