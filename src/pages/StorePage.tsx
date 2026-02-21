@@ -155,6 +155,11 @@ const StorePage = () => {
           <span className="text-sm text-muted-foreground">{products.length} produk</span>
         </div>
 
+        {/* Description */}
+        {seller.shop_description && (
+          <p className="text-sm text-muted-foreground">{seller.shop_description}</p>
+        )}
+
         {/* Contact buttons */}
         <div className="flex gap-2">
           {user && (

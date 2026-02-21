@@ -17,7 +17,13 @@ export interface SellerOrderItem {
     total_amount: number;
     shipping_name: string | null;
     shipping_phone: string | null;
+    shipping_address: string | null;
     shipping_city: string | null;
+    shipping_postal_code: string | null;
+    notes: string | null;
+    payment_proof_url: string | null;
+    tracking_number: string | null;
+    courier: string | null;
     created_at: string;
     user_id: string;
   };
