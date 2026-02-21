@@ -152,7 +152,7 @@ const SellerOrdersTab = ({ items, isLoading }: SellerOrdersTabProps) => {
             <DialogHeader>
               <DialogTitle>Detail Pesanan {detailOrder.order.order_code}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-sm max-h-[60vh] overflow-y-auto">
               <div>
                 <p className="text-muted-foreground">Produk</p>
                 <p className="font-medium">{detailOrder.product_name} x{detailOrder.quantity}</p>
@@ -163,8 +163,45 @@ const SellerOrdersTab = ({ items, isLoading }: SellerOrdersTabProps) => {
                 <p className="text-muted-foreground">Penerima</p>
                 <p className="font-medium">{detailOrder.order.shipping_name || '-'}</p>
                 <p>{detailOrder.order.shipping_phone || '-'}</p>
-                <p>{detailOrder.order.shipping_city || '-'}</p>
               </div>
+              <Separator />
+              <div>
+                <p className="text-muted-foreground">Alamat Pengiriman</p>
+                <p>{detailOrder.order.shipping_address || '-'}</p>
+                <p>{detailOrder.order.shipping_city || '-'}{detailOrder.order.shipping_postal_code ? ` ${detailOrder.order.shipping_postal_code}` : ''}</p>
+              </div>
+              {detailOrder.order.notes && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground">Catatan Pembeli</p>
+                    <p>{detailOrder.order.notes}</p>
+                  </div>
+                </>
+              )}
+              {detailOrder.order.payment_proof_url && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground mb-1">Bukti Pembayaran</p>
+                    <img
+                      src={detailOrder.order.payment_proof_url}
+                      alt="Bukti bayar"
+                      className="rounded-lg border max-h-48 object-contain cursor-pointer"
+                      onClick={() => window.open(detailOrder.order!.payment_proof_url!, '_blank')}
+                    />
+                  </div>
+                </>
+              )}
+              {detailOrder.order.tracking_number && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-muted-foreground">Resi Pengiriman</p>
+                    <p className="font-mono">{detailOrder.order.courier ? `${detailOrder.order.courier}: ` : ''}{detailOrder.order.tracking_number}</p>
+                  </div>
+                </>
+              )}
               <Separator />
               <div>
                 <p className="text-muted-foreground">Status</p>
