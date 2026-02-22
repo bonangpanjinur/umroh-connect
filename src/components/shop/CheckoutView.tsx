@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Copy, CheckCircle2, Upload, CreditCard, Building2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ArrowLeft, Copy, CheckCircle2, Upload, CreditCard, Building2, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useShopCart } from '@/hooks/useShopCart';
 import { useShopOrders } from '@/hooks/useShopOrders';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
+import { useSellerShippingCosts } from '@/hooks/useShopSellers';
 import { toast } from '@/hooks/use-toast';
 import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
 
@@ -24,6 +25,19 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const { items, totalPrice, clearCart } = useShopCart();
   const { createOrder } = useShopOrders();
   const { data: paymentConfig } = usePublicPaymentConfig();
+
+  // Get unique seller IDs from cart items
+  const sellerIds = useMemo(() => {
+    const ids = items.map(i => i.product.seller_id).filter(Boolean) as string[];
+    return [...new Set(ids)];
+  }, [items]);
+  const { data: sellerShipping = [] } = useSellerShippingCosts(sellerIds);
+
+  const shippingTotal = useMemo(() => {
+    return sellerShipping.reduce((sum, s) => sum + ((s as any).shipping_cost || 0), 0);
+  }, [sellerShipping]);
+
+  const grandTotal = totalPrice + shippingTotal;
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -83,7 +97,7 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
         productPrice: item.product.price,
         quantity: item.quantity,
       })),
-      totalAmount: totalPrice,
+      totalAmount: grandTotal,
       shippingName: name,
       shippingPhone: phone,
       shippingAddress: address,
@@ -234,9 +248,24 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
                 <span className="font-medium">{formatRupiah(item.product.price * item.quantity)}</span>
               </div>
             ))}
+            <div className="border-t pt-2 flex justify-between text-sm">
+              <span>Subtotal</span>
+              <span className="font-medium">{formatRupiah(totalPrice)}</span>
+            </div>
+            {shippingTotal > 0 ? (
+              <div className="flex justify-between text-sm">
+                <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> Ongkir</span>
+                <span className="font-medium">{formatRupiah(shippingTotal)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> Ongkir</span>
+                <span>Gratis / Hubungi seller</span>
+              </div>
+            )}
             <div className="border-t pt-2 flex justify-between font-bold">
               <span>Total</span>
-              <span className="text-primary">{formatRupiah(totalPrice)}</span>
+              <span className="text-primary">{formatRupiah(grandTotal)}</span>
             </div>
           </CardContent>
         </Card>
@@ -256,7 +285,7 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
         </Card>
 
         <Button className="w-full" size="lg" onClick={handleSubmit} disabled={createOrder.isPending || stockChecking}>
-          {stockChecking ? 'Mengecek stok...' : createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(totalPrice)}`}
+          {stockChecking ? 'Mengecek stok...' : createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(grandTotal)}`}
         </Button>
       </div>
     </div>

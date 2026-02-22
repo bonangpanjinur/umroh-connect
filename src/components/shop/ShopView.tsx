@@ -1,12 +1,16 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Search, ClipboardList, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Search, ClipboardList, SlidersHorizontal, ArrowUpDown, Store, Star, BadgeCheck, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useShopProducts, useShopCategories } from '@/hooks/useShopProducts';
+import { useShopSellers } from '@/hooks/useShopSellers';
 import { ShopProduct } from '@/types/shop';
 import ProductCard from './ProductCard';
 import ProductDetailModal from './ProductDetailModal';
@@ -40,9 +44,13 @@ const ShopView = ({ onBack }: ShopViewProps) => {
   const [maxPrice, setMaxPrice] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'products' | 'stores'>('products');
+  const [storeSearch, setStoreSearch] = useState('');
+  const navigate = useNavigate();
 
   const { data: categories = [] } = useShopCategories();
   const { data: products = [], isLoading } = useShopProducts(selectedCategory, search || undefined);
+  const { data: sellers = [], isLoading: loadingSellers } = useShopSellers(storeSearch || undefined);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -104,125 +112,172 @@ const ShopView = ({ onBack }: ShopViewProps) => {
           <CartSheet onCheckout={() => setShowCheckout(true)} />
         </div>
 
-        {/* Search + Sort row */}
-        <div className="px-4 pb-3 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-          </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="w-[140px]">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(sortLabels).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Tab: Products / Stores */}
+        <div className="px-4 pb-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'products' | 'stores')}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="products" className="text-xs">🛍️ Produk</TabsTrigger>
+              <TabsTrigger value="stores" className="text-xs">🏪 Toko</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        {/* Advanced filters */}
-        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <div className="px-4 pb-2">
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full text-xs gap-1">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                Filter Lanjutan
-                {activeFilterCount > 0 && (
-                  <Badge variant="default" className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
-                    {activeFilterCount}
-                  </Badge>
-                )}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          <CollapsibleContent>
-            <div className="px-4 pb-3 space-y-3">
-              <div className="flex gap-2 items-center">
-                <Input
-                  type="number"
-                  placeholder="Harga min"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="text-sm"
-                />
-                <span className="text-muted-foreground text-sm">-</span>
-                <Input
-                  type="number"
-                  placeholder="Harga max"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="text-sm"
-                />
+        {/* Search + Sort row (products tab) */}
+        {activeTab === 'products' && (
+          <>
+            <div className="px-4 pb-3 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Cari produk..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
               </div>
-              <div className="flex gap-2">
-                <Badge
-                  variant={featuredOnly ? 'default' : 'outline'}
-                  className="cursor-pointer"
-                  onClick={() => setFeaturedOnly(!featuredOnly)}
-                >
-                  ⭐ Featured
-                </Badge>
-                {activeFilterCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs h-6"
-                    onClick={() => { setMinPrice(''); setMaxPrice(''); setFeaturedOnly(false); }}
-                  >
-                    Reset Filter
-                  </Button>
-                )}
-              </div>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="w-[140px]">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(sortLabels).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
 
-        {/* Category filter */}
-        {categories.length > 0 && (
-          <ScrollArea className="pb-3 px-4">
-            <div className="flex gap-2">
-              <Badge
-                variant={!selectedCategory ? 'default' : 'outline'}
-                className="cursor-pointer whitespace-nowrap"
-                onClick={() => setSelectedCategory(undefined)}
-              >
-                Semua
-              </Badge>
-              {categories.map((cat) => (
-                <Badge
-                  key={cat.id}
-                  variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                  className="cursor-pointer whitespace-nowrap"
-                  onClick={() => setSelectedCategory(cat.id)}
-                >
-                  {cat.name}
-                </Badge>
+            {/* Advanced filters */}
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <div className="px-4 pb-2">
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full text-xs gap-1">
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Filter Lanjutan
+                    {activeFilterCount > 0 && (
+                      <Badge variant="default" className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                        {activeFilterCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent>
+                <div className="px-4 pb-3 space-y-3">
+                  <div className="flex gap-2 items-center">
+                    <Input type="number" placeholder="Harga min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="text-sm" />
+                    <span className="text-muted-foreground text-sm">-</span>
+                    <Input type="number" placeholder="Harga max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="text-sm" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Badge variant={featuredOnly ? 'default' : 'outline'} className="cursor-pointer" onClick={() => setFeaturedOnly(!featuredOnly)}>
+                      ⭐ Featured
+                    </Badge>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => { setMinPrice(''); setMaxPrice(''); setFeaturedOnly(false); }}>
+                        Reset Filter
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Category filter */}
+            {categories.length > 0 && (
+              <ScrollArea className="pb-3 px-4">
+                <div className="flex gap-2">
+                  <Badge variant={!selectedCategory ? 'default' : 'outline'} className="cursor-pointer whitespace-nowrap" onClick={() => setSelectedCategory(undefined)}>
+                    Semua
+                  </Badge>
+                  {categories.map((cat) => (
+                    <Badge key={cat.id} variant={selectedCategory === cat.id ? 'default' : 'outline'} className="cursor-pointer whitespace-nowrap" onClick={() => setSelectedCategory(cat.id)}>
+                      {cat.name}
+                    </Badge>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            )}
+          </>
+        )}
+
+        {/* Search row (stores tab) */}
+        {activeTab === 'stores' && (
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Cari toko..." value={storeSearch} onChange={(e) => setStoreSearch(e.target.value)} className="pl-9" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      {activeTab === 'products' ? (
+        <div className="p-4">
+          {isLoading ? (
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>Belum ada produk{search ? ` untuk "${search}"` : ''}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} onClick={() => setSelectedProduct(product)} />
               ))}
             </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        )}
-      </div>
-
-      {/* Products */}
-      <div className="p-4">
-        {isLoading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>Belum ada produk{search ? ` untuk "${search}"` : ''}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} onClick={() => setSelectedProduct(product)} />
-            ))}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      ) : (
+        <div className="p-4">
+          {loadingSellers ? (
+            <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+          ) : sellers.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Store className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p>Belum ada toko{storeSearch ? ` untuk "${storeSearch}"` : ''}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sellers.map((s) => (
+                <Card
+                  key={s.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/store/${s.id}`)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
+                      {s.logo_url ? (
+                        <img src={s.logo_url} alt={s.shop_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                          <Store className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-medium text-sm truncate">{s.shop_name}</h3>
+                        {s.is_verified && <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />}
+                      </div>
+                      {s.city && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-0.5 mt-0.5">
+                          <MapPin className="h-3 w-3" /> {s.city}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs flex items-center gap-0.5">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          {s.rating?.toFixed(1) || '0.0'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">({s.review_count || 0} ulasan)</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <ProductDetailModal product={selectedProduct} open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)} />
     </div>
