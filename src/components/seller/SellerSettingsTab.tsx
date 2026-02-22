@@ -24,6 +24,7 @@ interface SellerSettingsTabProps {
     banner_url?: string | null;
     is_verified: boolean;
     user_id: string;
+    shipping_cost?: number;
   };
   currentPlanName: string;
 }
@@ -39,6 +40,7 @@ const SellerSettingsTab = ({ sellerProfile, currentPlanName }: SellerSettingsTab
   const [whatsapp, setWhatsapp] = useState(sellerProfile.whatsapp || '');
   const [logoUrl, setLogoUrl] = useState(sellerProfile.logo_url || '');
   const [bannerUrl, setBannerUrl] = useState(sellerProfile.banner_url || '');
+  const [shippingCost, setShippingCost] = useState(String(sellerProfile.shipping_cost || 0));
 
   const handleSave = async () => {
     if (!shopName.trim()) {
@@ -56,6 +58,7 @@ const SellerSettingsTab = ({ sellerProfile, currentPlanName }: SellerSettingsTab
         whatsapp: whatsapp.trim() || null,
         logo_url: logoUrl || null,
         banner_url: bannerUrl || null,
+        shipping_cost: parseInt(shippingCost) || 0,
       })
       .eq('id', sellerProfile.id);
 
@@ -131,6 +134,16 @@ const SellerSettingsTab = ({ sellerProfile, currentPlanName }: SellerSettingsTab
             <Label>WhatsApp</Label>
             <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="628xxxx (format internasional)" />
             <p className="text-xs text-muted-foreground mt-1">Gunakan format 628xxx agar bisa dihubungi langsung</p>
+          </div>
+          <div>
+            <Label>Ongkos Kirim (Rp)</Label>
+            <Input
+              type="number"
+              value={shippingCost}
+              onChange={(e) => setShippingCost(e.target.value)}
+              placeholder="0"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Biaya kirim flat per pesanan. Kosongkan atau 0 untuk gratis.</p>
           </div>
           <div className="flex items-center justify-between text-sm pt-2 border-t">
             <span className="text-muted-foreground">Membership</span>
