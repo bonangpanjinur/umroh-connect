@@ -2820,6 +2820,7 @@ export type Database = {
           phone: string | null
           rating: number | null
           review_count: number | null
+          shipping_cost: number
           shop_description: string | null
           shop_name: string
           updated_at: string
@@ -2838,6 +2839,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           review_count?: number | null
+          shipping_cost?: number
           shop_description?: string | null
           shop_name: string
           updated_at?: string
@@ -2856,6 +2858,7 @@ export type Database = {
           phone?: string | null
           rating?: number | null
           review_count?: number | null
+          shipping_cost?: number
           shop_description?: string | null
           shop_name?: string
           updated_at?: string
