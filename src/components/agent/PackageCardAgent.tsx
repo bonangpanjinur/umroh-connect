@@ -44,11 +44,13 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
   const [deletePackageDialog, setDeletePackageDialog] = useState(false);
   const [deleteDepartureId, setDeleteDepartureId] = useState<string | null>(null);
 
-  const { data: departures, isLoading: departuresLoading } = usePackageDepartures(
-    isExpanded ? pkg.id : undefined
-  );
+  // Always fetch departures for summary count
+  const { data: departures, isLoading: departuresLoading } = usePackageDepartures(pkg.id);
   const deletePackage = useDeletePackage();
   const deleteDeparture = useDeleteDeparture();
+
+  const activeDepartures = departures?.filter(d => d.status !== 'cancelled') || [];
+  const totalSeats = activeDepartures.reduce((sum, d) => sum + d.available_seats, 0);
 
   const handleDeletePackage = async () => {
     await deletePackage.mutateAsync(pkg.id);
@@ -138,6 +140,11 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
           <span className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
             Jadwal Keberangkatan
+            {activeDepartures.length > 0 && (
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
+                {activeDepartures.length} jadwal · {totalSeats} seat
+              </span>
+            )}
           </span>
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
