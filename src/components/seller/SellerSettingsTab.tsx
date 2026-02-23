@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImageUpload } from '@/components/common/ImageUpload';
+import NotificationPreferencesPanel from '@/components/notifications/NotificationPreferencesPanel';
 
 interface SellerSettingsTabProps {
   sellerProfile: {
@@ -155,6 +156,7 @@ const SellerSettingsTab = ({ sellerProfile, currentPlanName }: SellerSettingsTab
           </Button>
         </CardContent>
       </Card>
+      <NotificationPreferencesPanel />
     </div>
   );
 };
