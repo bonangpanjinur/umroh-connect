@@ -20,12 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, X, Image as ImageIcon, Plus, Sparkles } from "lucide-react";
 import { useCreatePackage, useUpdatePackage } from "@/hooks/useAgentData";
 import { useHotels, useAirlines } from "@/hooks/useMasterData";
 import { ImageUpload } from "@/components/common/ImageUpload";
 import { Package } from "@/types/database";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const packageSchema = z.object({
   name: z.string().min(3, "Nama paket minimal 3 karakter"),
@@ -52,6 +56,13 @@ interface PackageFormProps {
   travelId?: string;
 }
 
+const SUGGESTED_FACILITIES = [
+  'Visa Umroh', 'Tiket Pesawat PP', 'Hotel Makkah', 'Hotel Madinah',
+  'Makan 3x Sehari', 'Bus AC', 'Tour Leader', 'Mutawwif',
+  'Manasik', 'Air Zamzam', 'City Tour', 'Asuransi Perjalanan',
+  'Handling Bandara', 'Perlengkapan Umroh', 'Koper', 'Seragam Batik',
+];
+
 export function PackageForm({ onSuccess, initialData, travelId }: PackageFormProps) {
   const createPackage = useCreatePackage();
   const updatePackage = useUpdatePackage();
@@ -61,6 +72,9 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
   
   const [isLoading, setIsLoading] = useState(false);
   const [images, setImages] = useState<string[]>(initialData?.images || []);
+  const [facilities, setFacilities] = useState<string[]>(initialData?.facilities || []);
+  const [newFacility, setNewFacility] = useState('');
+  const [activeFormTab, setActiveFormTab] = useState('info');
 
   const form = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema),
@@ -82,7 +96,6 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
     },
   });
 
-  // Update text fields when master data is selected
   const selectedMakkahId = form.watch("hotel_makkah_id");
   const selectedMadinahId = form.watch("hotel_madinah_id");
   const selectedAirlineId = form.watch("airline_id");
@@ -100,39 +113,32 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
   useEffect(() => {
     if (selectedMadinahId && madinahHotels) {
       const hotel = madinahHotels.find(h => h.id === selectedMadinahId);
-      if (hotel) {
-        form.setValue("hotel_madinah", hotel.name);
-      }
+      if (hotel) form.setValue("hotel_madinah", hotel.name);
     }
   }, [selectedMadinahId, madinahHotels, form]);
 
   useEffect(() => {
     if (selectedAirlineId && airlines) {
       const airline = airlines.find(a => a.id === selectedAirlineId);
-      if (airline) {
-        form.setValue("airline", airline.name);
-      }
+      if (airline) form.setValue("airline", airline.name);
     }
   }, [selectedAirlineId, airlines, form]);
 
   const onSubmit = async (data: PackageFormValues) => {
     if (!travelId && !initialData?.travel_id) return;
     setIsLoading(true);
-
     try {
       const packageData = {
         ...data,
         travel_id: travelId || initialData?.travel_id,
-        images: images,
-        facilities: initialData?.facilities || [], // Keep existing or empty
+        images,
+        facilities,
       };
-
       if (initialData?.id) {
         await updatePackage.mutateAsync({ id: initialData.id, ...packageData });
       } else {
         await createPackage.mutateAsync(packageData);
       }
-
       onSuccess();
     } catch (error: any) {
       console.error("Error saving package:", error);
@@ -141,268 +147,256 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
     }
   };
 
-  const handleAddImage = (url: string) => {
-    setImages((prev) => [...prev, url]);
+  const handleAddImage = (url: string) => setImages((prev) => [...prev, url]);
+  const handleRemoveImage = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+
+  const toggleFacility = (facility: string) => {
+    setFacilities(prev =>
+      prev.includes(facility)
+        ? prev.filter(f => f !== facility)
+        : [...prev, facility]
+    );
   };
 
-  const handleRemoveImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+  const addCustomFacility = () => {
+    const trimmed = newFacility.trim();
+    if (trimmed && !facilities.includes(trimmed)) {
+      setFacilities(prev => [...prev, trimmed]);
+      setNewFacility('');
+    }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Image Upload Section */}
-        <div className="space-y-4">
-          <Label className="text-base font-bold flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" />
-            Foto Paket & Galeri
-          </Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {images.map((url, index) => (
-              <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
-                <img src={url} alt={`Package ${index}`} className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveImage(index)}
-                  className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-            <div className="aspect-video">
-              <ImageUpload
-                bucket="package-images"
-                folder="packages"
-                onUpload={handleAddImage}
-                className="h-full w-full"
-              />
+        <Tabs value={activeFormTab} onValueChange={setActiveFormTab}>
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="info">📋 Info Paket</TabsTrigger>
+            <TabsTrigger value="details">🏨 Detail & Fasilitas</TabsTrigger>
+            <TabsTrigger value="media">📸 Media</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="info" className="space-y-6">
+            {/* Status Toggle */}
+            <Card>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">Status Paket</p>
+                  <p className="text-xs text-muted-foreground">Paket aktif akan tampil di halaman publik</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={form.watch('is_active') ? 'default' : 'secondary'}>
+                    {form.watch('is_active') ? 'Aktif' : 'Nonaktif'}
+                  </Badge>
+                  <Switch
+                    checked={form.watch('is_active')}
+                    onCheckedChange={(val) => form.setValue('is_active', val)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Paket *</FormLabel>
+                  <FormControl><Input placeholder="Contoh: Umroh Akbar 2025" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="package_type" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipe Paket *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Pilih tipe paket" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="umroh">Umroh Reguler</SelectItem>
+                      <SelectItem value="haji_reguler">Haji Reguler</SelectItem>
+                      <SelectItem value="haji_plus">Haji Plus</SelectItem>
+                      <SelectItem value="haji_furoda">Haji Furoda</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
-          </div>
-          <p className="text-xs text-muted-foreground">Unggah foto hotel, pesawat, atau brosur paket (Maksimal 8 foto)</p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField control={form.control} name="duration_days" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Durasi (Hari) *</FormLabel>
+                  <FormControl><Input type="number" {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="flight_type" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Penerbangan *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct (Langsung)</SelectItem>
+                      <SelectItem value="transit">Transit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="meal_type" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Konsumsi *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="fullboard">Fullboard</SelectItem>
+                      <SelectItem value="halfboard">Halfboard</SelectItem>
+                      <SelectItem value="breakfast">Breakfast Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+
+            <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem>
-                <FormLabel>Nama Paket *</FormLabel>
+                <FormLabel>Deskripsi Paket *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Contoh: Umroh Akbar 2025" {...field} />
+                  <Textarea placeholder="Jelaskan keunggulan paket Anda..." className="min-h-[120px]" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
-            )}
-          />
+            )} />
+          </TabsContent>
 
-          <FormField
-            control={form.control}
-            name="package_type"
-            render={({ field }) => (
+          <TabsContent value="details" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FormField control={form.control} name="hotel_makkah_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hotel Makkah</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Pilih Hotel Makkah" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {makkahHotels?.map((hotel) => (
+                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name} ({hotel.star_rating}★)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="hotel_madinah_id" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hotel Madinah</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Pilih Hotel Madinah" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {madinahHotels?.map((hotel) => (
+                        <SelectItem key={hotel.id} value={hotel.id}>{hotel.name} ({hotel.star_rating}★)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="hotel_star" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bintang Hotel *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value.toString()}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      <SelectItem value="3">Bintang 3</SelectItem>
+                      <SelectItem value="4">Bintang 4</SelectItem>
+                      <SelectItem value="5">Bintang 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+
+            <FormField control={form.control} name="airline_id" render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipe Paket *</FormLabel>
+                <FormLabel>Maskapai</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe paket" />
-                    </SelectTrigger>
-                  </FormControl>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Pilih Maskapai" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="umroh">Umroh Reguler</SelectItem>
-                    <SelectItem value="haji_reguler">Haji Reguler</SelectItem>
-                    <SelectItem value="haji_plus">Haji Plus</SelectItem>
-                    <SelectItem value="haji_furoda">Haji Furoda</SelectItem>
+                    {airlines?.map((airline) => (
+                      <SelectItem key={airline.id} value={airline.id}>{airline.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
-            )}
-          />
-        </div>
+            )} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField
-            control={form.control}
-            name="duration_days"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Durasi (Hari) *</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="flight_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Penerbangan *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="direct">Direct (Langsung)</SelectItem>
-                    <SelectItem value="transit">Transit</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="meal_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Konsumsi *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tipe" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="fullboard">Fullboard</SelectItem>
-                    <SelectItem value="halfboard">Halfboard</SelectItem>
-                    <SelectItem value="breakfast">Breakfast Only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Deskripsi Paket *</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Jelaskan keunggulan paket Anda..." 
-                  className="min-h-[100px]"
-                  {...field} 
+            {/* Facilities Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-bold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Fasilitas Paket
+              </Label>
+              <p className="text-xs text-muted-foreground">Klik untuk menambah/menghapus fasilitas</p>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_FACILITIES.map((f) => (
+                  <Badge
+                    key={f}
+                    variant={facilities.includes(f) ? 'default' : 'outline'}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleFacility(f)}
+                  >
+                    {facilities.includes(f) ? '✓ ' : '+ '}{f}
+                  </Badge>
+                ))}
+              </div>
+              {/* Custom facilities */}
+              {facilities.filter(f => !SUGGESTED_FACILITIES.includes(f)).map((f) => (
+                <Badge key={f} variant="default" className="cursor-pointer mr-1" onClick={() => toggleFacility(f)}>
+                  ✓ {f} ×
+                </Badge>
+              ))}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Tambah fasilitas lainnya..."
+                  value={newFacility}
+                  onChange={(e) => setNewFacility(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomFacility())}
+                  className="flex-1"
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <Button type="button" variant="outline" size="sm" onClick={addCustomFacility}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField
-            control={form.control}
-            name="hotel_makkah_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hotel Makkah</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Hotel Makkah" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {makkahHotels?.map((hotel) => (
-                      <SelectItem key={hotel.id} value={hotel.id}>
-                        {hotel.name} ({hotel.star_rating}★)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <TabsContent value="media" className="space-y-4">
+            <Label className="text-base font-bold flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Foto Paket & Galeri
+            </Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {images.map((url, index) => (
+                <div key={index} className="relative aspect-video rounded-xl overflow-hidden border border-border group">
+                  <img src={url} alt={`Package ${index}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              <div className="aspect-video">
+                <ImageUpload bucket="package-images" folder="packages" onUpload={handleAddImage} className="h-full w-full" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">Unggah foto hotel, pesawat, atau brosur paket (Maksimal 8 foto)</p>
+          </TabsContent>
+        </Tabs>
 
-          <FormField
-            control={form.control}
-            name="hotel_madinah_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hotel Madinah</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih Hotel Madinah" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {madinahHotels?.map((hotel) => (
-                      <SelectItem key={hotel.id} value={hotel.id}>
-                        {hotel.name} ({hotel.star_rating}★)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="hotel_star"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bintang Hotel *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value.toString()}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih bintang" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="3">Bintang 3</SelectItem>
-                    <SelectItem value="4">Bintang 4</SelectItem>
-                    <SelectItem value="5">Bintang 5</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="airline_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Maskapai</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Maskapai" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {airlines?.map((airline) => (
-                    <SelectItem key={airline.id} value={airline.id}>
-                      {airline.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="flex justify-end gap-3 pt-4">
+        <div className="flex justify-end gap-3 pt-4 border-t">
           <Button type="submit" disabled={isLoading} className="w-full md:w-auto px-8">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {initialData ? "Simpan Perubahan" : "Buat Paket"}
