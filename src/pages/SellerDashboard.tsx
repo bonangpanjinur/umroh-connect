@@ -235,12 +235,7 @@ const SellerDashboard = () => {
                           className="h-8 w-8"
                           title="Duplikat"
                           onClick={() => {
-                            setEditingProduct(null);
-                            setShowProductForm(true);
-                            // Pre-fill form with duplicated data (without id)
-                            setTimeout(() => {
-                              setEditingProduct({ ...product, id: undefined as any, name: product.name + ' (copy)', slug: '' } as any);
-                            }, 0);
+                            setEditingProduct({ ...product, id: undefined as any, name: product.name + ' (copy)', slug: '' } as any);
                           }}
                         >
                           <Copy className="h-3.5 w-3.5" />

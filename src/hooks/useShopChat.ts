@@ -165,7 +165,18 @@ export const useSellerChatList = (sellerId: string | null) => {
         }
       }
 
-      // Group by sender (buyer)
+      // Build buyer mapping per conversation key from all buyer messages
+      const keyBuyerMap = new Map<string, string>();
+      (data || []).forEach((msg: any) => {
+        if (msg.sender_role === 'buyer') {
+          const key = msg.order_id || msg.sender_id;
+          if (!keyBuyerMap.has(key)) {
+            keyBuyerMap.set(key, msg.sender_id);
+          }
+        }
+      });
+
+      // Group conversations
       const convMap = new Map<string, {
         buyer_id: string;
         buyer_name: string;
@@ -176,11 +187,11 @@ export const useSellerChatList = (sellerId: string | null) => {
       }>();
 
       (data || []).forEach((msg: any) => {
-        const buyerId = msg.sender_role === 'buyer' ? msg.sender_id : null;
-        const key = msg.order_id || msg.sender_id;
-        if (!convMap.has(key)) {
-          const bId = buyerId || msg.sender_id;
-          convMap.set(key, {
+        const key = msg.order_id || (keyBuyerMap.has(msg.sender_id) ? msg.sender_id : (msg.sender_role === 'seller' ? null : msg.sender_id));
+        const resolvedKey = key || msg.order_id || msg.sender_id;
+        if (!convMap.has(resolvedKey)) {
+          const bId = keyBuyerMap.get(resolvedKey) || (msg.sender_role === 'buyer' ? msg.sender_id : 'unknown');
+          convMap.set(resolvedKey, {
             buyer_id: bId,
             buyer_name: buyerNames[bId] || 'Pembeli',
             order_id: msg.order_id,
@@ -190,7 +201,7 @@ export const useSellerChatList = (sellerId: string | null) => {
           });
         }
         if (!msg.is_read && msg.sender_role === 'buyer') {
-          convMap.get(key)!.unread++;
+          convMap.get(resolvedKey)!.unread++;
         }
       });
 

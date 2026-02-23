@@ -17,16 +17,16 @@ interface ChatNotificationBellProps {
 const ChatNotificationBell = ({ onOpenChat }: ChatNotificationBellProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useChatNotifications();
 
-  if (unreadCount === 0) return null;
-
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] p-0">
-            {unreadCount}
-          </Badge>
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-destructive text-destructive-foreground text-[10px] p-0">
+              {unreadCount}
+            </Badge>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
