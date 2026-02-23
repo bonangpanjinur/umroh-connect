@@ -1,171 +1,94 @@
 
 
-# Analisis Kekurangan & Rencana Perbaikan E-Commerce
+# Laporan Bug & Rencana Perbaikan
 
-## A. Kekurangan yang Ditemukan
+## Bug yang Ditemukan
 
-### Sisi Seller (Penjual)
+### BUG 1 (Kritis): Trigger `notify_new_order` Tidak Terpasang
 
-| No | Masalah | Tingkat | Dampak |
-|----|---------|---------|--------|
-| 1 | **Tidak ada upload logo & banner toko** - SellerSettingsTab hanya punya input teks, tidak ada upload gambar | Tinggi | Profil toko terlihat kosong di halaman publik |
-| 2 | **WhatsApp tidak bisa diubah dari settings** - Field whatsapp tidak ada di SellerSettingsTab | Sedang | Seller tidak bisa update kontak WA |
-| 3 | **Detail pesanan tidak lengkap** - Tidak menampilkan alamat lengkap, bukti bayar, atau catatan pembeli | Tinggi | Seller kesulitan memproses pengiriman |
-| 4 | **Tidak ada notifikasi pesanan baru** - Seller harus buka dashboard manual | Tinggi | Pesanan terlambat diproses |
-| 5 | **Statistik terlalu sederhana** - Tidak ada grafik tren waktu, tidak ada filter periode | Sedang | Seller tidak bisa analisis performa |
-| 6 | **Tidak bisa upload multi-gambar produk** - Hanya 1 thumbnail, field `images[]` ada tapi tidak dipakai | Sedang | Produk kurang menarik |
-| 7 | **Daftar chat tidak menampilkan nama buyer** - Hanya "Pesanan" atau "Chat Umum" | Sedang | Seller bingung siapa yang chat |
-| 8 | **Tidak ada link "Lihat Toko Saya"** dari dashboard | Rendah | Seller tidak bisa preview tampilan publik |
-| 9 | **Tidak ada fitur duplikat produk** | Rendah | Tambah produk serupa jadi lambat |
+Fungsi database `notify_new_order()` sudah dibuat, tetapi **tidak ada trigger yang menghubungkannya** ke tabel `shop_orders`. Akibatnya, seller **tidak pernah mendapat notifikasi** saat pesanan baru dibuat.
 
-### Sisi Buyer (Jamaah/User Biasa)
+Trigger `trg_order_status_notify` (untuk perubahan status) sudah terpasang dengan benar, tetapi trigger untuk INSERT pesanan baru tidak ada.
 
-| No | Masalah | Tingkat | Dampak |
-|----|---------|---------|--------|
-| 1 | **Tidak ada wishlist/favorit produk** | Sedang | Buyer tidak bisa simpan produk untuk nanti |
-| 2 | **Tidak ada pencarian toko/seller** di ShopView | Sedang | Buyer harus tahu URL toko langsung |
-| 3 | **Checkout tidak menghitung ongkir** - Total hanya harga produk | Tinggi | Biaya pengiriman tidak jelas |
-| 4 | **Tidak ada pembatalan pesanan oleh buyer** - Status pending tidak bisa dibatalkan | Sedang | Buyer terjebak di pesanan yang tidak mau dilanjutkan |
-| 5 | **Keranjang campur antar seller** - Tidak ada pemisahan per seller | Sedang | Bisa membingungkan saat checkout multi-seller |
-| 6 | **Tidak ada notifikasi status pesanan berubah** untuk buyer | Tinggi | Buyer tidak tahu pesanan sudah dikirim |
-| 7 | **Review hanya bisa dari OrderHistory** - Tidak ada link review di ProductDetailModal | Rendah | UX review kurang ditemukan |
-| 8 | **Tidak ada deskripsi toko di StorePage** | Rendah | Buyer tidak tahu tentang toko |
+**Perbaikan:** Buat trigger `AFTER INSERT ON shop_orders` yang memanggil `notify_new_order()`.
 
 ---
 
-## B. Rencana Perbaikan (Prioritas)
+### BUG 2 (Sedang): Duplikat Produk Tidak Berfungsi dengan Benar
 
-### Fase 1: Perbaikan Kritis (Segera)
+Di `SellerDashboard.tsx` (baris 237-246), logika duplikat produk menggunakan `setTimeout` untuk men-set `editingProduct` setelah `setShowProductForm(true)`. Masalahnya:
 
-#### 1.1 Seller Settings - Upload Logo, Banner, dan WhatsApp
-- Tambah field upload logo dan banner di `SellerSettingsTab`
-- Tambah field WhatsApp yang bisa diedit
-- Gunakan komponen `ImageUpload` yang sudah ada
+1. `setShowProductForm(true)` memicu render form kosong
+2. `setTimeout` kemudian men-set `editingProduct` yang memicu `useEffect` di `SellerProductForm`
+3. Tapi kondisi render di baris 73 cek `showProductForm || editingProduct` -- ketika `editingProduct` di-set via setTimeout, komponen sudah di-mount dengan form kosong, dan `useEffect` di SellerProductForm hanya trigger saat `product` berubah
 
-#### 1.2 Detail Pesanan Lengkap di Seller Dashboard
-- Perbaiki dialog detail di `SellerOrdersTab` untuk menampilkan:
-  - Alamat pengiriman lengkap (bukan hanya kota)
-  - Bukti pembayaran (gambar dari `payment_proof_url`)
-  - Catatan dari pembeli
-  - Nomor telepon pembeli
+Secara teknis ini bisa race-condition. Cara yang lebih aman: langsung set `editingProduct` dengan data duplikat (id dihapus) tanpa perlu `setTimeout`.
 
-#### 1.3 Buyer: Pembatalan Pesanan
-- Tambah tombol "Batalkan Pesanan" di `OrderHistoryView` untuk pesanan `pending`
-- Update status ke `cancelled` dan kembalikan stok
-
-#### 1.4 StorePage: Tampilkan Deskripsi Toko
-- Tambah deskripsi seller di antara info toko dan grid produk
-
-### Fase 2: Peningkatan UX (Prioritas Tinggi)
-
-#### 2.1 Notifikasi Pesanan untuk Seller & Buyer
-- Manfaatkan tabel `chat_notifications` yang sudah ada, atau buat tabel `order_notifications`
-- Trigger database: kirim notifikasi saat status pesanan berubah
-- Tampilkan lonceng notifikasi di header Seller Dashboard dan di ShopView (buyer)
-
-#### 2.2 Multi-Image Upload Produk
-- Update `SellerProductForm` untuk mendukung array gambar
-- Gunakan komponen `MultiImageUpload` yang sudah ada di project
-- Tampilkan carousel gambar di `ProductDetailModal`
-
-#### 2.3 Chat Buyer Name
-- Update query di `SellerChatTab` untuk join ke `profiles` dan tampilkan nama buyer
-- Tampilkan nama buyer di header chat
-
-#### 2.4 Wishlist / Favorit
-- Buat tabel `product_wishlist` (user_id, product_id)
-- Tambah ikon hati di `ProductCard` dan `ProductDetailModal`
-- Tambah tab/halaman "Favorit Saya" di akun
-
-### Fase 3: Fitur Tambahan
-
-#### 3.1 Estimasi Ongkir Sederhana
-- Tambah konfigurasi biaya kirim per kota/wilayah di seller settings
-- Tampilkan estimasi ongkir di `CheckoutView` berdasarkan kota tujuan
-
-#### 3.2 Pencarian Toko di ShopView
-- Tambah filter "Toko" di ShopView yang menampilkan daftar seller aktif
-- Card seller yang bisa diklik menuju `/store/:sellerId`
-
-#### 3.3 Link "Lihat Toko Saya" di Dashboard Seller
-- Tambah tombol di header dashboard yang membuka `/store/:sellerId` di tab baru
-
-#### 3.4 Duplikat Produk
-- Tambah tombol "Duplikat" di daftar produk seller
-- Pre-fill form dengan data produk yang ada (tanpa ID)
+**Perbaikan:** Ganti logika duplikat: langsung set `editingProduct` dengan objek produk yang sudah dihapus ID-nya, tanpa `setShowProductForm(true)` karena kondisi `editingProduct` di baris 73 sudah cukup.
 
 ---
 
-## C. Detail Teknis
+### BUG 3 (Rendah): `ChatNotificationBell` Tersembunyi Saat Tidak Ada Notifikasi
 
-### File yang Akan Dibuat
+Di `ChatNotificationBell.tsx` baris 22, komponen return `null` jika `unreadCount === 0`. Ini menyebabkan ikon lonceng chat **menghilang sepenuhnya** dari header saat tidak ada pesan baru, membuat UI tidak konsisten (lonceng order selalu tampil, lonceng chat muncul/hilang).
 
-| File | Keterangan |
-|------|------------|
-| Migration SQL | Tabel `product_wishlist`, trigger notifikasi pesanan |
-| `src/hooks/useWishlist.ts` | Hook CRUD wishlist |
-| `src/components/shop/WishlistButton.tsx` | Tombol favorit (ikon hati) |
-| `src/components/shop/WishlistView.tsx` | Halaman daftar favorit |
+**Perbaikan:** Selalu tampilkan ikon, hanya sembunyikan badge angka jika `unreadCount === 0`.
 
-### File yang Akan Diubah
+---
+
+### BUG 4 (Sedang): `useSellerChatList` Salah Mengidentifikasi Buyer
+
+Di `useShopChat.ts` baris 178-184, ketika pesan pertama di konversasi dikirim oleh seller, `buyerId` menjadi `null`, sehingga `bId` fallback ke `msg.sender_id` yang merupakan **seller sendiri**. Ini menyebabkan:
+- Nama buyer salah (menampilkan nama seller)
+- Conversation key bisa tumpang tindih
+
+**Perbaikan:** Kumpulkan mapping buyer per conversation key dari semua pesan buyer terlebih dahulu, lalu gunakan saat membangun konversasi.
+
+---
+
+### BUG 5 (Rendah): `onKeyPress` Deprecated
+
+Di `ShopChatView.tsx` baris 282, menggunakan `onKeyPress` yang sudah deprecated. Seharusnya `onKeyDown`.
+
+**Perbaikan:** Ganti `onKeyPress` menjadi `onKeyDown`.
+
+---
+
+### BUG 6 (Sedang): Pembatalan Pesanan Tidak Mengembalikan Stok
+
+Di `OrderHistoryView.tsx` baris 60-76, buyer bisa membatalkan pesanan `pending`, tetapi trigger `update_shop_stock` hanya mengembalikan stok jika status sebelumnya `paid` atau `processing`. Pesanan `pending` yang dibatalkan **tidak masalah untuk stok** (karena stok belum dikurangi saat pending), tetapi logikanya bisa membingungkan jika kedepannya ada alur yang berbeda.
+
+Status: **Bukan bug aktif** saat ini karena stok hanya berkurang saat `pending -> paid`. Tidak perlu perbaikan.
+
+---
+
+## Rencana Perbaikan
+
+### 1. Migration SQL: Buat Trigger `notify_new_order`
+- Tambah trigger `AFTER INSERT ON public.shop_orders` yang memanggil `notify_new_order()`
+- Ini akan memperbaiki notifikasi pesanan baru untuk seller
+
+### 2. Perbaiki Logika Duplikat Produk (`SellerDashboard.tsx`)
+- Hapus `setTimeout` hack
+- Langsung set `editingProduct` dengan data produk yang sudah dihapus ID-nya
+- Tidak perlu `setShowProductForm(true)` karena `editingProduct` sudah cukup untuk memicu render form
+
+### 3. Perbaiki `ChatNotificationBell.tsx`
+- Hapus early return `null` saat `unreadCount === 0`
+- Selalu render ikon bell, hanya tampilkan badge angka saat ada pesan belum dibaca
+
+### 4. Perbaiki Identifikasi Buyer di `useShopChat.ts`
+- Ubah logika grouping konversasi agar selalu mengidentifikasi buyer dengan benar, bahkan ketika pesan pertama berasal dari seller
+
+### 5. Ganti `onKeyPress` dengan `onKeyDown` di `ShopChatView.tsx`
+
+### Detail Teknis
 
 | File | Perubahan |
 |------|-----------|
-| `SellerSettingsTab.tsx` | Tambah upload logo, banner, field WhatsApp |
-| `SellerOrdersTab.tsx` | Detail pesanan lengkap (alamat, bukti bayar, catatan, telp) |
-| `SellerProductForm.tsx` | Multi-image upload menggunakan `MultiImageUpload` |
-| `SellerChatTab.tsx` | Tampilkan nama buyer dari profiles |
-| `SellerDashboard.tsx` | Tombol "Lihat Toko", tombol duplikat produk |
-| `OrderHistoryView.tsx` | Tombol batalkan pesanan (pending), notifikasi |
-| `StorePage.tsx` | Tampilkan deskripsi toko |
-| `ProductDetailModal.tsx` | Carousel multi-gambar, tombol wishlist |
-| `ProductCard.tsx` | Tombol wishlist |
-| `ShopView.tsx` | Pencarian toko, lonceng notifikasi pesanan |
-| `CheckoutView.tsx` | Estimasi ongkir sederhana |
-
-### Skema Database Baru
-
-```text
-product_wishlist
-- id (UUID, PK)
-- user_id (UUID, NOT NULL)
-- product_id (UUID, FK -> shop_products)
-- created_at (TIMESTAMPTZ)
-- UNIQUE(user_id, product_id)
-- RLS: user bisa CRUD wishlist milik sendiri
-
-order_notifications
-- id (UUID, PK)
-- user_id (UUID, NOT NULL) -- penerima
-- order_id (UUID, FK -> shop_orders)
-- type (TEXT) -- 'status_change', 'new_order'
-- message (TEXT)
-- is_read (BOOLEAN, default FALSE)
-- created_at (TIMESTAMPTZ)
-- RLS: user hanya bisa baca notifikasi milik sendiri
-```
-
-### Prioritas Implementasi
-
-```text
-Fase 1 (Kritis)
-  |-- 1.1 Seller Settings lengkap
-  |-- 1.2 Detail pesanan seller
-  |-- 1.3 Batalkan pesanan buyer
-  |-- 1.4 Deskripsi toko
-
-Fase 2 (Tinggi)
-  |-- 2.1 Notifikasi pesanan
-  |-- 2.2 Multi-image produk
-  |-- 2.3 Nama buyer di chat
-  |-- 2.4 Wishlist
-
-Fase 3 (Tambahan)
-  |-- 3.1 Estimasi ongkir
-  |-- 3.2 Pencarian toko
-  |-- 3.3 Link "Lihat Toko"
-  |-- 3.4 Duplikat produk
-```
-
-Saya menyarankan untuk mengimplementasikan secara bertahap mulai dari Fase 1, agar setiap perubahan bisa diuji dengan baik sebelum lanjut ke fase berikutnya.
+| Migration SQL baru | `CREATE TRIGGER trg_new_order_notify AFTER INSERT ON shop_orders FOR EACH ROW EXECUTE FUNCTION notify_new_order()` |
+| `src/pages/SellerDashboard.tsx` | Perbaiki logika duplikat produk (baris 237-246) |
+| `src/components/shop/ChatNotificationBell.tsx` | Hapus early return null (baris 22) |
+| `src/hooks/useShopChat.ts` | Perbaiki identifikasi buyer di `useSellerChatList` |
+| `src/components/shop/ShopChatView.tsx` | `onKeyPress` -> `onKeyDown` |
 
