@@ -279,7 +279,7 @@ const ShopChatView = ({ sellerId, sellerName, orderId, senderRole, onBack }: Sho
             placeholder="Ketik pesan..."
             value={newMessage}
             onChange={e => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             className="flex-1"
           />
           <Button
