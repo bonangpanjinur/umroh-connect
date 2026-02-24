@@ -222,7 +222,7 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
               )}
 
               {/* Chat seller button - show for non-cancelled orders */}
-              {order.status !== 'cancelled' && order.status !== 'pending' && (
+              {order.status !== 'cancelled' && (
                 <Button
                   variant="ghost"
                   size="sm"

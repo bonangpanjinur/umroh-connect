@@ -117,6 +117,22 @@ export const QuranManagement = () => {
         </Button>
       </div>
 
+      {stats?.totalAyahs === 0 && (
+        <Card className="border-yellow-500/50 bg-yellow-500/10">
+          <CardContent className="flex items-center gap-4 py-4">
+            <AlertTriangle className="h-8 w-8 text-yellow-600 shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-700">Data Al-Quran Belum Tersinkron</h3>
+              <p className="text-sm text-muted-foreground">Belum ada ayat tersimpan di database. Jalankan sinkronisasi pertama untuk mengunduh 6.236 ayat dari API.</p>
+            </div>
+            <Button onClick={() => handleSync('full')} disabled={syncing} className="shrink-0">
+              {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+              Sinkronisasi Sekarang
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="status">Status & Log</TabsTrigger>
