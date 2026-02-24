@@ -1,5 +1,7 @@
 
--- Set search path
+-- This migration ensures that the shop_order_items table and its dependencies exist.
+-- It is designed to be idempotent and safe to run multiple times.
+
 SET search_path = public;
 
 -- 1. Ensure shop_order_status enum exists
@@ -11,7 +13,7 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- 2. Ensure shop_orders table exists (dependency for shop_order_items)
+-- 2. Ensure shop_orders table exists
 CREATE TABLE IF NOT EXISTS public.shop_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -42,64 +44,10 @@ CREATE TABLE IF NOT EXISTS public.shop_order_items (
   created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- Enable RLS
+-- 4. Enable RLS
 ALTER TABLE public.shop_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shop_order_items ENABLE ROW LEVEL SECURITY;
 
--- 4. Apply/Fix Policies for shop_orders
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Sellers can view orders for their products" ON public.shop_orders;
-    CREATE POLICY "Sellers can view orders for their products"
-    ON public.shop_orders FOR SELECT
-    USING (
-      EXISTS (
-        SELECT 1 FROM public.shop_order_items soi
-        JOIN public.shop_products sp ON soi.product_id = sp.id
-        JOIN public.seller_profiles selp ON sp.seller_id = selp.id
-        WHERE soi.order_id = public.shop_orders.id
-        AND selp.user_id = auth.uid()
-      )
-    );
-EXCEPTION WHEN OTHERS THEN 
-    RAISE NOTICE 'Could not create shop_orders policy: %', SQLERRM;
-END $$;
-
--- 5. Apply/Fix Policies for shop_order_items
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Sellers can view own product order items" ON public.shop_order_items;
-    CREATE POLICY "Sellers can view own product order items"
-    ON public.shop_order_items FOR SELECT
-    USING (
-      EXISTS (
-        SELECT 1 FROM public.shop_products sp
-        JOIN public.seller_profiles selp ON sp.seller_id = selp.id
-        WHERE sp.id = public.shop_order_items.product_id
-        AND selp.user_id = auth.uid()
-      )
-    );
-EXCEPTION WHEN OTHERS THEN 
-    RAISE NOTICE 'Could not create shop_order_items policy: %', SQLERRM;
-END $$;
-
--- 6. Fix for Migration 20260224102530 (Order status history)
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'order_status_history') THEN
-        DROP POLICY IF EXISTS "Sellers can view order history for their products" ON public.order_status_history;
-        CREATE POLICY "Sellers can view order history for their products"
-        ON public.order_status_history FOR SELECT
-        USING (
-          EXISTS (
-            SELECT 1 FROM public.shop_order_items soi
-            JOIN public.shop_products sp ON soi.product_id = sp.id
-            JOIN public.seller_profiles selp ON sp.seller_id = selp.id
-            WHERE soi.order_id = public.order_status_history.order_id
-            AND selp.user_id = auth.uid()
-          )
-        );
-    END IF;
-EXCEPTION WHEN OTHERS THEN 
-    RAISE NOTICE 'Could not create order_status_history policy: %', SQLERRM;
-END $$;
+-- Note: Policies are now handled in their respective original migration files 
+-- (20260224102226 and 20260224102530) which have been updated to be idempotent.
+-- This file's primary job is ensuring the schema exists.
