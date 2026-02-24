@@ -1,94 +1,174 @@
 
-
-# Laporan Bug & Rencana Perbaikan
+# Laporan Bug & Rencana Perbaikan E-Commerce
 
 ## Bug yang Ditemukan
 
-### BUG 1 (Kritis): Trigger `notify_new_order` Tidak Terpasang
+### BUG 1 (Kritis): Seller Tidak Bisa Melihat Pesanan
 
-Fungsi database `notify_new_order()` sudah dibuat, tetapi **tidak ada trigger yang menghubungkannya** ke tabel `shop_orders`. Akibatnya, seller **tidak pernah mendapat notifikasi** saat pesanan baru dibuat.
+Kebijakan RLS pada tabel `shop_orders` hanya mengizinkan SELECT untuk:
+- `user_id = auth.uid()` (pembeli)
+- `admin` atau `shop_admin`
 
-Trigger `trg_order_status_notify` (untuk perubahan status) sudah terpasang dengan benar, tetapi trigger untuk INSERT pesanan baru tidak ada.
+**Seller tidak termasuk dalam kebijakan SELECT.** Akibatnya, hook `useSellerOrders` yang melakukan join `order:shop_orders(*)` akan selalu mengembalikan `order: null`, sehingga:
+- Tab Pesanan di dashboard seller **kosong** (semua data pesanan null)
+- Statistik penjualan **selalu nol**
+- Detail pesanan (nama penerima, alamat, bukti bayar) **tidak tampil**
 
-**Perbaikan:** Buat trigger `AFTER INSERT ON shop_orders` yang memanggil `notify_new_order()`.
+Masalah yang sama terjadi pada `shop_order_items` -- kebijakan SELECT-nya juga hanya mengizinkan pembeli/admin, bukan seller.
 
----
-
-### BUG 2 (Sedang): Duplikat Produk Tidak Berfungsi dengan Benar
-
-Di `SellerDashboard.tsx` (baris 237-246), logika duplikat produk menggunakan `setTimeout` untuk men-set `editingProduct` setelah `setShowProductForm(true)`. Masalahnya:
-
-1. `setShowProductForm(true)` memicu render form kosong
-2. `setTimeout` kemudian men-set `editingProduct` yang memicu `useEffect` di `SellerProductForm`
-3. Tapi kondisi render di baris 73 cek `showProductForm || editingProduct` -- ketika `editingProduct` di-set via setTimeout, komponen sudah di-mount dengan form kosong, dan `useEffect` di SellerProductForm hanya trigger saat `product` berubah
-
-Secara teknis ini bisa race-condition. Cara yang lebih aman: langsung set `editingProduct` dengan data duplikat (id dihapus) tanpa perlu `setTimeout`.
-
-**Perbaikan:** Ganti logika duplikat: langsung set `editingProduct` dengan objek produk yang sudah dihapus ID-nya, tanpa `setShowProductForm(true)` karena kondisi `editingProduct` di baris 73 sudah cukup.
+**Perbaikan:** Tambahkan kebijakan SELECT pada `shop_orders` dan `shop_order_items` yang mengizinkan seller melihat pesanan terkait produk mereka.
 
 ---
 
-### BUG 3 (Rendah): `ChatNotificationBell` Tersembunyi Saat Tidak Ada Notifikasi
+### BUG 2 (Sedang): Label "Kategori Toko" Salah
 
-Di `ChatNotificationBell.tsx` baris 22, komponen return `null` jika `unreadCount === 0`. Ini menyebabkan ikon lonceng chat **menghilang sepenuhnya** dari header saat tidak ada pesan baru, membuat UI tidak konsisten (lonceng order selalu tampil, lonceng chat muncul/hilang).
+Di `ShopCategoriesManagement.tsx` baris 77, `CardTitle` bertuliskan **"Kategori Toko"** padahal yang dikelola adalah kategori produk.
 
-**Perbaikan:** Selalu tampilkan ikon, hanya sembunyikan badge angka jika `unreadCount === 0`.
-
----
-
-### BUG 4 (Sedang): `useSellerChatList` Salah Mengidentifikasi Buyer
-
-Di `useShopChat.ts` baris 178-184, ketika pesan pertama di konversasi dikirim oleh seller, `buyerId` menjadi `null`, sehingga `bId` fallback ke `msg.sender_id` yang merupakan **seller sendiri**. Ini menyebabkan:
-- Nama buyer salah (menampilkan nama seller)
-- Conversation key bisa tumpang tindih
-
-**Perbaikan:** Kumpulkan mapping buyer per conversation key dari semua pesan buyer terlebih dahulu, lalu gunakan saat membangun konversasi.
+**Perbaikan:** Ubah label menjadi "Kategori Produk".
 
 ---
 
-### BUG 5 (Rendah): `onKeyPress` Deprecated
+### BUG 3 (Sedang): Data Quran Belum Tersinkron
 
-Di `ShopChatView.tsx` baris 282, menggunakan `onKeyPress` yang sudah deprecated. Seharusnya `onKeyDown`.
+Tabel `quran_ayahs` memiliki **0 ayat** tersimpan. Tabel `quran_surahs` sudah memiliki 114 surat, tetapi kolom `english_name`, `revelation_type`, dan `translation_name` semuanya `null`.
 
-**Perbaikan:** Ganti `onKeyPress` menjadi `onKeyDown`.
+Edge function `sync-quran-data` sudah benar secara kode. Masalahnya adalah **belum pernah dijalankan** oleh admin. Ini bukan bug kode, tetapi perlu diperbaiki UX-nya agar admin tahu harus menjalankan sinkronisasi pertama.
+
+**Perbaikan:** Tambahkan banner/alert di Quran Management yang mendeteksi jika 0 ayat tersimpan dan menampilkan tombol "Sinkronisasi Pertama" yang lebih menonjol.
 
 ---
 
-### BUG 6 (Sedang): Pembatalan Pesanan Tidak Mengembalikan Stok
+### BUG 4 (Sedang): Duplikat Produk Seller -- ID undefined Dikirim ke Database
 
-Di `OrderHistoryView.tsx` baris 60-76, buyer bisa membatalkan pesanan `pending`, tetapi trigger `update_shop_stock` hanya mengembalikan stok jika status sebelumnya `paid` atau `processing`. Pesanan `pending` yang dibatalkan **tidak masalah untuk stok** (karena stok belum dikurangi saat pending), tetapi logikanya bisa membingungkan jika kedepannya ada alur yang berbeda.
+Di `SellerDashboard.tsx` baris 238, saat duplikat produk:
+```typescript
+setEditingProduct({ ...product, id: undefined as any, ... })
+```
+Properti `id` tetap ada dengan nilai `undefined`. Di `SellerProductForm.tsx` baris 67:
+```typescript
+...(product?.id ? { id: product.id } : {})
+```
+Karena `undefined` adalah falsy, ini seharusnya aman. **Namun**, `product.slug` di-set ke `''` (string kosong), dan `generateSlug` di `handleSubmit` akan menghasilkan slug dari nama baru. Masalahnya: jika slug duplikat sudah ada di database, INSERT akan gagal karena unique constraint pada slug.
 
-Status: **Bukan bug aktif** saat ini karena stok hanya berkurang saat `pending -> paid`. Tidak perlu perbaikan.
+**Perbaikan:** Generate slug unik saat duplikat dengan menambahkan timestamp/random suffix.
+
+---
+
+### BUG 5 (Rendah): Buyer Tidak Bisa Chat Seller pada Pesanan Pending
+
+Di `OrderHistoryView.tsx` baris 225, tombol "Chat Penjual" hanya muncul jika status bukan `cancelled` dan bukan `pending`:
+```typescript
+{order.status !== 'cancelled' && order.status !== 'pending' && (...)}
+```
+Pembeli yang sudah membuat pesanan tetapi belum bayar tidak bisa menghubungi seller untuk bertanya. Ini mengurangi kemungkinan konversi pembayaran.
+
+**Perbaikan:** Tampilkan tombol chat untuk semua status kecuali `cancelled`.
+
+---
+
+### BUG 6 (Sedang): Duplikat Kebijakan UPDATE pada shop_orders
+
+Ada 3 kebijakan UPDATE yang tumpang tindih:
+1. "Admin/shop_admin update orders" -- mengizinkan owner + admin + shop_admin
+2. "Buyers can update own orders" -- mengizinkan owner (sudah tercakup di #1)
+3. "Sellers can update orders for their products"
+
+Kebijakan #2 redundan dengan #1 dan bisa membingungkan.
+
+**Perbaikan:** Hapus kebijakan "Buyers can update own orders" karena sudah tercakup oleh "Admin/shop_admin update orders".
 
 ---
 
 ## Rencana Perbaikan
 
-### 1. Migration SQL: Buat Trigger `notify_new_order`
-- Tambah trigger `AFTER INSERT ON public.shop_orders` yang memanggil `notify_new_order()`
-- Ini akan memperbaiki notifikasi pesanan baru untuk seller
+### 1. Migration SQL: Perbaiki RLS Seller
 
-### 2. Perbaiki Logika Duplikat Produk (`SellerDashboard.tsx`)
-- Hapus `setTimeout` hack
-- Langsung set `editingProduct` dengan data produk yang sudah dihapus ID-nya
-- Tidak perlu `setShowProductForm(true)` karena `editingProduct` sudah cukup untuk memicu render form
+Tambahkan kebijakan SELECT agar seller bisa melihat pesanan yang berisi produk mereka:
 
-### 3. Perbaiki `ChatNotificationBell.tsx`
-- Hapus early return `null` saat `unreadCount === 0`
-- Selalu render ikon bell, hanya tampilkan badge angka saat ada pesan belum dibaca
+```text
+-- shop_orders: Seller can view orders containing their products
+CREATE POLICY "Sellers can view orders for their products"
+ON public.shop_orders FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM shop_order_items soi
+    JOIN shop_products sp ON soi.product_id = sp.id
+    JOIN seller_profiles selp ON sp.seller_id = selp.id
+    WHERE soi.order_id = shop_orders.id
+    AND selp.user_id = auth.uid()
+  )
+);
 
-### 4. Perbaiki Identifikasi Buyer di `useShopChat.ts`
-- Ubah logika grouping konversasi agar selalu mengidentifikasi buyer dengan benar, bahkan ketika pesan pertama berasal dari seller
+-- shop_order_items: Seller can view order items for their products
+CREATE POLICY "Sellers can view own product order items"
+ON public.shop_order_items FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM shop_products sp
+    JOIN seller_profiles selp ON sp.seller_id = selp.id
+    WHERE sp.id = shop_order_items.product_id
+    AND selp.user_id = auth.uid()
+  )
+);
 
-### 5. Ganti `onKeyPress` dengan `onKeyDown` di `ShopChatView.tsx`
+-- Cleanup: drop redundant policy
+DROP POLICY IF EXISTS "Buyers can update own orders" ON public.shop_orders;
+```
+
+### 2. Perbaiki Label Kategori (ShopCategoriesManagement.tsx)
+- Baris 77: "Kategori Toko" menjadi "Kategori Produk"
+
+### 3. Perbaiki UX Quran Management (QuranManagement.tsx)
+- Tambahkan banner alert ketika `totalAyahs === 0` yang menampilkan pesan "Data belum tersinkron" dengan tombol CTA sinkronisasi
+- Tambahkan indikator progress saat sinkronisasi batch berjalan
+
+### 4. Perbaiki Duplikat Produk (SellerDashboard.tsx)
+- Generate slug unik dengan suffix timestamp saat duplikat:
+  ```text
+  slug: generateSlug(product.name + '-copy-' + Date.now().toString(36))
+  ```
+
+### 5. Tampilkan Chat untuk Pesanan Pending (OrderHistoryView.tsx)
+- Ubah kondisi dari `order.status !== 'cancelled' && order.status !== 'pending'` menjadi `order.status !== 'cancelled'`
 
 ### Detail Teknis
 
 | File | Perubahan |
 |------|-----------|
-| Migration SQL baru | `CREATE TRIGGER trg_new_order_notify AFTER INSERT ON shop_orders FOR EACH ROW EXECUTE FUNCTION notify_new_order()` |
-| `src/pages/SellerDashboard.tsx` | Perbaiki logika duplikat produk (baris 237-246) |
-| `src/components/shop/ChatNotificationBell.tsx` | Hapus early return null (baris 22) |
-| `src/hooks/useShopChat.ts` | Perbaiki identifikasi buyer di `useSellerChatList` |
-| `src/components/shop/ShopChatView.tsx` | `onKeyPress` -> `onKeyDown` |
+| Migration SQL baru | Tambah SELECT policy seller di `shop_orders` dan `shop_order_items`, hapus policy redundan |
+| `src/components/admin/ShopCategoriesManagement.tsx` | Ubah "Kategori Toko" -> "Kategori Produk" (baris 77) |
+| `src/components/admin/QuranManagement.tsx` | Tambah banner sinkronisasi pertama + progress indicator |
+| `src/pages/SellerDashboard.tsx` | Perbaiki slug duplikat produk (baris 238) |
+| `src/components/shop/OrderHistoryView.tsx` | Izinkan chat pada pesanan pending (baris 225) |
 
+### Alur E-Commerce yang Jelas
+
+Setelah perbaikan ini, alur e-commerce akan menjadi:
+
+```text
+ADMIN (Super Admin)
++-- /shop-admin
+    +-- Dashboard: ringkasan statistik toko
+    +-- Produk: CRUD semua produk dari semua seller
+    +-- Kategori Produk: CRUD kategori
+    +-- Pesanan: lihat & kelola semua pesanan (ubah status, input resi)
+    +-- Seller: approve/reject pendaftaran seller, verifikasi
+
+SELLER
++-- /seller-dashboard
+    +-- Produk: CRUD produk miliknya, duplikat produk
+    +-- Pesanan: lihat pesanan yang berisi produknya, proses & kirim
+    +-- Chat: komunikasi dengan pembeli per pesanan
+    +-- Statistik: revenue, top produk, jumlah terjual
+    +-- Settings: branding toko, ongkir, WhatsApp
+
+BUYER (Jamaah)
++-- Halaman Toko (/oleh-oleh via menu utama)
+    +-- Browse produk: filter kategori, harga, sorting, search
+    +-- Browse toko: cari seller, lihat profil toko
+    +-- Keranjang: tambah/kurangi/hapus item
+    +-- Checkout: isi alamat, lihat ongkir, buat pesanan
+    +-- Pembayaran: lihat rekening/QRIS, upload bukti bayar
+    +-- Riwayat Pesanan: tracking, konfirmasi terima, review, chat seller
+    +-- Wishlist: simpan produk favorit
+```
