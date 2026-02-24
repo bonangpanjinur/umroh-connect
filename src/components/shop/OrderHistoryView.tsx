@@ -8,6 +8,7 @@ import { ShopOrder, ShopOrderStatus } from '@/types/shop';
 import OrderDetailsDialog from '@/components/order/OrderDetailsDialog';
 import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
 import OrderStatusStepper from '@/components/shop/OrderStatusStepper';
+import OrderStatusTimeline from '@/components/shop/OrderStatusTimeline';
 import ProductReviewForm from '@/components/shop/ProductReviewForm';
 import ShopChatView from '@/components/shop/ShopChatView';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
