@@ -235,7 +235,7 @@ const SellerDashboard = () => {
                           className="h-8 w-8"
                           title="Duplikat"
                           onClick={() => {
-                            setEditingProduct({ ...product, id: undefined as any, name: product.name + ' (copy)', slug: '' } as any);
+                            setEditingProduct({ ...product, id: undefined as any, name: product.name + ' (copy)', slug: product.slug + '-copy-' + Date.now().toString(36) } as any);
                           }}
                         >
                           <Copy className="h-3.5 w-3.5" />
