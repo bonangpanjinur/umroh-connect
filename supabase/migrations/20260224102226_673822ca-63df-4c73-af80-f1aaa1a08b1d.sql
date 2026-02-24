@@ -1,5 +1,6 @@
 
 -- BUG 1: Seller can view orders containing their products
+DROP POLICY IF EXISTS "Sellers can view orders for their products" ON public.shop_orders;
 CREATE POLICY "Sellers can view orders for their products"
 ON public.shop_orders FOR SELECT
 USING (
@@ -13,6 +14,7 @@ USING (
 );
 
 -- Seller can view order items for their products
+DROP POLICY IF EXISTS "Sellers can view own product order items" ON public.shop_order_items;
 CREATE POLICY "Sellers can view own product order items"
 ON public.shop_order_items FOR SELECT
 USING (
