@@ -1,35 +1,55 @@
 
--- This migration ensures that any missing policies or relations are handled.
--- The error "relation public.shop_order_items does not exist" usually happens 
--- if the table was not created in the expected order or schema.
--- Based on the repository, public.shop_order_items is created in 20260210103655.
-
--- Ensure the search_path is set correctly
+-- Set search path
 SET search_path = public;
 
--- Re-verify that shop_order_items exists and if not, we might need to recreate it 
--- (though it should exist if previous migrations ran).
--- The most common cause for 42P01 in Supabase migrations is a mismatch in search_path
--- or a failed previous migration that didn't roll back properly.
-
--- If the table truly doesn't exist, this script will fail here, which is better than 
--- having inconsistent RLS policies.
-
-DO $$
+-- 1. Ensure shop_order_status enum exists
+DO $$ 
 BEGIN
-    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'shop_order_items') THEN
-        RAISE EXCEPTION 'Table public.shop_order_items does not exist. Please ensure migration 20260210103655 ran successfully.';
-    END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shop_order_status') THEN
+    CREATE TYPE public.shop_order_status AS ENUM ('pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled');
+  END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Fix for Migration 20260224102226 (Sellers viewing orders)
--- We use DO blocks to make these idempotent and safer
+-- 2. Ensure shop_orders table exists (dependency for shop_order_items)
+CREATE TABLE IF NOT EXISTS public.shop_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  order_code TEXT NOT NULL UNIQUE,
+  status public.shop_order_status NOT NULL DEFAULT 'pending',
+  total_amount NUMERIC NOT NULL DEFAULT 0,
+  shipping_name TEXT,
+  shipping_phone TEXT,
+  shipping_address TEXT,
+  shipping_city TEXT,
+  shipping_postal_code TEXT,
+  notes TEXT,
+  payment_proof_url TEXT,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
 
+-- 3. Ensure shop_order_items table exists
+CREATE TABLE IF NOT EXISTS public.shop_order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES public.shop_orders(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES public.shop_products(id) ON DELETE SET NULL,
+  product_name TEXT NOT NULL,
+  product_price NUMERIC NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  subtotal NUMERIC NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.shop_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shop_order_items ENABLE ROW LEVEL SECURITY;
+
+-- 4. Apply/Fix Policies for shop_orders
 DO $$
 BEGIN
-    -- Drop if exists to avoid "already exists" errors if partially run
     DROP POLICY IF EXISTS "Sellers can view orders for their products" ON public.shop_orders;
-    
     CREATE POLICY "Sellers can view orders for their products"
     ON public.shop_orders FOR SELECT
     USING (
@@ -41,15 +61,14 @@ BEGIN
         AND selp.user_id = auth.uid()
       )
     );
-EXCEPTION
-    WHEN undefined_table THEN
-        RAISE NOTICE 'One of the tables (shop_orders, shop_order_items, shop_products, seller_profiles) does not exist.';
+EXCEPTION WHEN OTHERS THEN 
+    RAISE NOTICE 'Could not create shop_orders policy: %', SQLERRM;
 END $$;
 
+-- 5. Apply/Fix Policies for shop_order_items
 DO $$
 BEGIN
     DROP POLICY IF EXISTS "Sellers can view own product order items" ON public.shop_order_items;
-
     CREATE POLICY "Sellers can view own product order items"
     ON public.shop_order_items FOR SELECT
     USING (
@@ -60,29 +79,27 @@ BEGIN
         AND selp.user_id = auth.uid()
       )
     );
-EXCEPTION
-    WHEN undefined_table THEN
-        RAISE NOTICE 'One of the tables (shop_order_items, shop_products, seller_profiles) does not exist.';
+EXCEPTION WHEN OTHERS THEN 
+    RAISE NOTICE 'Could not create shop_order_items policy: %', SQLERRM;
 END $$;
 
--- Fix for Migration 20260224102530 (Order status history)
-
+-- 6. Fix for Migration 20260224102530 (Order status history)
 DO $$
 BEGIN
-    DROP POLICY IF EXISTS "Sellers can view order history for their products" ON public.order_status_history;
-
-    CREATE POLICY "Sellers can view order history for their products"
-    ON public.order_status_history FOR SELECT
-    USING (
-      EXISTS (
-        SELECT 1 FROM public.shop_order_items soi
-        JOIN public.shop_products sp ON soi.product_id = sp.id
-        JOIN public.seller_profiles selp ON sp.seller_id = selp.id
-        WHERE soi.order_id = public.order_status_history.order_id
-        AND selp.user_id = auth.uid()
-      )
-    );
-EXCEPTION
-    WHEN undefined_table THEN
-        RAISE NOTICE 'One of the tables (order_status_history, shop_order_items, shop_products, seller_profiles) does not exist.';
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'order_status_history') THEN
+        DROP POLICY IF EXISTS "Sellers can view order history for their products" ON public.order_status_history;
+        CREATE POLICY "Sellers can view order history for their products"
+        ON public.order_status_history FOR SELECT
+        USING (
+          EXISTS (
+            SELECT 1 FROM public.shop_order_items soi
+            JOIN public.shop_products sp ON soi.product_id = sp.id
+            JOIN public.seller_profiles selp ON sp.seller_id = selp.id
+            WHERE soi.order_id = public.order_status_history.order_id
+            AND selp.user_id = auth.uid()
+          )
+        );
+    END IF;
+EXCEPTION WHEN OTHERS THEN 
+    RAISE NOTICE 'Could not create order_status_history policy: %', SQLERRM;
 END $$;
