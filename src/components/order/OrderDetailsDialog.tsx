@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShopOrder } from "@/types/shop";
 import { format } from "date-fns";
 import { Truck, UserCheck, Package, MapPin, Copy } from "lucide-react";
+import OrderStatusTimeline from "@/components/shop/OrderStatusTimeline";
 import MerchantCourierAssignDialog from "../merchant/MerchantCourierAssignDialog";
 import { useUpdateShopOrderStatus } from "@/hooks/useShopAdmin";
 import { toast } from "@/hooks/use-toast";
@@ -132,7 +133,11 @@ const OrderDetailsDialog = ({ order, open, onOpenChange }: OrderDetailsDialogPro
               </div>
             </div>
 
-            {/* Tombol Aksi Merchant */}
+            {/* Status Timeline */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Riwayat Status</p>
+              <OrderStatusTimeline orderId={order.id} createdAt={order.created_at} />
+            </div>
             {order.status === 'paid' || order.status === 'processing' ? (
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <Button 
