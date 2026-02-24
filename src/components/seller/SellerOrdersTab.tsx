@@ -6,6 +6,7 @@ import { Package, Clock, MapPin, Truck, Eye } from 'lucide-react';
 import { SellerOrderItem } from '@/hooks/useSellerOrders';
 import { format } from 'date-fns';
 import SellerOrderActionDialog from './SellerOrderActionDialog';
+import OrderStatusTimeline from '@/components/shop/OrderStatusTimeline';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -202,6 +203,11 @@ const SellerOrdersTab = ({ items, isLoading }: SellerOrdersTabProps) => {
                   </div>
                 </>
               )}
+              <Separator />
+              <div>
+                <p className="text-muted-foreground mb-1">Riwayat Status</p>
+                <OrderStatusTimeline orderId={detailOrder.order.id} createdAt={detailOrder.order.created_at} />
+              </div>
               <Separator />
               <div>
                 <p className="text-muted-foreground">Status</p>
