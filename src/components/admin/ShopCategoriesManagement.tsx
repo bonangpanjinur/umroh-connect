@@ -74,7 +74,7 @@ const ShopCategoriesManagement = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Kategori Toko</CardTitle>
+        <CardTitle>Kategori Produk</CardTitle>
         <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Tambah</Button></DialogTrigger>
           <DialogContent>
