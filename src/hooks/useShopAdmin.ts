@@ -21,11 +21,12 @@ export const useAdminShopCategories = () => {
 export const useCreateShopCategory = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (cat: { name: string; slug: string; icon?: string; description?: string; sort_order?: number }) => {
+    mutationFn: async (cat: { name: string; slug: string; icon?: string | null; description?: string | null; sort_order?: number; is_active?: boolean }) => {
       const { error } = await supabase.from('shop_categories').insert(cat);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-categories'] }); toast({ title: 'Kategori ditambahkan' }); },
+    onError: (error: any) => { toast({ title: 'Gagal menambah kategori', description: error.message, variant: 'destructive' }); },
   });
 };
 
@@ -37,6 +38,7 @@ export const useUpdateShopCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-categories'] }); toast({ title: 'Kategori diupdate' }); },
+    onError: (error: any) => { toast({ title: 'Gagal update kategori', description: error.message, variant: 'destructive' }); },
   });
 };
 
@@ -48,6 +50,7 @@ export const useDeleteShopCategory = () => {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-categories'] }); toast({ title: 'Kategori dihapus' }); },
+    onError: (error: any) => { toast({ title: 'Gagal hapus kategori', description: error.message, variant: 'destructive' }); },
   });
 };
 

@@ -49,7 +49,8 @@ export const useCreateTravel = () => {
       toast({ title: 'Travel berhasil dibuat!' });
     },
     onError: (error: any) => {
-      toast({ title: 'Gagal membuat travel', description: error.message, variant: 'destructive' });
+      console.error('Create travel error:', error);
+      toast({ title: 'Gagal membuat travel', description: error.message || 'Pastikan Anda memiliki peran agent', variant: 'destructive' });
     },
   });
 };
