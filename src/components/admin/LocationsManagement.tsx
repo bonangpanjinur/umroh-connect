@@ -42,12 +42,59 @@ const categoryOptions = [
   { value: 'other', label: '📍 Lainnya' },
 ];
 
+/**
+ * Parse Google Maps URL to extract latitude and longitude.
+ * Supports formats:
+ * - https://maps.google.com/?q=21.4225,39.8262
+ * - https://www.google.com/maps/place/.../@21.4225,39.8262,...
+ * - https://goo.gl/maps/... (short links won't work, user needs full URL)
+ * - https://maps.app.goo.gl/... 
+ * - Plain coordinates: 21.4225,39.8262
+ */
+const parseGoogleMapsUrl = (url: string): { lat: number; lng: number } | null => {
+  if (!url) return null;
+  
+  // Try plain coordinates first: "21.4225,39.8262" or "21.4225, 39.8262"
+  const plainMatch = url.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+  if (plainMatch) {
+    return { lat: parseFloat(plainMatch[1]), lng: parseFloat(plainMatch[2]) };
+  }
+
+  // Try @lat,lng pattern (Google Maps place URLs)
+  const atMatch = url.match(/@(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (atMatch) {
+    return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
+  }
+
+  // Try ?q=lat,lng pattern
+  const qMatch = url.match(/[?&]q=(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (qMatch) {
+    return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
+  }
+
+  // Try /place/lat,lng pattern
+  const placeMatch = url.match(/\/place\/(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (placeMatch) {
+    return { lat: parseFloat(placeMatch[1]), lng: parseFloat(placeMatch[2]) };
+  }
+
+  // Try ll=lat,lng pattern
+  const llMatch = url.match(/ll=(-?\d+\.?\d+),(-?\d+\.?\d+)/);
+  if (llMatch) {
+    return { lat: parseFloat(llMatch[1]), lng: parseFloat(llMatch[2]) };
+  }
+
+  return null;
+};
+
 export const LocationsManagement = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [filterCity, setFilterCity] = useState<string>('all');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [parsedCoords, setParsedCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -55,8 +102,6 @@ export const LocationsManagement = () => {
     description: '',
     category: 'masjid',
     city: 'Makkah',
-    latitude: '',
-    longitude: '',
     address: '',
     phone: '',
     website: '',
@@ -98,8 +143,6 @@ export const LocationsManagement = () => {
       description: '',
       category: 'masjid',
       city: 'Makkah',
-      latitude: '',
-      longitude: '',
       address: '',
       phone: '',
       website: '',
@@ -109,6 +152,8 @@ export const LocationsManagement = () => {
       is_active: true,
     });
     setEditingLocation(null);
+    setGoogleMapsUrl('');
+    setParsedCoords(null);
   };
 
   const handleEdit = (location: Location) => {
@@ -119,8 +164,6 @@ export const LocationsManagement = () => {
       description: location.description || '',
       category: location.category,
       city: location.city,
-      latitude: location.latitude.toString(),
-      longitude: location.longitude.toString(),
       address: location.address || '',
       phone: location.phone || '',
       website: location.website || '',
@@ -129,12 +172,25 @@ export const LocationsManagement = () => {
       priority: location.priority,
       is_active: location.is_active,
     });
+    setParsedCoords({ lat: location.latitude, lng: location.longitude });
+    setGoogleMapsUrl(`${location.latitude},${location.longitude}`);
     setIsDialogOpen(true);
   };
 
+  const handleGoogleMapsUrlChange = (value: string) => {
+    setGoogleMapsUrl(value);
+    const coords = parseGoogleMapsUrl(value);
+    setParsedCoords(coords);
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.latitude || !formData.longitude) {
-      toast.error('Nama dan koordinat wajib diisi');
+    if (!formData.name) {
+      toast.error('Nama lokasi wajib diisi');
+      return;
+    }
+
+    if (!parsedCoords) {
+      toast.error('URL Google Maps tidak valid atau koordinat belum terdeteksi');
       return;
     }
 
@@ -144,8 +200,8 @@ export const LocationsManagement = () => {
       description: formData.description || null,
       category: formData.category,
       city: formData.city,
-      latitude: parseFloat(formData.latitude),
-      longitude: parseFloat(formData.longitude),
+      latitude: parsedCoords.lat,
+      longitude: parsedCoords.lng,
       address: formData.address || null,
       phone: formData.phone || null,
       website: formData.website || null,
@@ -162,7 +218,7 @@ export const LocationsManagement = () => {
         .eq('id', editingLocation.id);
 
       if (error) {
-        toast.error('Gagal mengupdate lokasi');
+        toast.error('Gagal mengupdate lokasi: ' + error.message);
         return;
       }
       toast.success('Lokasi berhasil diupdate');
@@ -172,7 +228,7 @@ export const LocationsManagement = () => {
         .insert(payload);
 
       if (error) {
-        toast.error('Gagal menambah lokasi');
+        toast.error('Gagal menambah lokasi: ' + error.message);
         return;
       }
       toast.success('Lokasi berhasil ditambahkan');
@@ -294,27 +350,28 @@ export const LocationsManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Latitude</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.latitude}
-                      onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                      placeholder="21.4225"
-                    />
-                  </div>
-                  <div>
-                    <Label>Longitude</Label>
-                    <Input
-                      type="number"
-                      step="any"
-                      value={formData.longitude}
-                      onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                      placeholder="39.8262"
-                    />
-                  </div>
+                {/* Google Maps URL input */}
+                <div>
+                  <Label>URL Google Maps / Koordinat</Label>
+                  <Input
+                    value={googleMapsUrl}
+                    onChange={(e) => handleGoogleMapsUrlChange(e.target.value)}
+                    placeholder="Tempel URL Google Maps atau ketik koordinat: 21.4225,39.8262"
+                  />
+                  {googleMapsUrl && (
+                    <div className="mt-1.5">
+                      {parsedCoords ? (
+                        <p className="text-xs text-primary flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          Koordinat terdeteksi: {parsedCoords.lat.toFixed(6)}, {parsedCoords.lng.toFixed(6)}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-destructive">
+                          Koordinat tidak terdeteksi. Pastikan URL Google Maps valid atau gunakan format: lat,lng
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
