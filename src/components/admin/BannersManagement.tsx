@@ -10,6 +10,7 @@ import { useBanners, useCreateBanner, useUpdateBanner, useDeleteBanner } from '@
 import { toast } from 'sonner';
 import { Image, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { Banner } from '@/types/database';
+import { ImageUpload } from '@/components/common/ImageUpload';
 
 export const BannersManagement = () => {
   const { data: banners, isLoading } = useBanners();
@@ -55,7 +56,7 @@ export const BannersManagement = () => {
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.image_url) {
-      toast.error('Judul dan URL gambar wajib diisi');
+      toast.error('Judul dan gambar wajib diisi');
       return;
     }
 
@@ -152,12 +153,19 @@ export const BannersManagement = () => {
                 </div>
                 
                 <div>
-                  <Label>URL Gambar</Label>
-                  <Input
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="https://example.com/banner.jpg"
+                  <Label>Gambar Banner</Label>
+                  <ImageUpload
+                    bucket="uploads"
+                    folder="banners"
+                    currentUrl={formData.image_url || null}
+                    onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                    onRemove={() => setFormData({ ...formData, image_url: '' })}
                   />
+                  {formData.image_url && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-border">
+                      <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover" />
+                    </div>
+                  )}
                 </div>
                 
                 <div>
