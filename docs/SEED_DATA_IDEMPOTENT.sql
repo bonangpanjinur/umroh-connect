@@ -8,6 +8,63 @@
 -- 1. MANASIK GUIDES (Panduan Umroh)
 -- Unique key: title + category
 -- ========================================
+
+-- ==========================================
+-- ADD UNIQUE CONSTRAINTS FOR IDEMPOTENCY
+-- ==========================================
+DO $$ 
+BEGIN
+    -- manasik_guides: title
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'manasik_guides_title_key') THEN
+        ALTER TABLE public.manasik_guides ADD CONSTRAINT manasik_guides_title_key UNIQUE (title);
+    END IF;
+
+    -- important_locations: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'important_locations_name_key') THEN
+        ALTER TABLE public.important_locations ADD CONSTRAINT important_locations_name_key UNIQUE (name);
+    END IF;
+
+    -- checklists: title
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'checklists_title_key') THEN
+        ALTER TABLE public.checklists ADD CONSTRAINT checklists_title_key UNIQUE (title);
+    END IF;
+
+    -- packing_templates: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'packing_templates_name_key') THEN
+        ALTER TABLE public.packing_templates ADD CONSTRAINT packing_templates_name_key UNIQUE (name);
+    END IF;
+
+    -- prayer_categories: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'prayer_categories_name_key') THEN
+        ALTER TABLE public.prayer_categories ADD CONSTRAINT prayer_categories_name_key UNIQUE (name);
+    END IF;
+
+    -- prayers: title
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'prayers_title_key') THEN
+        ALTER TABLE public.prayers ADD CONSTRAINT prayers_title_key UNIQUE (title);
+    END IF;
+
+    -- exercise_types: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'exercise_types_name_key') THEN
+        ALTER TABLE public.exercise_types ADD CONSTRAINT exercise_types_name_key UNIQUE (name);
+    END IF;
+
+    -- ibadah_habits: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ibadah_habits_name_key') THEN
+        ALTER TABLE public.ibadah_habits ADD CONSTRAINT ibadah_habits_name_key UNIQUE (name);
+    END IF;
+
+    -- dzikir_types: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'dzikir_types_name_key') THEN
+        ALTER TABLE public.dzikir_types ADD CONSTRAINT dzikir_types_name_key UNIQUE (name);
+    END IF;
+
+    -- subscription_plans: name
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscription_plans_name_key') THEN
+        ALTER TABLE public.subscription_plans ADD CONSTRAINT subscription_plans_name_key UNIQUE (name);
+    END IF;
+END $$;
+
 INSERT INTO manasik_guides (title, title_arabic, category, order_index, description, content, doa_arabic, doa_latin, doa_meaning, is_active) VALUES
 ('Niat & Ihram', 'نية الإحرام', 'umroh', 1, 
 'Ihram adalah niat untuk memulai ibadah umroh dengan mengenakan pakaian ihram. Dilakukan di Miqat sebelum memasuki tanah suci.',
