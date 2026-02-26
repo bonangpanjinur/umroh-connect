@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Flame, Moon, Sparkles, Crown, Zap, ChevronRight, Plus,
-  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer
+  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer, Activity
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
@@ -29,6 +29,7 @@ import DzikirStatsView from './DzikirStatsView';
 import SedekahView from './SedekahView';
 import RamadhanDashboard from './RamadhanDashboard';
 import PdfTrackerBuilder from './PdfTrackerBuilder';
+import OlahragaView from './OlahragaView';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
@@ -285,7 +286,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
       {/* Main Tabs - Ramadhan first when active */}
       <div className="px-4 pt-3">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`w-full grid h-auto bg-muted/50 ${isRamadhanMode ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <TabsList className={`w-full grid h-auto bg-muted/50 ${isRamadhanMode ? 'grid-cols-5' : 'grid-cols-4'}`}>
             {isRamadhanMode && (
               <TabsTrigger value="ramadhan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
                 <Moon className="w-3.5 h-3.5" />
@@ -295,6 +296,10 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
             <TabsTrigger value="ibadah" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Flame className="w-3.5 h-3.5" />
               Ibadah
+            </TabsTrigger>
+            <TabsTrigger value="kesehatan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
+              <Activity className="w-3.5 h-3.5" />
+              Kesehatan
             </TabsTrigger>
             <TabsTrigger value="makan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Utensils className="w-3.5 h-3.5" />
@@ -341,6 +346,17 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
                 onAddHabit={addHabit}
                 onRemoveHabit={removeHabit}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'kesehatan' && (
+            <motion.div
+              key="kesehatan"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <OlahragaView isRamadhanMode={isRamadhanMode} />
             </motion.div>
           )}
 
