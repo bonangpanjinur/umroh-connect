@@ -286,7 +286,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
       {/* Main Tabs - Ramadhan first when active */}
       <div className="px-4 pt-3">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`w-full grid h-auto bg-muted/50 ${isRamadhanMode ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsList className={`w-full grid h-auto bg-muted/50 ${isRamadhanMode ? 'grid-cols-4' : 'grid-cols-3'}`}>
             {isRamadhanMode && (
               <TabsTrigger value="ramadhan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
                 <Moon className="w-3.5 h-3.5" />
@@ -300,10 +300,6 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
             <TabsTrigger value="kesehatan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Activity className="w-3.5 h-3.5" />
               Kesehatan
-            </TabsTrigger>
-            <TabsTrigger value="makan" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
-              <Utensils className="w-3.5 h-3.5" />
-              Makan
             </TabsTrigger>
             <TabsTrigger value="sedekah" className="text-xs py-2 gap-1 data-[state=active]:bg-background">
               <Heart className="w-3.5 h-3.5" />
@@ -356,18 +352,7 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <OlahragaView isRamadhanMode={isRamadhanMode} />
-            </motion.div>
-          )}
-
-          {activeTab === 'makan' && (
-            <motion.div
-              key="makan"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <MealTrackingView isRamadhanMode={isRamadhanMode} />
+              <KesehatanSubTabs isRamadhanMode={isRamadhanMode} />
             </motion.div>
           )}
 
@@ -407,6 +392,38 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
         onOpenChange={setShowPremiumModal}
         onLoginRequired={onNavigateToAuth}
       />
+    </div>
+  );
+};
+
+// Sub-tabs for Kesehatan (Olahraga + Diet)
+const KesehatanSubTabs = ({ isRamadhanMode }: { isRamadhanMode: boolean }) => {
+  const [subTab, setSubTab] = useState('olahraga');
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2 pb-1">
+        {[
+          { id: 'olahraga', label: 'Olahraga', icon: Activity },
+          { id: 'diet', label: 'Diet & Makan', icon: Utensils },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = subTab === tab.id;
+          return (
+            <Button
+              key={tab.id}
+              variant={isActive ? "default" : "ghost"}
+              size="sm"
+              className={`flex-shrink-0 h-8 text-xs gap-1.5 ${isActive ? '' : 'text-muted-foreground'}`}
+              onClick={() => setSubTab(tab.id)}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </Button>
+          );
+        })}
+      </div>
+      {subTab === 'olahraga' && <OlahragaView isRamadhanMode={isRamadhanMode} />}
+      {subTab === 'diet' && <MealTrackingView isRamadhanMode={isRamadhanMode} />}
     </div>
   );
 };
