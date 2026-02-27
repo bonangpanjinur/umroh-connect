@@ -1,174 +1,122 @@
 
-# Laporan Bug & Rencana Perbaikan E-Commerce
+# Laporan Audit & Rencana Perbaikan Komprehensif
 
-## Bug yang Ditemukan
+## BUG KRITIS: Semua Fitur Database Tidak Berfungsi
 
-### BUG 1 (Kritis): Seller Tidak Bisa Melihat Pesanan
+### Akar Masalah
+File `src/integrations/supabase/client.ts` membaca environment variable `VITE_SUPABASE_ANON_KEY`, tetapi file `.env` menyimpan key dengan nama `VITE_SUPABASE_PUBLISHABLE_KEY`. Akibatnya, seluruh aplikasi menggunakan `placeholder-key` sebagai API key, menyebabkan **semua request ke database gagal dengan error 401**.
 
-Kebijakan RLS pada tabel `shop_orders` hanya mengizinkan SELECT untuk:
-- `user_id = auth.uid()` (pembeli)
-- `admin` atau `shop_admin`
+Ini menjelaskan mengapa:
+- Menu Kesehatan tidak bisa memilih jenis olahraga (data exercise_types tidak bisa diambil)
+- Kategori produk tidak muncul
+- Banner tidak tampil
+- Semua fitur database lainnya gagal
 
-**Seller tidak termasuk dalam kebijakan SELECT.** Akibatnya, hook `useSellerOrders` yang melakukan join `order:shop_orders(*)` akan selalu mengembalikan `order: null`, sehingga:
-- Tab Pesanan di dashboard seller **kosong** (semua data pesanan null)
-- Statistik penjualan **selalu nol**
-- Detail pesanan (nama penerima, alamat, bukti bayar) **tidak tampil**
+### Perbaikan
+File `client.ts` adalah file auto-generated yang tidak boleh diedit manual. Solusinya: Buat alias environment variable `VITE_SUPABASE_ANON_KEY` yang mengarah ke key yang sama di `supabaseConfig.ts` atau file bootstrap, ATAU hubungi support Lovable Cloud untuk regenerasi file `.env` dengan nama variable yang benar.
 
-Masalah yang sama terjadi pada `shop_order_items` -- kebijakan SELECT-nya juga hanya mengizinkan pembeli/admin, bukan seller.
+**Solusi praktis**: Tambahkan file `src/supabaseConfig.ts` yang sudah ada untuk meng-export env variable yang benar, lalu pastikan client.ts membaca dari sumber yang tepat.
 
-**Perbaikan:** Tambahkan kebijakan SELECT pada `shop_orders` dan `shop_order_items` yang mengizinkan seller melihat pesanan terkait produk mereka.
+Namun karena `client.ts` auto-generated, pendekatan yang benar adalah menambahkan `VITE_SUPABASE_ANON_KEY` ke `.env` sebagai duplikat dari `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
----
+Catatan: `.env` juga auto-generated. Kita perlu menyelidiki apakah ada cara lain. **Alternatif terbaik**: Override di `src/supabaseConfig.ts` yang sudah ada dan pastikan import path mengarah ke sana.
 
-### BUG 2 (Sedang): Label "Kategori Toko" Salah
-
-Di `ShopCategoriesManagement.tsx` baris 77, `CardTitle` bertuliskan **"Kategori Toko"** padahal yang dikelola adalah kategori produk.
-
-**Perbaikan:** Ubah label menjadi "Kategori Produk".
+Setelah diperiksa ulang, ternyata `.env` memiliki `VITE_SUPABASE_PUBLISHABLE_KEY` dan `client.ts` membaca `VITE_SUPABASE_ANON_KEY` -- keduanya auto-generated. Ini kemungkinan bug konfigurasi Lovable Cloud. Solusi sementara yang paling aman: buat wrapper client di `src/lib/supabase.ts` yang membuat client baru dengan key yang benar.
 
 ---
 
-### BUG 3 (Sedang): Data Quran Belum Tersinkron
+## Bug Lainnya yang Ditemukan
 
-Tabel `quran_ayahs` memiliki **0 ayat** tersimpan. Tabel `quran_surahs` sudah memiliki 114 surat, tetapi kolom `english_name`, `revelation_type`, dan `translation_name` semuanya `null`.
+### BUG 2: `src/lib/supabase.ts` Hanya Re-export Client yang Broken
+File ini me-redirect ke `client.ts` yang menggunakan placeholder key. Perlu diubah menjadi client mandiri yang membaca env variable yang benar (`VITE_SUPABASE_PUBLISHABLE_KEY`).
 
-Edge function `sync-quran-data` sudah benar secara kode. Masalahnya adalah **belum pernah dijalankan** oleh admin. Ini bukan bug kode, tetapi perlu diperbaiki UX-nya agar admin tahu harus menjalankan sinkronisasi pertama.
+### BUG 3: Kategori Produk Kosong di Database
+Tabel `shop_categories` memiliki 0 record. Bahkan setelah API key diperbaiki, admin tidak akan melihat kategori apapun. Perlu seed data awal.
 
-**Perbaikan:** Tambahkan banner/alert di Quran Management yang mendeteksi jika 0 ayat tersimpan dan menampilkan tombol "Sinkronisasi Pertama" yang lebih menonjol.
-
----
-
-### BUG 4 (Sedang): Duplikat Produk Seller -- ID undefined Dikirim ke Database
-
-Di `SellerDashboard.tsx` baris 238, saat duplikat produk:
-```typescript
-setEditingProduct({ ...product, id: undefined as any, ... })
-```
-Properti `id` tetap ada dengan nilai `undefined`. Di `SellerProductForm.tsx` baris 67:
-```typescript
-...(product?.id ? { id: product.id } : {})
-```
-Karena `undefined` adalah falsy, ini seharusnya aman. **Namun**, `product.slug` di-set ke `''` (string kosong), dan `generateSlug` di `handleSubmit` akan menghasilkan slug dari nama baru. Masalahnya: jika slug duplikat sudah ada di database, INSERT akan gagal karena unique constraint pada slug.
-
-**Perbaikan:** Generate slug unik saat duplikat dengan menambahkan timestamp/random suffix.
+### BUG 4: Travel Form -- RLS INSERT Policy
+Policy INSERT pada `travels` menggunakan `qual: nil` (no restriction check), tapi memerlukan role check via `with_check`. Admin bisa menambah travel, tapi perlu dipastikan `owner_id` terisi dengan profile ID yang valid.
 
 ---
 
-### BUG 5 (Rendah): Buyer Tidak Bisa Chat Seller pada Pesanan Pending
+## Audit Fitur per Role
 
-Di `OrderHistoryView.tsx` baris 225, tombol "Chat Penjual" hanya muncul jika status bukan `cancelled` dan bukan `pending`:
-```typescript
-{order.status !== 'cancelled' && order.status !== 'pending' && (...)}
-```
-Pembeli yang sudah membuat pesanan tetapi belum bayar tidak bisa menghubungi seller untuk bertanya. Ini mengurangi kemungkinan konversi pembayaran.
+### ADMIN (Super Admin)
+| Fitur | Status | Masalah |
+|-------|--------|---------|
+| Overview/Analitik | Broken | API key 401 |
+| Users Management | Broken | API key 401 |
+| Travels Management | Broken | API key 401 + owner_id perlu profile.id |
+| Banner Management | OK (kode) | Sudah pakai ImageUpload, tapi 401 |
+| Kategori Produk | Broken | Data kosong + 401 |
+| Quran Management | Broken | 0 ayat + 401 |
+| Doa Management | OK (kode) | Tergantung seed data |
+| Seller Management | OK (kode) | 401 |
 
-**Perbaikan:** Tampilkan tombol chat untuk semua status kecuali `cancelled`.
+### SELLER
+| Fitur | Status | Masalah |
+|-------|--------|---------|
+| Produk CRUD | OK (kode) | RLS SELECT sudah ada |
+| Pesanan | OK (kode) | RLS SELECT seller sudah ditambah |
+| Chat | OK (kode) | - |
+| Statistik | OK (kode) | - |
+| Duplikat Produk | Fixed | Slug unik sudah diperbaiki |
 
----
+### AGENT
+| Fitur | Status | Masalah |
+|-------|--------|---------|
+| Travel Form | Perlu perbaikan | owner_id menggunakan profile.id tapi AddTravelForm admin juga set owner_id ke profile.id admin, bukan agent yang dipilih |
+| Package CRUD | OK (kode) | - |
+| Booking | OK (kode) | - |
+| Analytics | OK (kode) | - |
 
-### BUG 6 (Sedang): Duplikat Kebijakan UPDATE pada shop_orders
-
-Ada 3 kebijakan UPDATE yang tumpang tindih:
-1. "Admin/shop_admin update orders" -- mengizinkan owner + admin + shop_admin
-2. "Buyers can update own orders" -- mengizinkan owner (sudah tercakup di #1)
-3. "Sellers can update orders for their products"
-
-Kebijakan #2 redundan dengan #1 dan bisa membingungkan.
-
-**Perbaikan:** Hapus kebijakan "Buyers can update own orders" karena sudah tercakup oleh "Admin/shop_admin update orders".
+### BUYER (Jamaah)
+| Fitur | Status | Masalah |
+|-------|--------|---------|
+| Browse Produk | Broken | 401 |
+| Keranjang/Checkout | OK (kode) | - |
+| Riwayat Pesanan | OK (kode) | Chat sudah bisa di status pending |
+| Order Timeline | OK (kode) | Trigger + history table ada |
+| Tracker Kesehatan | Broken | Exercise types 401 |
+| Meal Tracking | OK | Local storage, tidak butuh DB |
 
 ---
 
 ## Rencana Perbaikan
 
-### 1. Migration SQL: Perbaiki RLS Seller
+### 1. Perbaiki Koneksi Database (KRITIS)
+Ubah `src/lib/supabase.ts` dari re-export menjadi client mandiri yang membaca `VITE_SUPABASE_PUBLISHABLE_KEY` langsung. Semua import di aplikasi yang menggunakan `src/lib/supabase` akan otomatis terperbaiki.
 
-Tambahkan kebijakan SELECT agar seller bisa melihat pesanan yang berisi produk mereka:
+Untuk file yang import dari `@/integrations/supabase/client`, buat re-export di sana juga yang menggunakan env var yang benar.
 
-```text
--- shop_orders: Seller can view orders containing their products
-CREATE POLICY "Sellers can view orders for their products"
-ON public.shop_orders FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM shop_order_items soi
-    JOIN shop_products sp ON soi.product_id = sp.id
-    JOIN seller_profiles selp ON sp.seller_id = selp.id
-    WHERE soi.order_id = shop_orders.id
-    AND selp.user_id = auth.uid()
-  )
-);
+**File yang diubah:**
+- `src/lib/supabase.ts` -- buat client baru dengan `VITE_SUPABASE_PUBLISHABLE_KEY`
 
--- shop_order_items: Seller can view order items for their products
-CREATE POLICY "Sellers can view own product order items"
-ON public.shop_order_items FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM shop_products sp
-    JOIN seller_profiles selp ON sp.seller_id = selp.id
-    WHERE sp.id = shop_order_items.product_id
-    AND selp.user_id = auth.uid()
-  )
-);
+### 2. Seed Data Kategori Produk
+Tambahkan kategori produk default melalui migration SQL:
+- Oleh-oleh Makanan
+- Perlengkapan Ibadah
+- Pakaian & Aksesoris
+- Buku & Media
+- Parfum & Skincare
 
--- Cleanup: drop redundant policy
-DROP POLICY IF EXISTS "Buyers can update own orders" ON public.shop_orders;
-```
+### 3. Perbaiki AddTravelForm untuk Admin
+Saat admin menambah travel dan memilih owner agent, `owner_id` harus diisi dengan **profile.id agent yang dipilih**, bukan profile.id admin. Saat ini `useCreateTravel` selalu menggunakan `profile.id` dari user yang login (admin).
 
-### 2. Perbaiki Label Kategori (ShopCategoriesManagement.tsx)
-- Baris 77: "Kategori Toko" menjadi "Kategori Produk"
+**Perbaikan:** Buat hook `useAdminCreateTravel` terpisah di `useAdminData.ts` yang menerima `owner_id` sebagai parameter tanpa override.
 
-### 3. Perbaiki UX Quran Management (QuranManagement.tsx)
-- Tambahkan banner alert ketika `totalAyahs === 0` yang menampilkan pesan "Data belum tersinkron" dengan tombol CTA sinkronisasi
-- Tambahkan indikator progress saat sinkronisasi batch berjalan
+### 4. Perbaiki OlahragaView -- Fallback untuk Data Kosong
+Tambahkan daftar olahraga default di frontend sebagai fallback ketika data dari database belum tersedia, agar pengguna tetap bisa input olahraga.
 
-### 4. Perbaiki Duplikat Produk (SellerDashboard.tsx)
-- Generate slug unik dengan suffix timestamp saat duplikat:
-  ```text
-  slug: generateSlug(product.name + '-copy-' + Date.now().toString(36))
-  ```
-
-### 5. Tampilkan Chat untuk Pesanan Pending (OrderHistoryView.tsx)
-- Ubah kondisi dari `order.status !== 'cancelled' && order.status !== 'pending'` menjadi `order.status !== 'cancelled'`
+### 5. Tambah Tab "Diet" di Menu Kesehatan
+Saat ini tab Kesehatan hanya menampilkan OlahragaView. Tambahkan sub-tab yang juga menampilkan MealTrackingView agar kedua fitur terintegrasi dalam satu tab.
 
 ### Detail Teknis
 
-| File | Perubahan |
-|------|-----------|
-| Migration SQL baru | Tambah SELECT policy seller di `shop_orders` dan `shop_order_items`, hapus policy redundan |
-| `src/components/admin/ShopCategoriesManagement.tsx` | Ubah "Kategori Toko" -> "Kategori Produk" (baris 77) |
-| `src/components/admin/QuranManagement.tsx` | Tambah banner sinkronisasi pertama + progress indicator |
-| `src/pages/SellerDashboard.tsx` | Perbaiki slug duplikat produk (baris 238) |
-| `src/components/shop/OrderHistoryView.tsx` | Izinkan chat pada pesanan pending (baris 225) |
-
-### Alur E-Commerce yang Jelas
-
-Setelah perbaikan ini, alur e-commerce akan menjadi:
-
-```text
-ADMIN (Super Admin)
-+-- /shop-admin
-    +-- Dashboard: ringkasan statistik toko
-    +-- Produk: CRUD semua produk dari semua seller
-    +-- Kategori Produk: CRUD kategori
-    +-- Pesanan: lihat & kelola semua pesanan (ubah status, input resi)
-    +-- Seller: approve/reject pendaftaran seller, verifikasi
-
-SELLER
-+-- /seller-dashboard
-    +-- Produk: CRUD produk miliknya, duplikat produk
-    +-- Pesanan: lihat pesanan yang berisi produknya, proses & kirim
-    +-- Chat: komunikasi dengan pembeli per pesanan
-    +-- Statistik: revenue, top produk, jumlah terjual
-    +-- Settings: branding toko, ongkir, WhatsApp
-
-BUYER (Jamaah)
-+-- Halaman Toko (/oleh-oleh via menu utama)
-    +-- Browse produk: filter kategori, harga, sorting, search
-    +-- Browse toko: cari seller, lihat profil toko
-    +-- Keranjang: tambah/kurangi/hapus item
-    +-- Checkout: isi alamat, lihat ongkir, buat pesanan
-    +-- Pembayaran: lihat rekening/QRIS, upload bukti bayar
-    +-- Riwayat Pesanan: tracking, konfirmasi terima, review, chat seller
-    +-- Wishlist: simpan produk favorit
-```
+| No | File | Perubahan |
+|----|------|-----------|
+| 1 | `src/lib/supabase.ts` | Buat client dengan `VITE_SUPABASE_PUBLISHABLE_KEY` dan `VITE_SUPABASE_URL` langsung |
+| 2 | SQL Migration | Seed kategori produk default |
+| 3 | `src/hooks/useAgentData.ts` | Tambah `useAdminCreateTravel` yang terima owner_id parameter |
+| 4 | `src/components/admin/AddTravelForm.tsx` | Gunakan `useAdminCreateTravel` |
+| 5 | `src/components/habit/OlahragaView.tsx` | Tambah fallback exercise types + sub-tabs kesehatan |
+| 6 | `src/components/habit/IbadahHubView.tsx` | Tab Kesehatan menampilkan sub-tabs (Olahraga + Diet) |
