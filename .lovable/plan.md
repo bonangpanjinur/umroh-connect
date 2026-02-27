@@ -1,122 +1,172 @@
 
-# Laporan Audit & Rencana Perbaikan Komprehensif
 
-## BUG KRITIS: Semua Fitur Database Tidak Berfungsi
+# Analisis Kekurangan Fitur - Arah Umroh
 
-### Akar Masalah
-File `src/integrations/supabase/client.ts` membaca environment variable `VITE_SUPABASE_ANON_KEY`, tetapi file `.env` menyimpan key dengan nama `VITE_SUPABASE_PUBLISHABLE_KEY`. Akibatnya, seluruh aplikasi menggunakan `placeholder-key` sebagai API key, menyebabkan **semua request ke database gagal dengan error 401**.
+## 1. Pengalaman Pengguna Baru (Onboarding)
 
-Ini menjelaskan mengapa:
-- Menu Kesehatan tidak bisa memilih jenis olahraga (data exercise_types tidak bisa diambil)
-- Kategori produk tidak muncul
-- Banner tidak tampil
-- Semua fitur database lainnya gagal
+**Masalah**: Tidak ada onboarding/tutorial untuk pengguna baru. Setelah registrasi, pengguna langsung dilempar ke halaman utama tanpa panduan.
 
-### Perbaikan
-File `client.ts` adalah file auto-generated yang tidak boleh diedit manual. Solusinya: Buat alias environment variable `VITE_SUPABASE_ANON_KEY` yang mengarah ke key yang sama di `supabaseConfig.ts` atau file bootstrap, ATAU hubungi support Lovable Cloud untuk regenerasi file `.env` dengan nama variable yang benar.
-
-**Solusi praktis**: Tambahkan file `src/supabaseConfig.ts` yang sudah ada untuk meng-export env variable yang benar, lalu pastikan client.ts membaca dari sumber yang tepat.
-
-Namun karena `client.ts` auto-generated, pendekatan yang benar adalah menambahkan `VITE_SUPABASE_ANON_KEY` ke `.env` sebagai duplikat dari `VITE_SUPABASE_PUBLISHABLE_KEY`.
-
-Catatan: `.env` juga auto-generated. Kita perlu menyelidiki apakah ada cara lain. **Alternatif terbaik**: Override di `src/supabaseConfig.ts` yang sudah ada dan pastikan import path mengarah ke sana.
-
-Setelah diperiksa ulang, ternyata `.env` memiliki `VITE_SUPABASE_PUBLISHABLE_KEY` dan `client.ts` membaca `VITE_SUPABASE_ANON_KEY` -- keduanya auto-generated. Ini kemungkinan bug konfigurasi Lovable Cloud. Solusi sementara yang paling aman: buat wrapper client di `src/lib/supabase.ts` yang membuat client baru dengan key yang benar.
+**Rekomendasi**:
+- Tambahkan welcome screen interaktif (3-4 langkah) setelah registrasi pertama kali
+- Highlight fitur utama: Tracker Ibadah, Paket Umroh, Oleh-oleh
+- Tooltip panduan di Quick Menu saat pertama kali dibuka
 
 ---
 
-## Bug Lainnya yang Ditemukan
+## 2. Profil Pengguna Minim
 
-### BUG 2: `src/lib/supabase.ts` Hanya Re-export Client yang Broken
-File ini me-redirect ke `client.ts` yang menggunakan placeholder key. Perlu diubah menjadi client mandiri yang membaca env variable yang benar (`VITE_SUPABASE_PUBLISHABLE_KEY`).
+**Masalah**: Profil hanya menyimpan nama, email, phone, avatar. Tidak ada field untuk:
+- Alamat lengkap (penting untuk pengiriman oleh-oleh)
+- Nomor paspor / data dokumen perjalanan
+- Riwayat umroh/haji sebelumnya
+- Kontak darurat
 
-### BUG 3: Kategori Produk Kosong di Database
-Tabel `shop_categories` memiliki 0 record. Bahkan setelah API key diperbaiki, admin tidak akan melihat kategori apapun. Perlu seed data awal.
-
-### BUG 4: Travel Form -- RLS INSERT Policy
-Policy INSERT pada `travels` menggunakan `qual: nil` (no restriction check), tapi memerlukan role check via `with_check`. Admin bisa menambah travel, tapi perlu dipastikan `owner_id` terisi dengan profile ID yang valid.
-
----
-
-## Audit Fitur per Role
-
-### ADMIN (Super Admin)
-| Fitur | Status | Masalah |
-|-------|--------|---------|
-| Overview/Analitik | Broken | API key 401 |
-| Users Management | Broken | API key 401 |
-| Travels Management | Broken | API key 401 + owner_id perlu profile.id |
-| Banner Management | OK (kode) | Sudah pakai ImageUpload, tapi 401 |
-| Kategori Produk | Broken | Data kosong + 401 |
-| Quran Management | Broken | 0 ayat + 401 |
-| Doa Management | OK (kode) | Tergantung seed data |
-| Seller Management | OK (kode) | 401 |
-
-### SELLER
-| Fitur | Status | Masalah |
-|-------|--------|---------|
-| Produk CRUD | OK (kode) | RLS SELECT sudah ada |
-| Pesanan | OK (kode) | RLS SELECT seller sudah ditambah |
-| Chat | OK (kode) | - |
-| Statistik | OK (kode) | - |
-| Duplikat Produk | Fixed | Slug unik sudah diperbaiki |
-
-### AGENT
-| Fitur | Status | Masalah |
-|-------|--------|---------|
-| Travel Form | Perlu perbaikan | owner_id menggunakan profile.id tapi AddTravelForm admin juga set owner_id ke profile.id admin, bukan agent yang dipilih |
-| Package CRUD | OK (kode) | - |
-| Booking | OK (kode) | - |
-| Analytics | OK (kode) | - |
-
-### BUYER (Jamaah)
-| Fitur | Status | Masalah |
-|-------|--------|---------|
-| Browse Produk | Broken | 401 |
-| Keranjang/Checkout | OK (kode) | - |
-| Riwayat Pesanan | OK (kode) | Chat sudah bisa di status pending |
-| Order Timeline | OK (kode) | Trigger + history table ada |
-| Tracker Kesehatan | Broken | Exercise types 401 |
-| Meal Tracking | OK | Local storage, tidak butuh DB |
+**Rekomendasi**: Tambahkan halaman "Lengkapi Profil" dengan data perjalanan dan alamat default untuk checkout.
 
 ---
 
-## Rencana Perbaikan
+## 3. Wishlist Produk Ada, tapi Halaman Wishlist Tidak Ada
 
-### 1. Perbaiki Koneksi Database (KRITIS)
-Ubah `src/lib/supabase.ts` dari re-export menjadi client mandiri yang membaca `VITE_SUPABASE_PUBLISHABLE_KEY` langsung. Semua import di aplikasi yang menggunakan `src/lib/supabase` akan otomatis terperbaiki.
+**Masalah**: Tombol wishlist sudah berfungsi di ProductCard, tapi tidak ada halaman khusus untuk melihat semua produk yang di-wishlist.
 
-Untuk file yang import dari `@/integrations/supabase/client`, buat re-export di sana juga yang menggunakan env var yang benar.
+**Rekomendasi**: Tambahkan tab/halaman "Favorit Saya" di ShopView atau di menu Akun.
 
-**File yang diubah:**
-- `src/lib/supabase.ts` -- buat client baru dengan `VITE_SUPABASE_PUBLISHABLE_KEY`
+---
 
-### 2. Seed Data Kategori Produk
-Tambahkan kategori produk default melalui migration SQL:
-- Oleh-oleh Makanan
-- Perlengkapan Ibadah
-- Pakaian & Aksesoris
-- Buku & Media
-- Parfum & Skincare
+## 4. Checkout Belum Terintegrasi Payment Gateway
 
-### 3. Perbaiki AddTravelForm untuk Admin
-Saat admin menambah travel dan memilih owner agent, `owner_id` harus diisi dengan **profile.id agent yang dipilih**, bukan profile.id admin. Saat ini `useCreateTravel` selalu menggunakan `profile.id` dari user yang login (admin).
+**Masalah**: Checkout hanya menampilkan info rekening dan upload bukti transfer manual. Tidak ada integrasi payment gateway otomatis (Midtrans sudah ada hook-nya tapi belum digunakan di checkout oleh-oleh).
 
-**Perbaikan:** Buat hook `useAdminCreateTravel` terpisah di `useAdminData.ts` yang menerima `owner_id` sebagai parameter tanpa override.
+**Rekomendasi**: Integrasikan `useMidtrans` hook yang sudah ada ke CheckoutView untuk pembayaran otomatis.
 
-### 4. Perbaiki OlahragaView -- Fallback untuk Data Kosong
-Tambahkan daftar olahraga default di frontend sebagai fallback ketika data dari database belum tersedia, agar pengguna tetap bisa input olahraga.
+---
 
-### 5. Tambah Tab "Diet" di Menu Kesehatan
-Saat ini tab Kesehatan hanya menampilkan OlahragaView. Tambahkan sub-tab yang juga menampilkan MealTrackingView agar kedua fitur terintegrasi dalam satu tab.
+## 5. Notifikasi Push Belum Efektif
 
-### Detail Teknis
+**Masalah**: Infrastruktur push notification sudah ada (`usePushNotifications`), tapi:
+- Belum ada notifikasi saat status pesanan berubah (seller memproses/kirim)
+- Belum ada reminder pembayaran otomatis
+- Belum ada notifikasi konten baru (banner/promo)
 
-| No | File | Perubahan |
-|----|------|-----------|
-| 1 | `src/lib/supabase.ts` | Buat client dengan `VITE_SUPABASE_PUBLISHABLE_KEY` dan `VITE_SUPABASE_URL` langsung |
-| 2 | SQL Migration | Seed kategori produk default |
-| 3 | `src/hooks/useAgentData.ts` | Tambah `useAdminCreateTravel` yang terima owner_id parameter |
-| 4 | `src/components/admin/AddTravelForm.tsx` | Gunakan `useAdminCreateTravel` |
-| 5 | `src/components/habit/OlahragaView.tsx` | Tambah fallback exercise types + sub-tabs kesehatan |
-| 6 | `src/components/habit/IbadahHubView.tsx` | Tab Kesehatan menampilkan sub-tabs (Olahraga + Diet) |
+**Rekomendasi**: Hubungkan trigger database `order_status_change` dengan edge function `send-push-notification`.
+
+---
+
+## 6. Fitur Chat Terbatas
+
+**Masalah**:
+- Chat buyer-seller tidak punya indikator "read/unread" yang jelas
+- Tidak ada fitur kirim gambar dalam chat
+- Tidak ada auto-reply/template pesan untuk seller
+
+**Rekomendasi**: Tambahkan read receipt, image attachment, dan quick reply templates.
+
+---
+
+## 7. Halaman Toko Seller Kurang Informatif
+
+**Masalah**: StorePage (`/store/:sellerId`) menampilkan produk tapi tidak ada:
+- Banner toko kustom
+- Deskripsi toko
+- Jam operasional
+- Kebijakan pengembalian
+- Rating & review toko (hanya per-produk)
+
+**Rekomendasi**: Perkaya halaman toko dengan profil seller yang lengkap.
+
+---
+
+## 8. Tidak Ada Fitur Pencarian Global
+
+**Masalah**: Pencarian hanya tersedia per-konteks (produk di ShopView, paket di PaketView). Tidak ada search bar global di header untuk mencari lintas fitur.
+
+**Rekomendasi**: Tambahkan pencarian global di AppHeader yang bisa mencari paket umroh, produk, dan doa sekaligus.
+
+---
+
+## 9. Social Sharing Tidak Ada
+
+**Masalah**: Tidak ada tombol share ke WhatsApp/sosial media untuk:
+- Paket umroh (jamaah share ke teman)
+- Produk oleh-oleh
+- Progress ibadah / achievement
+
+**Rekomendasi**: Tambahkan share button dengan Web Share API di PackageCard dan ProductCard.
+
+---
+
+## 10. Statistik Seller Kurang Detail
+
+**Masalah**: SellerStatsTab hanya menampilkan ringkasan dasar. Kurang:
+- Grafik penjualan per hari/minggu/bulan
+- Produk terlaris
+- Breakdown pendapatan per produk
+- Customer retention rate
+
+**Rekomendasi**: Gunakan Recharts (sudah terinstall) untuk visualisasi data penjualan yang lebih kaya.
+
+---
+
+## 11. Multi-bahasa Belum Konsisten
+
+**Masalah**: Ada `LanguageContext` dan `useLanguage` hook, tapi hampir semua teks UI masih hardcoded dalam Bahasa Indonesia. Fungsi `t()` tidak digunakan secara konsisten.
+
+**Rekomendasi**: Jika multi-bahasa bukan prioritas, hapus fitur ini untuk mengurangi kompleksitas. Jika dibutuhkan, lakukan i18n secara menyeluruh.
+
+---
+
+## 12. Laporan & Export Data Admin
+
+**Masalah**: Admin tidak bisa export data ke CSV/Excel untuk:
+- Daftar pengguna
+- Daftar pesanan
+- Laporan keuangan
+- Data booking
+
+**Rekomendasi**: Tambahkan tombol "Export CSV" di setiap management table di AdminDashboard.
+
+---
+
+## 13. Kupon & Diskon Belum Ada
+
+**Masalah**: Tidak ada sistem kupon/voucher untuk:
+- Diskon produk oleh-oleh
+- Potongan harga paket umroh
+- Promo referral
+
+**Rekomendasi**: Buat tabel `coupons` dengan validasi di checkout.
+
+---
+
+## 14. Tracking Pengiriman Oleh-oleh
+
+**Masalah**: Setelah seller mengirim barang, buyer tidak bisa melacak pengiriman. Tidak ada field nomor resi.
+
+**Rekomendasi**: Tambahkan field `tracking_number` dan `courier` di `shop_orders`, plus integrasi API cek resi (RajaOngkir/Biteship).
+
+---
+
+## 15. Grup Jamaah / Komunitas
+
+**Masalah**: Ada `GroupTrackingView` untuk tracking lokasi grup, tapi tidak ada fitur komunitas/forum untuk jamaah saling berkomunikasi dan berbagi pengalaman.
+
+**Rekomendasi**: Tambahkan fitur grup diskusi per-keberangkatan atau per-travel agent.
+
+---
+
+## Prioritas Implementasi
+
+| Prioritas | Fitur | Dampak |
+|-----------|-------|--------|
+| Tinggi | Halaman Wishlist | UX e-commerce |
+| Tinggi | Nomor Resi & Tracking | Kepercayaan buyer |
+| Tinggi | Social Sharing | Pertumbuhan organik |
+| Tinggi | Profil lengkap + alamat default | Efisiensi checkout |
+| Sedang | Kupon & Diskon | Konversi penjualan |
+| Sedang | Pencarian Global | UX navigasi |
+| Sedang | Statistik Seller Detail | Retensi seller |
+| Sedang | Export Data Admin | Operasional |
+| Rendah | Onboarding Tutorial | First-time experience |
+| Rendah | Chat Enhancement | Komunikasi |
+| Rendah | Komunitas Jamaah | Engagement |
+
