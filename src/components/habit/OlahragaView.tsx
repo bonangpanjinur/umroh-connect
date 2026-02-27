@@ -52,6 +52,16 @@ const timeLabels: Record<string, string> = {
   kapan_saja: '⏰ Kapan Saja',
 };
 
+// Fallback exercise types when database is empty or unavailable
+const FALLBACK_EXERCISE_TYPES: import('@/hooks/useOlahraga').ExerciseType[] = [
+  { id: 'fallback-jalan', name: 'Jalan Kaki', icon: 'footprints', description: 'Jalan santai atau cepat', intensity: 'ringan', recommended_time: 'sebelum_berbuka', duration_minutes: 30, is_ramadan_friendly: true, is_active: true, priority: 1 },
+  { id: 'fallback-jogging', name: 'Jogging', icon: 'activity', description: 'Lari ringan', intensity: 'sedang', recommended_time: 'setelah_tarawih', duration_minutes: 20, is_ramadan_friendly: true, is_active: true, priority: 2 },
+  { id: 'fallback-stretching', name: 'Stretching', icon: 'move', description: 'Peregangan otot', intensity: 'ringan', recommended_time: 'setelah_sahur', duration_minutes: 15, is_ramadan_friendly: true, is_active: true, priority: 3 },
+  { id: 'fallback-senam', name: 'Senam', icon: 'activity', description: 'Senam ringan', intensity: 'ringan', recommended_time: 'kapan_saja', duration_minutes: 20, is_ramadan_friendly: true, is_active: true, priority: 4 },
+  { id: 'fallback-bersepeda', name: 'Bersepeda', icon: 'bike', description: 'Bersepeda santai', intensity: 'sedang', recommended_time: 'setelah_tarawih', duration_minutes: 30, is_ramadan_friendly: true, is_active: true, priority: 5 },
+  { id: 'fallback-berenang', name: 'Berenang', icon: 'waves', description: 'Berenang ringan', intensity: 'sedang', recommended_time: 'setelah_tarawih', duration_minutes: 30, is_ramadan_friendly: true, is_active: true, priority: 6 },
+];
+
 interface OlahragaViewProps {
   isRamadhanMode?: boolean;
 }
@@ -64,7 +74,9 @@ export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
   const [intensity, setIntensity] = useState('ringan');
   const [timeOfDay, setTimeOfDay] = useState('setelah_tarawih');
   
-  const { data: types = [] } = useExerciseTypes();
+  const { data: dbTypes = [], isError: typesError } = useExerciseTypes();
+  const types = dbTypes.length > 0 ? dbTypes : FALLBACK_EXERCISE_TYPES;
+  const isFallbackMode = dbTypes.length === 0;
   const { data: logs = [] } = useExerciseLogs(user?.id);
   const { data: stats } = useExerciseStats(user?.id);
   const { data: weeklyData = [] } = useWeeklyExercise(user?.id);
