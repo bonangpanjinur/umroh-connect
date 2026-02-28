@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { PackageWithDetails } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { PackageTypeBadge } from '@/components/haji/PackageTypeBadge';
+import ShareButton from '@/components/common/ShareButton';
 
 interface PackageCardProps {
   package: PackageWithDetails;
@@ -40,6 +41,10 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         
+        {/* Share */}
+        <div className="absolute top-3 right-3">
+          <ShareButton title={pkg.name} text={`Paket ${pkg.name} dari ${pkg.travel.name} - mulai ${lowestPrice > 0 ? formatPrice(lowestPrice) : ''}`} className="h-8 w-8 rounded-full bg-card/80 backdrop-blur-sm hover:bg-card/90" />
+        </div>
         {/* Rating Badge */}
         <div className="absolute top-3 left-3 flex gap-2">
           {pkg.package_type && pkg.package_type !== 'umroh' && (
