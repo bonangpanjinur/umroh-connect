@@ -19,6 +19,7 @@ import CheckoutView from './CheckoutView';
 import OrderHistoryView from './OrderHistoryView';
 import ChatNotificationBell from './ChatNotificationBell';
 import OrderNotificationBell from './OrderNotificationBell';
+import WishlistView from './WishlistView';
 
 interface ShopViewProps {
   onBack: () => void;
@@ -44,7 +45,7 @@ const ShopView = ({ onBack }: ShopViewProps) => {
   const [maxPrice, setMaxPrice] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'stores'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'stores' | 'wishlist'>('products');
   const [storeSearch, setStoreSearch] = useState('');
   const navigate = useNavigate();
 
@@ -114,10 +115,11 @@ const ShopView = ({ onBack }: ShopViewProps) => {
 
         {/* Tab: Products / Stores */}
         <div className="px-4 pb-2">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'products' | 'stores')}>
-            <TabsList className="grid grid-cols-2 w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'products' | 'stores' | 'wishlist')}>
+            <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="products" className="text-xs">🛍️ Produk</TabsTrigger>
               <TabsTrigger value="stores" className="text-xs">🏪 Toko</TabsTrigger>
+              <TabsTrigger value="wishlist" className="text-xs">❤️ Favorit</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -225,6 +227,10 @@ const ShopView = ({ onBack }: ShopViewProps) => {
               ))}
             </div>
           )}
+        </div>
+      ) : activeTab === 'wishlist' ? (
+        <div className="p-4">
+          <WishlistView />
         </div>
       ) : (
         <div className="p-4">

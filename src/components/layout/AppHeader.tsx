@@ -1,5 +1,6 @@
-import { AlertTriangle, Moon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { AlertTriangle, Moon, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Check } from 'lucide-react';
+import GlobalSearch from '@/components/common/GlobalSearch';
 
 interface AppHeaderProps {
   onSOSClick: () => void;
@@ -27,8 +29,13 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
   const { data: platformConfig } = usePlatformConfig();
   const siteName = platformConfig?.site_name || 'Arah Umroh';
   const siteDesc = platformConfig?.site_description || 'Marketplace & Ibadah';
+  const [showSearch, setShowSearch] = useState(false);
 
   return (
+    <>
+    <AnimatePresence>
+      {showSearch && <GlobalSearch onClose={() => setShowSearch(false)} />}
+    </AnimatePresence>
     <header className="sticky top-0 z-40 glass border-b border-border px-4 py-3 flex justify-between items-center">
       <div className="flex items-center gap-2">
         <motion.div 
@@ -51,6 +58,17 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
       </div>
       
       <div className="flex items-center gap-2">
+        {/* Global Search */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowSearch(true)}
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-muted/50 text-muted-foreground border border-border hover:bg-muted"
+          title="Cari"
+        >
+          <Search className="w-4 h-4" />
+        </motion.button>
+
         {/* Ramadan Mode Toggle */}
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -98,6 +116,7 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
         </motion.button>
       </div>
     </header>
+    </>
   );
 };
 
