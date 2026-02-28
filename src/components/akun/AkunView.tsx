@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X, ClipboardEdit } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { LanguageSelector } from '@/components/settings/LanguageSelector';
 import ThemeToggle from '@/components/settings/ThemeToggle';
 import { useToast } from '@/hooks/use-toast';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
+import ProfileDetailForm from '@/components/akun/ProfileDetailForm';
 import { supabase } from '@/integrations/supabase/client';
 
 // Haji registration button component
@@ -134,6 +135,7 @@ const AkunView = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showBackgroundSettings, setShowBackgroundSettings] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showProfileDetail, setShowProfileDetail] = useState(false);
   const [editName, setEditName] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
@@ -440,6 +442,29 @@ const AkunView = () => {
         </div>
       )}
 
+      {/* Complete Profile Button */}
+      <div className={`${isElderlyMode ? 'px-5' : 'px-4'} pb-2`}>
+        <button
+          onClick={() => setShowProfileDetail(true)}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`rounded-full bg-teal-500/10 text-teal-500 flex items-center justify-center ${
+              isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+            }`}>
+              <ClipboardEdit style={{ width: iconSize.md, height: iconSize.md }} />
+            </div>
+            <div>
+              <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Lengkapi Profil</h4>
+              <p className={`text-muted-foreground ${fontSize.xs}`}>Alamat, paspor, kontak darurat</p>
+            </div>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </button>
+      </div>
+
       {/* Settings */}
       <div className={`space-y-3 ${isElderlyMode ? 'p-5' : 'p-4'}`}>
         <h3 className={`font-bold text-muted-foreground uppercase tracking-wider mb-2 ${fontSize.xs}`}>
@@ -648,8 +673,23 @@ const AkunView = () => {
         </div>
       )}
 
-        {/* Feedback Form Modal */}
+      {/* Feedback Form Modal */}
       <FeedbackForm isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
+
+      {/* Profile Detail Sheet */}
+      {showProfileDetail && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <div className="h-full overflow-y-auto">
+            <div className="sticky top-0 bg-background z-10 p-4 border-b flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={() => setShowProfileDetail(false)}>
+                <ChevronRight className="h-5 w-5 rotate-180" />
+              </Button>
+              <h2 className={`font-bold ${fontSize.lg}`}>Lengkapi Profil</h2>
+            </div>
+            <ProfileDetailForm />
+          </div>
+        </div>
+      )}
 
       {/* Background Settings Sheet */}
       {showBackgroundSettings && (

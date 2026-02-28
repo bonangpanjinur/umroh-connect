@@ -267,7 +267,7 @@ const SellerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="stats">
-            <SellerStatsTab stats={stats} isLoading={loadingStats} />
+            <SellerStatsTab stats={stats} isLoading={loadingStats} orderItems={orderItems} />
           </TabsContent>
 
           <TabsContent value="settings">

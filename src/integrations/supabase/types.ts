@@ -2240,13 +2240,23 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           full_name: string | null
+          hajj_count: number | null
           id: string
           is_suspended: boolean
+          passport_expiry: string | null
+          passport_number: string | null
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_phone: string | null
+          shipping_postal_code: string | null
           suspended_at: string | null
           suspension_reason: string | null
+          umrah_count: number | null
           updated_at: string
           user_id: string
         }
@@ -2254,13 +2264,23 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           full_name?: string | null
+          hajj_count?: number | null
           id?: string
           is_suspended?: boolean
+          passport_expiry?: string | null
+          passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
+          umrah_count?: number | null
           updated_at?: string
           user_id: string
         }
@@ -2268,13 +2288,23 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           full_name?: string | null
+          hajj_count?: number | null
           id?: string
           is_suspended?: boolean
+          passport_expiry?: string | null
+          passport_number?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
           suspended_at?: string | null
           suspension_reason?: string | null
+          umrah_count?: number | null
           updated_at?: string
           user_id?: string
         }
