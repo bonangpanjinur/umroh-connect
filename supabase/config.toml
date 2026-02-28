@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.sync-quran-data]
 verify_jwt = false
+
+[functions.create-midtrans-token]
+verify_jwt = false
