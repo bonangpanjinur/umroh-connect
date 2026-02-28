@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BarChart3, DollarSign, Package, ShoppingCart } from 'lucide-react';
-import { SellerStats } from '@/hooks/useSellerOrders';
+import { SellerStats, SellerOrderItem } from '@/hooks/useSellerOrders';
+import SellerSalesChart from './SellerSalesChart';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -9,9 +10,10 @@ const formatRupiah = (n: number) =>
 interface SellerStatsTabProps {
   stats: SellerStats;
   isLoading: boolean;
+  orderItems?: SellerOrderItem[];
 }
 
-const SellerStatsTab = ({ stats, isLoading }: SellerStatsTabProps) => {
+const SellerStatsTab = ({ stats, isLoading, orderItems = [] }: SellerStatsTabProps) => {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -45,6 +47,9 @@ const SellerStatsTab = ({ stats, isLoading }: SellerStatsTabProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sales Chart */}
+      <SellerSalesChart items={orderItems} />
 
       <Card>
         <CardHeader>
