@@ -11,7 +11,8 @@ import { useAllUsers, useUpdateUserRole, useSuspendUser, useUpdateAgentWebsiteSe
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Search, UserCog, Ban, CheckCircle, AlertTriangle, Shield, User, Globe, Save, Palette, Layout, Eye, Upload, Store } from 'lucide-react';
+import { Search, UserCog, Ban, CheckCircle, AlertTriangle, Shield, User, Globe, Save, Palette, Layout, Eye, Upload, Store, Download } from 'lucide-react';
+import { exportToCsv } from '@/utils/exportCsv';
 import { AppRole, Profile } from '@/types/database';
 import {
   Dialog,
@@ -194,10 +195,28 @@ export const UsersManagement = () => {
       <CardHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <UserCog className="h-5 w-5" />
-              Manajemen Pengguna
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                Manajemen Pengguna
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-1"
+                onClick={() => exportToCsv('users', (filteredUsers || []).map(u => ({
+                  nama: u.full_name || '',
+                  email: u.email || '',
+                  telepon: u.phone || '',
+                  role: u.role,
+                  status: u.is_suspended ? 'Suspended' : 'Aktif',
+                  terdaftar: u.created_at,
+                })))}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export CSV
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
