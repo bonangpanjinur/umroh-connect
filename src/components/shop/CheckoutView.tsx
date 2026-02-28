@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Copy, CheckCircle2, Upload, CreditCard, Building2, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { useShopCart } from '@/hooks/useShopCart';
 import { useShopOrders } from '@/hooks/useShopOrders';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useSellerShippingCosts } from '@/hooks/useShopSellers';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useMidtrans } from '@/hooks/useMidtrans';
 import { toast } from '@/hooks/use-toast';
 import PaymentUploadDialog from '@/components/shop/PaymentUploadDialog';
 
@@ -25,6 +27,8 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const { items, totalPrice, clearCart } = useShopCart();
   const { createOrder } = useShopOrders();
   const { data: paymentConfig } = usePublicPaymentConfig();
+  const { profile } = useAuthContext();
+  const { pay: midtransPay, isSnapLoaded } = useMidtrans();
 
   // Get unique seller IDs from cart items
   const sellerIds = useMemo(() => {
@@ -46,6 +50,18 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const [postalCode, setPostalCode] = useState('');
   const [notes, setNotes] = useState('');
   const [stockChecking, setStockChecking] = useState(false);
+
+  // Auto-fill from profile shipping address
+  useEffect(() => {
+    if (profile) {
+      const p = profile as any;
+      if (!name && p.full_name) setName(p.full_name);
+      if (!phone && (p.shipping_phone || p.phone)) setPhone(p.shipping_phone || p.phone);
+      if (!address && p.shipping_address) setAddress(p.shipping_address);
+      if (!city && p.shipping_city) setCity(p.shipping_city);
+      if (!postalCode && p.shipping_postal_code) setPostalCode(p.shipping_postal_code);
+    }
+  }, [profile]);
 
   // Post-order state
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -207,6 +223,37 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
                 Hubungi admin untuk informasi pembayaran.
               </CardContent>
             </Card>
+          )}
+
+          {/* Midtrans Pay Button */}
+          {isSnapLoaded && (
+            <Button
+              className="w-full"
+              variant="secondary"
+              onClick={() => {
+                // Call edge function to create Midtrans token
+                supabase.functions.invoke('create-midtrans-token', {
+                  body: {
+                    amount: createdOrder.total_amount,
+                    transactionType: 'shop_order',
+                    itemDetails: [{ id: createdOrder.id, name: `Order ${createdOrder.order_code}`, price: createdOrder.total_amount, quantity: 1 }],
+                  },
+                }).then(({ data, error }) => {
+                  if (error || !data?.token) {
+                    toast({ title: 'Gagal memuat pembayaran', variant: 'destructive' });
+                    return;
+                  }
+                  midtransPay(data.token, {
+                    onSuccess: () => { toast({ title: 'Pembayaran berhasil!' }); onSuccess(); },
+                    onPending: () => { toast({ title: 'Menunggu pembayaran...' }); },
+                    onError: () => { toast({ title: 'Pembayaran gagal', variant: 'destructive' }); },
+                  });
+                });
+              }}
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Bayar via Midtrans
+            </Button>
           )}
 
           {/* Actions */}
