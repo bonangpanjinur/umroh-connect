@@ -1,4 +1,4 @@
-import { Home, Briefcase, User, ClipboardCheck, FileText } from 'lucide-react';
+import { Home, Briefcase, User, BookOpen, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TabId } from '@/types';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
@@ -10,9 +10,9 @@ interface BottomNavProps {
 
 const navItems: { id: TabId; label: string; icon: typeof Home; audioLabel: string }[] = [
   { id: 'home', label: 'Beranda', icon: Home, audioLabel: 'Beranda' },
-  { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, audioLabel: 'Daftar Persiapan' },
+  { id: 'belajar', label: 'Belajar', icon: BookOpen, audioLabel: 'Belajar Umroh' },
   { id: 'paket', label: 'Paket', icon: Briefcase, audioLabel: 'Paket Umroh' },
-  { id: 'haji', label: 'Haji', icon: FileText, audioLabel: 'Pendaftaran Haji' },
+  { id: 'shop', label: 'Shop', icon: ShoppingBag, audioLabel: 'Toko Oleh-oleh' },
   { id: 'akun', label: 'Akun', icon: User, audioLabel: 'Akun Saya' },
 ];
 
