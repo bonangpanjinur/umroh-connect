@@ -9,6 +9,7 @@ import ChecklistView from '@/components/checklist/ChecklistView';
 import PaketView from '@/components/paket/PaketView';
 import AkunView from '@/components/akun/AkunView';
 import HajiView from '@/components/haji/HajiView';
+import UmrahLearningHub from '@/components/learning/UmrahLearningHub';
 import SOSModal from '@/components/modals/SOSModal';
 import TasbihModal from '@/components/modals/TasbihModal';
 import QiblaModal from '@/components/modals/QiblaModal';
@@ -129,7 +130,10 @@ const Index = () => {
         openView('savings');
         break;
       case 'shop':
-        openView('shop');
+        handleTabChange('shop');
+        break;
+      case 'checklist':
+        handleTabChange('checklist');
         break;
       case 'seller':
         break;
@@ -219,7 +223,9 @@ const Index = () => {
     // Tab-based main views
     switch (activeTab) {
       case 'home':
-        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
+        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} onNavigateBelajar={() => handleTabChange('belajar')} />;
+      case 'belajar':
+        return <UmrahLearningHub onMenuClick={handleMenuClick} />;
       case 'checklist':
         return (
           <div className="p-4">
@@ -234,12 +240,14 @@ const Index = () => {
         );
       case 'paket':
         return <PaketView initialPackageId={selectedPackageId} />;
+      case 'shop':
+        return <ShopView onBack={() => handleTabChange('home')} />;
       case 'haji':
         return <HajiView />;
       case 'akun':
         return <AkunView />;
       default:
-        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} />;
+        return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} onNavigateBelajar={() => handleTabChange('belajar')} />;
     }
   };
 
