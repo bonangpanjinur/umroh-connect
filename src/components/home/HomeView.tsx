@@ -4,6 +4,7 @@ import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
 import JourneyTimeline from './JourneyTimeline';
 import { FeaturedPackages } from './FeaturedPackages';
+import UmrahQuickCard from './UmrahQuickCard';
 import DepartureCountdown from '../countdown/DepartureCountdown';
 import { motion } from 'framer-motion';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -18,9 +19,10 @@ import { Badge } from '@/components/ui/badge';
 interface HomeViewProps {
   onMenuClick?: (menuId: string) => void;
   onPackageClick?: (packageId: string) => void;
+  onNavigateBelajar?: () => void;
 }
 
-const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
+const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewProps) => {
   const { user } = useAuthContext();
   const { isRamadhanMode } = useRamadhanMode();
   const { hasActiveBooking } = useJamaahAccess();
@@ -114,10 +116,15 @@ const HomeView = ({ onMenuClick, onPackageClick }: HomeViewProps) => {
           />
         </div>
       )}
-      
-      <PromoBanner />
-      <FeaturedPackages onPackageClick={onPackageClick} />
+      {/* Umrah Quick Card - CTA untuk belajar */}
+      <UmrahQuickCard 
+        onNavigateBelajar={() => onNavigateBelajar?.()}
+        onMenuClick={onMenuClick}
+      />
+
       <QuickMenu onMenuClick={onMenuClick} />
+      <FeaturedPackages onPackageClick={onPackageClick} />
+      <PromoBanner />
 
       {/* Journey Timeline - only for users with active booking */}
       {user && hasActiveBooking && (
