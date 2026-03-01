@@ -1,172 +1,132 @@
 
 
-# Analisis Kekurangan Fitur - Arah Umroh
+# Rencana Peningkatan UX: Prioritaskan Belajar Umroh
 
-## 1. Pengalaman Pengguna Baru (Onboarding)
+## Masalah Saat Ini
 
-**Masalah**: Tidak ada onboarding/tutorial untuk pengguna baru. Setelah registrasi, pengguna langsung dilempar ke halaman utama tanpa panduan.
+Konten edukasi umroh (Manasik, Doa, Al-Quran, Kiblat) tersembunyi di grid "Menu Utama" yang rata -- setara dengan fitur sekunder seperti Kurs dan Offline. Sementara itu, konten bisnis (Banner Promo, Paket Unggulan) justru mendominasi area atas halaman utama. Ini tidak sesuai dengan misi utama aplikasi sebagai pendamping ibadah umroh.
 
-**Rekomendasi**:
-- Tambahkan welcome screen interaktif (3-4 langkah) setelah registrasi pertama kali
-- Highlight fitur utama: Tracker Ibadah, Paket Umroh, Oleh-oleh
-- Tooltip panduan di Quick Menu saat pertama kali dibuka
+## Strategi UX Baru
 
----
+```text
+Prioritas tinggi (atas layar)  : Edukasi & Ibadah
+Prioritas sedang (tengah)      : Persiapan & Alat bantu
+Prioritas rendah (bawah)       : Bisnis & Marketplace
+```
 
-## 2. Profil Pengguna Minim
+## Perubahan 1: Navigasi Bawah (BottomNav)
 
-**Masalah**: Profil hanya menyimpan nama, email, phone, avatar. Tidak ada field untuk:
-- Alamat lengkap (penting untuk pengiriman oleh-oleh)
-- Nomor paspor / data dokumen perjalanan
-- Riwayat umroh/haji sebelumnya
-- Kontak darurat
+**Sebelum:**
+Beranda | Checklist | Paket | Haji | Akun
 
-**Rekomendasi**: Tambahkan halaman "Lengkapi Profil" dengan data perjalanan dan alamat default untuk checkout.
+**Sesudah:**
+Beranda | Belajar | Paket | Shop | Akun
 
----
+- **Belajar** (ikon BookOpen) -- Hub edukasi baru yang menggabungkan Panduan Manasik, Doa-doa, Al-Quran, dan Peta Lokasi Penting dalam satu halaman terstruktur
+- **Shop** (ikon ShoppingBag) -- Menggantikan tab Haji, karena fitur Haji bisa diakses dari dalam menu Belajar atau Akun
+- Checklist dipindah ke Quick Menu (tetap bisa diakses, bukan hilang)
+- Tab Haji dipindah sebagai sub-section di halaman Belajar
 
-## 3. Wishlist Produk Ada, tapi Halaman Wishlist Tidak Ada
+**File:** `src/components/layout/BottomNav.tsx`, `src/types/index.ts`, `src/pages/Index.tsx`
 
-**Masalah**: Tombol wishlist sudah berfungsi di ProductCard, tapi tidak ada halaman khusus untuk melihat semua produk yang di-wishlist.
+## Perubahan 2: Halaman Belajar Umroh (Baru)
 
-**Rekomendasi**: Tambahkan tab/halaman "Favorit Saya" di ShopView atau di menu Akun.
+Buat komponen `UmrahLearningHub.tsx` yang menampilkan konten edukasi secara terstruktur:
 
----
+```text
++------------------------------------------+
+|  Belajar Umroh                           |
+|  "Panduan lengkap persiapan ibadah"      |
++------------------------------------------+
+|  [Tata Cara]  [Doa-doa]  [Al-Quran]     |  <-- Tab navigasi
++------------------------------------------+
+|                                          |
+|  Tab "Tata Cara":                        |
+|  - Kartu progress (X dari Y dipelajari)  |
+|  - Daftar langkah manasik               |
+|  - Link ke Peta Lokasi Penting          |
+|                                          |
+|  Tab "Doa-doa":                         |
+|  - Kategori doa (Umroh, Harian, dll)    |
+|  - Pencarian doa                        |
+|                                          |
+|  Tab "Al-Quran":                        |
+|  - Progress Khatam                      |
+|  - Lanjut baca                          |
+|                                          |
++------------------------------------------+
+|  Section: Persiapan Lainnya             |
+|  [Checklist] [Kiblat] [Kalkulator]      |
++------------------------------------------+
+```
 
-## 4. Checkout Belum Terintegrasi Payment Gateway
+**File baru:** `src/components/learning/UmrahLearningHub.tsx`
 
-**Masalah**: Checkout hanya menampilkan info rekening dan upload bukti transfer manual. Tidak ada integrasi payment gateway otomatis (Midtrans sudah ada hook-nya tapi belum digunakan di checkout oleh-oleh).
+## Perubahan 3: Restrukturisasi HomeView
 
-**Rekomendasi**: Integrasikan `useMidtrans` hook yang sudah ada ke CheckoutView untuk pembayaran otomatis.
+Urutan konten di halaman Beranda diubah dari:
 
----
+```text
+SEBELUM:                    SESUDAH:
+1. Waktu Sholat             1. Waktu Sholat
+2. Banner Promo             2. Kartu "Mulai Belajar Umroh" (BARU)
+3. Paket Unggulan           3. Quick Menu (reordered)
+4. Quick Menu               4. Paket Unggulan
+5. Timeline                 5. Banner Promo
+                            6. Timeline
+```
 
-## 5. Notifikasi Push Belum Efektif
+"Kartu Mulai Belajar Umroh" adalah CTA card bergradien yang menampilkan:
+- Progress belajar manasik (misal: "3 dari 7 langkah dipelajari")
+- Tombol "Lanjut Belajar" yang mengarah ke tab Belajar
+- Tombol cepat: Doa Umroh, Kiblat, Tasbih
 
-**Masalah**: Infrastruktur push notification sudah ada (`usePushNotifications`), tapi:
-- Belum ada notifikasi saat status pesanan berubah (seller memproses/kirim)
-- Belum ada reminder pembayaran otomatis
-- Belum ada notifikasi konten baru (banner/promo)
+**File:** `src/components/home/HomeView.tsx`, `src/components/home/UmrahQuickCard.tsx` (baru)
 
-**Rekomendasi**: Hubungkan trigger database `order_status_change` dengan edge function `send-push-notification`.
+## Perubahan 4: Reorder Quick Menu
 
----
+Urutan menu diubah agar fitur edukasi/ibadah di atas:
 
-## 6. Fitur Chat Terbatas
+```text
+SEBELUM (4x3 grid):         SESUDAH (4x3 grid):
+Tracker  Kalkulator          Manasik   Doa
+Kiblat   Tasbih              Al-Quran  Kiblat
+Al-Quran Manasik             Tasbih    Tracker
+Doa      Peta                Peta      Kalkulator
+Kurs     Jurnal              Checklist Kurs
+Offline  Oleh-oleh           Jurnal    Offline
+```
 
-**Masalah**:
-- Chat buyer-seller tidak punya indikator "read/unread" yang jelas
-- Tidak ada fitur kirim gambar dalam chat
-- Tidak ada auto-reply/template pesan untuk seller
+Manasik, Doa, Al-Quran, dan Kiblat menjadi baris pertama (paling terlihat). Oleh-oleh dihapus dari Quick Menu karena sudah punya tab sendiri di BottomNav.
 
-**Rekomendasi**: Tambahkan read receipt, image attachment, dan quick reply templates.
+**File:** `src/components/home/QuickMenu.tsx`
 
----
+## Perubahan 5: Integrasi Haji & Checklist
 
-## 7. Halaman Toko Seller Kurang Informatif
+- **Haji**: Dipindah ke dalam halaman Belajar sebagai section "Program Haji" di bawah konten Umroh, atau bisa diakses dari menu Akun
+- **Checklist**: Dipindah ke Quick Menu dan juga bisa diakses dari halaman Belajar sebagai "Persiapan Saya"
 
-**Masalah**: StorePage (`/store/:sellerId`) menampilkan produk tapi tidak ada:
-- Banner toko kustom
-- Deskripsi toko
-- Jam operasional
-- Kebijakan pengembalian
-- Rating & review toko (hanya per-produk)
+**File:** `src/pages/Index.tsx` (routing update)
 
-**Rekomendasi**: Perkaya halaman toko dengan profil seller yang lengkap.
+## Detail Teknis
 
----
+| No | File | Perubahan |
+|----|------|-----------|
+| 1 | `src/types/index.ts` | Update TabId: ganti 'checklist' dan 'haji' dengan 'belajar' dan 'shop' |
+| 2 | `src/components/layout/BottomNav.tsx` | Ubah nav items: Beranda, Belajar, Paket, Shop, Akun |
+| 3 | `src/components/learning/UmrahLearningHub.tsx` | Komponen baru: hub edukasi dengan tabs Tata Cara, Doa, Al-Quran |
+| 4 | `src/components/home/UmrahQuickCard.tsx` | Komponen baru: CTA card "Mulai Belajar Umroh" dengan progress |
+| 5 | `src/components/home/HomeView.tsx` | Reorder: UmrahQuickCard setelah PrayerTime, FeaturedPackages turun |
+| 6 | `src/components/home/QuickMenu.tsx` | Reorder items: edukasi di atas, bisnis di bawah. Hapus Oleh-oleh |
+| 7 | `src/pages/Index.tsx` | Update routing: tab 'belajar' render UmrahLearningHub, tab 'shop' render ShopView |
 
-## 8. Tidak Ada Fitur Pencarian Global
+## Dampak Bisnis
 
-**Masalah**: Pencarian hanya tersedia per-konteks (produk di ShopView, paket di PaketView). Tidak ada search bar global di header untuk mencari lintas fitur.
+Fitur bisnis TIDAK dihilangkan, hanya digeser prioritasnya:
+- **Paket Umroh/Haji** tetap punya tab sendiri di BottomNav
+- **Oleh-oleh/Shop** naik status dari Quick Menu menjadi tab BottomNav (lebih mudah diakses)
+- **Featured Packages** tetap muncul di Beranda, hanya posisinya di bawah konten edukasi
+- **Banner Promo** tetap ada, posisi dipindah ke bawah
 
-**Rekomendasi**: Tambahkan pencarian global di AppHeader yang bisa mencari paket umroh, produk, dan doa sekaligus.
-
----
-
-## 9. Social Sharing Tidak Ada
-
-**Masalah**: Tidak ada tombol share ke WhatsApp/sosial media untuk:
-- Paket umroh (jamaah share ke teman)
-- Produk oleh-oleh
-- Progress ibadah / achievement
-
-**Rekomendasi**: Tambahkan share button dengan Web Share API di PackageCard dan ProductCard.
-
----
-
-## 10. Statistik Seller Kurang Detail
-
-**Masalah**: SellerStatsTab hanya menampilkan ringkasan dasar. Kurang:
-- Grafik penjualan per hari/minggu/bulan
-- Produk terlaris
-- Breakdown pendapatan per produk
-- Customer retention rate
-
-**Rekomendasi**: Gunakan Recharts (sudah terinstall) untuk visualisasi data penjualan yang lebih kaya.
-
----
-
-## 11. Multi-bahasa Belum Konsisten
-
-**Masalah**: Ada `LanguageContext` dan `useLanguage` hook, tapi hampir semua teks UI masih hardcoded dalam Bahasa Indonesia. Fungsi `t()` tidak digunakan secara konsisten.
-
-**Rekomendasi**: Jika multi-bahasa bukan prioritas, hapus fitur ini untuk mengurangi kompleksitas. Jika dibutuhkan, lakukan i18n secara menyeluruh.
-
----
-
-## 12. Laporan & Export Data Admin
-
-**Masalah**: Admin tidak bisa export data ke CSV/Excel untuk:
-- Daftar pengguna
-- Daftar pesanan
-- Laporan keuangan
-- Data booking
-
-**Rekomendasi**: Tambahkan tombol "Export CSV" di setiap management table di AdminDashboard.
-
----
-
-## 13. Kupon & Diskon Belum Ada
-
-**Masalah**: Tidak ada sistem kupon/voucher untuk:
-- Diskon produk oleh-oleh
-- Potongan harga paket umroh
-- Promo referral
-
-**Rekomendasi**: Buat tabel `coupons` dengan validasi di checkout.
-
----
-
-## 14. Tracking Pengiriman Oleh-oleh
-
-**Masalah**: Setelah seller mengirim barang, buyer tidak bisa melacak pengiriman. Tidak ada field nomor resi.
-
-**Rekomendasi**: Tambahkan field `tracking_number` dan `courier` di `shop_orders`, plus integrasi API cek resi (RajaOngkir/Biteship).
-
----
-
-## 15. Grup Jamaah / Komunitas
-
-**Masalah**: Ada `GroupTrackingView` untuk tracking lokasi grup, tapi tidak ada fitur komunitas/forum untuk jamaah saling berkomunikasi dan berbagi pengalaman.
-
-**Rekomendasi**: Tambahkan fitur grup diskusi per-keberangkatan atau per-travel agent.
-
----
-
-## Prioritas Implementasi
-
-| Prioritas | Fitur | Dampak |
-|-----------|-------|--------|
-| Tinggi | Halaman Wishlist | UX e-commerce |
-| Tinggi | Nomor Resi & Tracking | Kepercayaan buyer |
-| Tinggi | Social Sharing | Pertumbuhan organik |
-| Tinggi | Profil lengkap + alamat default | Efisiensi checkout |
-| Sedang | Kupon & Diskon | Konversi penjualan |
-| Sedang | Pencarian Global | UX navigasi |
-| Sedang | Statistik Seller Detail | Retensi seller |
-| Sedang | Export Data Admin | Operasional |
-| Rendah | Onboarding Tutorial | First-time experience |
-| Rendah | Chat Enhancement | Komunikasi |
-| Rendah | Komunitas Jamaah | Engagement |
+Hasil akhir: pengguna yang membuka aplikasi langsung melihat konten edukasi umroh, tapi bisnis tetap hanya 1 tap away.
 
