@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, HandHeart, Book, MapPin, ClipboardCheck, Compass, Calculator, GraduationCap, ChevronRight, CheckCircle2, Search } from 'lucide-react';
+import { BookOpen, HandHeart, Book, MapPin, Compass, GraduationCap, ChevronRight, CheckCircle2, Search, ClipboardCheck, ChevronDown, ChevronUp, HelpCircle, Lightbulb, Plane, Building, Shirt, Pill, BookHeart, Check } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useManasikGuides } from '@/hooks/useManasikGuides';
 import { usePrayers } from '@/hooks/usePrayers';
 import { useManasikProgress } from '@/hooks/useManasikProgress';
@@ -15,6 +17,113 @@ interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
 }
 
+// Universal checklist data
+const checklistCategories = [
+  {
+    id: 'dokumen',
+    label: 'Dokumen',
+    icon: BookHeart,
+    items: [
+      { id: 'paspor', label: 'Paspor (masa berlaku min. 6 bulan)' },
+      { id: 'visa', label: 'Visa umroh' },
+      { id: 'tiket', label: 'Tiket pesawat (pp)' },
+      { id: 'foto', label: 'Pas foto 4x6 (latar putih)' },
+      { id: 'vaksin', label: 'Sertifikat vaksin meningitis' },
+      { id: 'asuransi', label: 'Asuransi perjalanan' },
+      { id: 'fotokopi', label: 'Fotokopi KTP & KK' },
+    ]
+  },
+  {
+    id: 'pakaian',
+    label: 'Pakaian',
+    icon: Shirt,
+    items: [
+      { id: 'ihram', label: 'Kain ihram (2 lembar, pria)' },
+      { id: 'mukena', label: 'Mukena (wanita)' },
+      { id: 'sajadah', label: 'Sajadah travel' },
+      { id: 'sandal', label: 'Sandal nyaman untuk tawaf' },
+      { id: 'jaket', label: 'Jaket/sweater (untuk pesawat & Madinah)' },
+      { id: 'baju-harian', label: 'Pakaian harian (3-5 stel)' },
+      { id: 'kaos-kaki', label: 'Kaos kaki (beberapa pasang)' },
+    ]
+  },
+  {
+    id: 'obat',
+    label: 'Obat & Kesehatan',
+    icon: Pill,
+    items: [
+      { id: 'obat-pribadi', label: 'Obat-obatan pribadi' },
+      { id: 'masker', label: 'Masker (banyak)' },
+      { id: 'hand-sanitizer', label: 'Hand sanitizer' },
+      { id: 'sunblock', label: 'Sunblock/tabir surya' },
+      { id: 'plester', label: 'Plester luka' },
+      { id: 'tolak-angin', label: 'Tolak angin / minyak kayu putih' },
+    ]
+  },
+  {
+    id: 'ibadah',
+    label: 'Perlengkapan Ibadah',
+    icon: BookOpen,
+    items: [
+      { id: 'quran-kecil', label: 'Al-Quran kecil / digital' },
+      { id: 'buku-doa', label: 'Buku doa manasik' },
+      { id: 'tasbih', label: 'Tasbih' },
+      { id: 'peniti', label: 'Peniti / safety pin (untuk ihram)' },
+      { id: 'ikat-pinggang', label: 'Ikat pinggang / money belt ihram' },
+    ]
+  },
+  {
+    id: 'lainnya',
+    label: 'Lainnya',
+    icon: Plane,
+    items: [
+      { id: 'koper', label: 'Koper (max 20kg)' },
+      { id: 'tas-kecil', label: 'Tas kecil / sling bag' },
+      { id: 'charger', label: 'Charger HP & power bank' },
+      { id: 'adapter', label: 'Adapter colokan listrik (tipe G)' },
+      { id: 'uang-riyal', label: 'Uang Saudi Riyal' },
+      { id: 'botol-zamzam', label: 'Botol untuk air zamzam' },
+    ]
+  }
+];
+
+// FAQ Data
+const faqData = [
+  {
+    category: 'Sebelum Berangkat',
+    items: [
+      { q: 'Berapa lama paspor harus berlaku?', a: 'Minimal 6 bulan sebelum tanggal keberangkatan. Pastikan juga masih ada halaman kosong untuk visa.' },
+      { q: 'Vaksin apa yang wajib?', a: 'Vaksin meningitis meningokokus wajib. Disarankan juga vaksin influenza, terutama saat musim haji.' },
+      { q: 'Berapa uang yang perlu dibawa?', a: 'Disarankan membawa 1.500-3.000 SAR (Saudi Riyal) untuk keperluan makan tambahan, oleh-oleh, dan transportasi lokal.' },
+    ]
+  },
+  {
+    category: 'Di Tanah Suci',
+    items: [
+      { q: 'Bagaimana cuaca di Makkah & Madinah?', a: 'Makkah cenderung panas (30-45°C). Madinah sedikit lebih sejuk. Bawa pakaian ringan dan pelindung matahari.' },
+      { q: 'Apakah boleh menggunakan kursi roda untuk tawaf?', a: 'Ya, tersedia layanan kursi roda di Masjidil Haram. Bisa disewa atau dibawa sendiri. Tawaf dilakukan di lantai atas.' },
+      { q: 'Bagaimana jika haid saat umroh?', a: 'Wanita yang haid tidak boleh melakukan tawaf. Tunggu hingga suci, mandi besar, lalu lanjutkan ibadah umroh.' },
+    ]
+  },
+  {
+    category: 'Setelah Pulang',
+    items: [
+      { q: 'Berapa liter air zamzam boleh dibawa pulang?', a: 'Umumnya 5-10 liter per orang. Pastikan menggunakan wadah yang aman dan sesuai aturan maskapai.' },
+      { q: 'Apa yang harus dilakukan setelah sampai di rumah?', a: 'Shalat 2 rakaat syukur, berbagi oleh-oleh, dan terus istiqamah menjaga ibadah yang sudah dibiasakan selama di Tanah Suci.' },
+    ]
+  }
+];
+
+// Tips data
+const tipsData = [
+  { icon: '💰', title: 'Mata Uang', desc: '1 SAR ≈ Rp4.200. Tukarkan di money changer terpercaya atau ambil di ATM Arab Saudi.' },
+  { icon: '🔌', title: 'Colokan Listrik', desc: 'Arab Saudi menggunakan tipe G (3 pin persegi). Bawa adapter universal.' },
+  { icon: '☀️', title: 'Cuaca', desc: 'Suhu bisa mencapai 45°C di musim panas. Bawa tabir surya, topi, dan minum air yang cukup.' },
+  { icon: '📱', title: 'SIM Card', desc: 'Beli SIM card lokal (STC, Mobily) di bandara untuk internet murah selama di Arab Saudi.' },
+  { icon: '🕐', title: 'Zona Waktu', desc: 'WIB +4 jam. Sesuaikan jadwal tidur beberapa hari sebelum berangkat.' },
+  { icon: '👟', title: 'Alas Kaki', desc: 'Gunakan sandal yang mudah dilepas-pasang untuk tawaf dan sai. Bawa tas sandal kecil.' },
+];
+
 const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
   const [activeTab, setActiveTab] = useState('tatacara');
   const [doaSearch, setDoaSearch] = useState('');
@@ -22,16 +131,33 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
   const { data: prayers = [], isLoading: loadingPrayers } = usePrayers();
   const { completedSteps, toggleStep } = useManasikProgress();
 
+  // Checklist state from localStorage
+  const [checkedItems, setCheckedItems] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('umroh_checklist');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const toggleChecklist = (itemId: string) => {
+    const updated = checkedItems.includes(itemId)
+      ? checkedItems.filter(i => i !== itemId)
+      : [...checkedItems, itemId];
+    setCheckedItems(updated);
+    localStorage.setItem('umroh_checklist', JSON.stringify(updated));
+  };
+
+  const totalChecklistItems = checklistCategories.reduce((sum, cat) => sum + cat.items.length, 0);
+  const checkedCount = checkedItems.length;
+
   const progress = manasikGuides.length > 0
     ? Math.round((completedSteps.filter(id => manasikGuides.some(g => g.id === id)).length / manasikGuides.length) * 100)
     : 0;
 
-  // Filter prayers by search
   const filteredPrayers = prayers.filter(p =>
     !doaSearch || p.title?.toLowerCase().includes(doaSearch.toLowerCase()) || p.category?.name?.toLowerCase().includes(doaSearch.toLowerCase())
   );
 
-  // Group prayers by category name
   const prayerCategories = filteredPrayers.reduce((acc, p) => {
     const cat = p.category?.name || 'Lainnya';
     if (!acc[cat]) acc[cat] = [];
@@ -39,20 +165,12 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
     return acc;
   }, {} as Record<string, typeof prayers>);
 
-  // Quran progress from localStorage
-  const quranProgress = (() => {
+  const quranProgress = useMemo(() => {
     try {
       const saved = localStorage.getItem('quran_last_read');
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
-  })();
-
-  const quickTools = [
-    { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-blue-600' },
-    { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary' },
-    { id: 'tabungan', label: 'Kalkulator', icon: Calculator, color: 'text-emerald-600' },
-    { id: 'peta', label: 'Peta', icon: MapPin, color: 'text-accent' },
-  ];
+  }, []);
 
   return (
     <motion.div
@@ -82,9 +200,14 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
               <Badge variant="secondary" className="text-xs">{progress}%</Badge>
             </div>
             <Progress value={progress} className="h-2" />
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              {completedSteps.filter(id => manasikGuides.some(g => g.id === id)).length} dari {manasikGuides.length} langkah dipelajari
-            </p>
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-[10px] text-muted-foreground">
+                {completedSteps.filter(id => manasikGuides.some(g => g.id === id)).length} dari {manasikGuides.length} langkah
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {checkedCount}/{totalChecklistItems} checklist
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -92,18 +215,22 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
       {/* Tabs */}
       <div className="px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="tatacara" className="text-xs gap-1">
-              <BookOpen className="w-3.5 h-3.5" />
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="tatacara" className="text-[10px] gap-0.5 px-1">
+              <BookOpen className="w-3 h-3" />
               Tata Cara
             </TabsTrigger>
-            <TabsTrigger value="doa" className="text-xs gap-1">
-              <HandHeart className="w-3.5 h-3.5" />
-              Doa-doa
+            <TabsTrigger value="doa" className="text-[10px] gap-0.5 px-1">
+              <HandHeart className="w-3 h-3" />
+              Doa
             </TabsTrigger>
-            <TabsTrigger value="quran" className="text-xs gap-1">
-              <Book className="w-3.5 h-3.5" />
+            <TabsTrigger value="quran" className="text-[10px] gap-0.5 px-1">
+              <Book className="w-3 h-3" />
               Al-Quran
+            </TabsTrigger>
+            <TabsTrigger value="persiapan" className="text-[10px] gap-0.5 px-1">
+              <ClipboardCheck className="w-3 h-3" />
+              Persiapan
             </TabsTrigger>
           </TabsList>
 
@@ -161,7 +288,6 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
               })
             )}
 
-            {/* Link to Maps */}
             <Button
               variant="outline"
               className="w-full gap-2 text-xs"
@@ -228,7 +354,6 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
 
           {/* Tab: Al-Quran */}
           <TabsContent value="quran" className="space-y-3 mt-3">
-            {/* Continue reading card */}
             <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800">
               <CardContent className="py-4 px-4">
                 <div className="flex items-center gap-3">
@@ -256,7 +381,6 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
               </CardContent>
             </Card>
 
-            {/* Khatam progress */}
             <Card>
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between mb-2">
@@ -278,30 +402,141 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
               Buka Al-Quran Digital
             </Button>
           </TabsContent>
-        </Tabs>
-      </div>
 
-      {/* Persiapan Lainnya */}
-      <div className="px-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Persiapan Lainnya</h3>
-        <div className="grid grid-cols-4 gap-3">
-          {quickTools.map(tool => {
-            const Icon = tool.icon;
-            return (
-              <motion.button
-                key={tool.id}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onMenuClick?.(tool.id)}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center">
-                  <Icon className={`w-5 h-5 ${tool.color}`} />
+          {/* Tab: Persiapan */}
+          <TabsContent value="persiapan" className="space-y-4 mt-3">
+            {/* Checklist Progress */}
+            <Card className="bg-gradient-to-br from-blue-500/5 to-blue-600/10 border-blue-200 dark:border-blue-800">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-foreground">Checklist Persiapan</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {checkedCount}/{totalChecklistItems}
+                  </Badge>
                 </div>
-                <span className="text-[10px] text-muted-foreground font-medium">{tool.label}</span>
-              </motion.button>
-            );
-          })}
-        </div>
+                <Progress value={totalChecklistItems > 0 ? (checkedCount / totalChecklistItems) * 100 : 0} className="h-2" />
+              </CardContent>
+            </Card>
+
+            {/* Checklist Categories */}
+            <Accordion type="multiple" className="space-y-2">
+              {checklistCategories.map(cat => {
+                const Icon = cat.icon;
+                const catChecked = cat.items.filter(i => checkedItems.includes(i.id)).length;
+                return (
+                  <AccordionItem key={cat.id} value={cat.id} className="border rounded-lg px-1">
+                    <AccordionTrigger className="py-3 px-3 hover:no-underline">
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-sm font-medium text-foreground">{cat.label}</span>
+                        <Badge variant={catChecked === cat.items.length ? 'default' : 'outline'} className="text-[10px] ml-auto mr-2">
+                          {catChecked}/{cat.items.length}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-3 pb-3">
+                      <div className="space-y-2">
+                        {cat.items.map(item => (
+                          <label
+                            key={item.id}
+                            className="flex items-center gap-3 py-1.5 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={checkedItems.includes(item.id)}
+                              onCheckedChange={() => toggleChecklist(item.id)}
+                            />
+                            <span className={`text-sm ${checkedItems.includes(item.id) ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                              {item.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+
+            {/* Tips Section */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-amber-500" />
+                Tips Perjalanan
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                {tipsData.map((tip, idx) => (
+                  <Card key={idx} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="py-2.5 px-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-lg">{tip.icon}</span>
+                        <div>
+                          <h5 className="text-xs font-semibold text-foreground">{tip.title}</h5>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">{tip.desc}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* FAQ Section */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <HelpCircle className="w-4 h-4 text-primary" />
+                FAQ Umroh
+              </h4>
+              <Accordion type="single" collapsible className="space-y-2">
+                {faqData.map(section => (
+                  <div key={section.category}>
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">{section.category}</p>
+                    {section.items.map((item, idx) => (
+                      <AccordionItem key={`${section.category}-${idx}`} value={`${section.category}-${idx}`} className="border rounded-lg px-1 mb-2">
+                        <AccordionTrigger className="py-2.5 px-3 text-left hover:no-underline">
+                          <span className="text-xs font-medium text-foreground pr-4">{item.q}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-3 pb-3">
+                          <p className="text-xs text-muted-foreground leading-relaxed">{item.a}</p>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </div>
+                ))}
+              </Accordion>
+            </div>
+
+            {/* Quick Tools */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1.5 text-xs"
+                onClick={() => onMenuClick?.('qibla')}
+              >
+                <Compass className="w-3.5 h-3.5 text-primary" />
+                Kiblat
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1.5 text-xs"
+                onClick={() => onMenuClick?.('tabungan')}
+              >
+                <Building className="w-3.5 h-3.5 text-primary" />
+                Kalkulator
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1.5 text-xs"
+                onClick={() => onMenuClick?.('peta')}
+              >
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                Peta
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </motion.div>
   );
