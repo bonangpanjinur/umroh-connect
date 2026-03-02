@@ -11,7 +11,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { useJamaahAccess } from '@/hooks/useJamaahAccess';
 import { getRamadanDay, getDaysUntilIdulFitri } from '@/hooks/useRamadhanDashboard';
-import { ChevronDown, ChevronUp, MapPin, Moon, Star, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, MapPin, Moon, Star, BookOpen, HandHeart, Book, Compass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +121,33 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
         onNavigateBelajar={() => onNavigateBelajar?.()}
         onMenuClick={onMenuClick}
       />
+
+      {/* Quick Access - 4 tombol utama ibadah */}
+      <div className="px-4">
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { id: 'manasik', label: 'Manasik', icon: BookOpen, gradient: 'from-purple-500 to-purple-600', shadow: 'shadow-purple-500/25' },
+            { id: 'doaharian', label: 'Doa', icon: HandHeart, gradient: 'from-orange-500 to-orange-600', shadow: 'shadow-orange-500/25' },
+            { id: 'quran', label: 'Al-Quran', icon: Book, gradient: 'from-emerald-500 to-emerald-600', shadow: 'shadow-emerald-500/25' },
+            { id: 'qibla', label: 'Kiblat', icon: Compass, gradient: 'from-sky-500 to-sky-600', shadow: 'shadow-sky-500/25' },
+          ].map(action => {
+            const Icon = action.icon;
+            return (
+              <motion.button
+                key={action.id}
+                whileTap={{ scale: 0.93 }}
+                onClick={() => onMenuClick?.(action.id)}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${action.gradient} ${action.shadow} shadow-lg flex items-center justify-center`}>
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-[10px] font-semibold text-foreground">{action.label}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
 
       <QuickMenu onMenuClick={onMenuClick} />
       <FeaturedPackages onPackageClick={onPackageClick} />
