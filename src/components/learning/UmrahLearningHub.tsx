@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useManasikGuides } from '@/hooks/useManasikGuides';
 import { usePrayers } from '@/hooks/usePrayers';
+import { useManasikProgress } from '@/hooks/useManasikProgress';
 
 interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
@@ -19,22 +20,7 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
   const [doaSearch, setDoaSearch] = useState('');
   const { data: manasikGuides = [], isLoading: loadingManasik } = useManasikGuides('umroh');
   const { data: prayers = [], isLoading: loadingPrayers } = usePrayers();
-
-  // Progress from localStorage
-  const completedSteps = (() => {
-    try {
-      const saved = localStorage.getItem('manasik_completed');
-      return saved ? JSON.parse(saved) as string[] : [];
-    } catch { return []; }
-  })();
-
-  const toggleStep = (id: string) => {
-    const updated = completedSteps.includes(id)
-      ? completedSteps.filter(s => s !== id)
-      : [...completedSteps, id];
-    localStorage.setItem('manasik_completed', JSON.stringify(updated));
-    window.dispatchEvent(new Event('storage'));
-  };
+  const { completedSteps, toggleStep } = useManasikProgress();
 
   const progress = manasikGuides.length > 0
     ? Math.round((completedSteps.filter(id => manasikGuides.some(g => g.id === id)).length / manasikGuides.length) * 100)

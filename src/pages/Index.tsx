@@ -5,10 +5,8 @@ import { TabId } from '@/types';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import HomeView from '@/components/home/HomeView';
-import ChecklistView from '@/components/checklist/ChecklistView';
 import PaketView from '@/components/paket/PaketView';
 import AkunView from '@/components/akun/AkunView';
-import HajiView from '@/components/haji/HajiView';
 import UmrahLearningHub from '@/components/learning/UmrahLearningHub';
 import SOSModal from '@/components/modals/SOSModal';
 import TasbihModal from '@/components/modals/TasbihModal';
@@ -28,7 +26,6 @@ import CalculatorHub from '@/components/calculator/CalculatorHub';
 import ShopView from '@/components/shop/ShopView';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
-import { FeatureLock } from '@/components/common/FeatureLock';
 import { ArrowLeft } from 'lucide-react';
 
 // Views that render as full sub-pages (hide bottom nav)
@@ -90,8 +87,11 @@ const Index = () => {
       case 'qibla':
         setIsQiblaOpen(true);
         break;
-      case 'doa':
+      case 'manasik':
         openView('manasik');
+        break;
+      case 'doa':
+        openView('doa');
         break;
       case 'peta':
         openView('maps');
@@ -133,7 +133,7 @@ const Index = () => {
         handleTabChange('shop');
         break;
       case 'checklist':
-        handleTabChange('checklist');
+        openView('manasik');
         break;
       case 'seller':
         break;
@@ -226,24 +226,10 @@ const Index = () => {
         return <HomeView onMenuClick={handleMenuClick} onPackageClick={handlePackageClick} onNavigateBelajar={() => handleTabChange('belajar')} />;
       case 'belajar':
         return <UmrahLearningHub onMenuClick={handleMenuClick} />;
-      case 'checklist':
-        return (
-          <div className="p-4">
-            <FeatureLock 
-              featureName="Checklist Persiapan"
-              description="Pantau progress persiapan umroh/haji Anda. Fitur ini tersedia untuk jamaah yang sudah booking."
-              onViewPackages={() => handleTabChange('paket')}
-            >
-              <ChecklistView />
-            </FeatureLock>
-          </div>
-        );
       case 'paket':
         return <PaketView initialPackageId={selectedPackageId} />;
       case 'shop':
         return <ShopView onBack={() => handleTabChange('home')} />;
-      case 'haji':
-        return <HajiView />;
       case 'akun':
         return <AkunView />;
       default:
