@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useManasikGuides } from '@/hooks/useManasikGuides';
+import { useManasikProgress } from '@/hooks/useManasikProgress';
 
 interface UmrahQuickCardProps {
   onNavigateBelajar: () => void;
@@ -12,13 +13,7 @@ interface UmrahQuickCardProps {
 
 const UmrahQuickCard = ({ onNavigateBelajar, onMenuClick }: UmrahQuickCardProps) => {
   const { data: guides = [] } = useManasikGuides('umroh');
-
-  const completedSteps = (() => {
-    try {
-      const saved = localStorage.getItem('manasik_completed');
-      return saved ? JSON.parse(saved) as string[] : [];
-    } catch { return []; }
-  })();
+  const { completedSteps } = useManasikProgress();
 
   const completedCount = completedSteps.filter(id => guides.some(g => g.id === id)).length;
   const progress = guides.length > 0 ? Math.round((completedCount / guides.length) * 100) : 0;
