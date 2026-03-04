@@ -71,8 +71,8 @@ const Index = () => {
     }
   };
 
-  const openView = useCallback((view: string) => {
-    setSearchParams({ view });
+  const openView = useCallback((view: string, params?: Record<string, string>) => {
+    setSearchParams({ view, ...params });
   }, [setSearchParams]);
 
   const closeView = useCallback(() => {
@@ -80,6 +80,13 @@ const Index = () => {
   }, [setSearchParams]);
 
   const handleMenuClick = (menuId: string) => {
+    // Support deep links like "manasik:3" to go to step 3
+    if (menuId.startsWith('manasik:')) {
+      const step = menuId.split(':')[1];
+      openView('manasik', { step });
+      return;
+    }
+
     switch (menuId) {
       case 'tasbih':
         setIsTasbihOpen(true);
@@ -217,7 +224,9 @@ const Index = () => {
     }
 
     if (activeView === 'manasik') {
-      return <ManasikView onBack={closeView} />;
+      const stepParam = searchParams.get('step');
+      const initialStep = stepParam ? parseInt(stepParam, 10) : 0;
+      return <ManasikView onBack={closeView} initialStep={initialStep} />;
     }
 
     // Tab-based main views

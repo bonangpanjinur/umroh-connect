@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLearningReminder } from '@/hooks/useLearningReminder';
 import PrayerTimeCard from './PrayerTimeCard';
 import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
@@ -32,6 +33,9 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
       return saved !== null ? saved === 'true' : true;
     } catch { return true; }
   });
+
+  // Trigger daily learning reminder
+  useLearningReminder();
 
   const toggleTimeline = () => {
     const next = !showTimeline;
