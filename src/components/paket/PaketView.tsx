@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Search, X, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Search, X, Sparkles, ArrowUpDown, GitCompareArrows } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePackages } from '@/hooks/usePackages';
 import { PackageWithDetails, PackageFilters as FilterType } from '@/types/database';
 import PackageCard from './PackageCard';
 import PackageDetailModal from './PackageDetailModal';
 import { PackageFiltersSheet, QuickFilterTags } from './PackageFilters';
+import PackageCompareSheet from './PackageCompareSheet';
 import { mockPackages } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import AIRecommendationWizard from '@/components/recommendation/AIRecommendationWizard';
 
 interface PaketViewProps {
@@ -28,6 +30,8 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
   const [selectedPackage, setSelectedPackage] = useState<PackageWithDetails | null>(null);
   const [showAIWizard, setShowAIWizard] = useState(false);
   const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc' | 'departure_nearest'>('default');
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
   
   const { data: packages, isLoading, error } = usePackages();
 
@@ -176,6 +180,16 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
     return result;
   }, [displayPackages, filters, sortBy]);
 
+  const toggleCompare = (pkgId: string) => {
+    setCompareIds(prev => 
+      prev.includes(pkgId) 
+        ? prev.filter(id => id !== pkgId)
+        : prev.length >= 3 ? prev : [...prev, pkgId]
+    );
+  };
+
+  const comparePackages = displayPackages.filter(p => compareIds.includes(p.id));
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -251,10 +265,22 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <PackageCard
-                  package={pkg}
-                  onClick={() => setSelectedPackage(pkg)}
-                />
+                <div className="relative">
+                  <PackageCard
+                    package={pkg}
+                    onClick={() => setSelectedPackage(pkg)}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleCompare(pkg.id); }}
+                    className={`absolute top-3 right-14 z-10 p-1.5 rounded-full backdrop-blur-sm transition-all ${
+                      compareIds.includes(pkg.id)
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'bg-card/80 text-muted-foreground hover:bg-card/90'
+                    }`}
+                  >
+                    <GitCompareArrows className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -287,6 +313,54 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
       <PackageDetailModal
         package={selectedPackage}
         onClose={() => setSelectedPackage(null)}
+      />
+
+      {/* Floating Compare Bar */}
+      <AnimatePresence>
+        {compareIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md"
+          >
+            <div className="bg-primary text-primary-foreground rounded-2xl px-4 py-3 shadow-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GitCompareArrows className="w-4 h-4" />
+                <span className="text-sm font-medium">{compareIds.length}/3 dipilih</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 text-xs"
+                  onClick={() => setCompareIds([])}
+                >
+                  Reset
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-background text-foreground hover:bg-background/90"
+                  onClick={() => setShowCompare(true)}
+                  disabled={compareIds.length < 2}
+                >
+                  Bandingkan
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Compare Sheet */}
+      <PackageCompareSheet
+        packages={comparePackages}
+        open={showCompare}
+        onClose={() => setShowCompare(false)}
+        onRemove={(id) => {
+          setCompareIds(prev => prev.filter(i => i !== id));
+          if (compareIds.length <= 2) setShowCompare(false);
+        }}
       />
 
       {/* AI Recommendation Wizard */}
