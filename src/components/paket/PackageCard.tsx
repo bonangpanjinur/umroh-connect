@@ -54,6 +54,11 @@ const PackageCard = ({ package: pkg, onClick }: PackageCardProps) => {
             <Star className="w-3 h-3 fill-accent text-accent" />
             {pkg.travel.rating} ({pkg.travel.review_count})
           </span>
+          {pkg.travel.rating >= 4.5 && pkg.travel.review_count >= 5 && (
+            <span className="bg-primary/95 backdrop-blur-sm text-primary-foreground text-[10px] font-bold px-2 py-1.5 rounded-lg shadow-sm">
+              ✓ Terpercaya
+            </span>
+          )}
         </div>
         
         {/* Travel Name Overlay */}
