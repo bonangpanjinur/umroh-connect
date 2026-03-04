@@ -267,7 +267,7 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
                   >
                     <Card 
                       className={`cursor-pointer transition-all ${isDone ? 'bg-primary/5 border-primary/20' : 'hover:shadow-md'}`}
-                      onClick={() => toggleStep(guide.id)}
+                      onClick={() => onMenuClick?.(`manasik:${idx}`)}
                     >
                       <CardContent className="py-3 px-4 flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
