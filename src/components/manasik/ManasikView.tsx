@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 
 interface ManasikViewProps {
   onBack?: () => void;
+  initialStep?: number;
 }
 
 const typeStyles: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -195,10 +196,10 @@ const StepDetail = ({ guide, index }: { guide: ManasikGuide; index: number }) =>
   );
 };
 
-const ManasikView = ({ onBack }: ManasikViewProps) => {
+const ManasikView = ({ onBack, initialStep = 0 }: ManasikViewProps) => {
   const { data: guides = [], isLoading } = useAllManasikGuides();
-  const [activeStep, setActiveStep] = useState(0);
-  const [showList, setShowList] = useState(true);
+  const [activeStep, setActiveStep] = useState(initialStep);
+  const [showList, setShowList] = useState(initialStep === 0);
 
   if (isLoading) {
     return (
