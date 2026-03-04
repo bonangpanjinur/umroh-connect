@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useManasikGuides } from '@/hooks/useManasikGuides';
 import { usePrayers } from '@/hooks/usePrayers';
 import { useManasikProgress } from '@/hooks/useManasikProgress';
+import LearningBadgesCard from './LearningBadgesCard';
 
 interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
@@ -210,6 +211,11 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Learning Badges */}
+      <div className="px-4">
+        <LearningBadgesCard />
       </div>
 
       {/* Tabs */}
