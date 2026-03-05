@@ -72,7 +72,7 @@ export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [duration, setDuration] = useState(15);
   const [intensity, setIntensity] = useState('ringan');
-  const [timeOfDay, setTimeOfDay] = useState('setelah_tarawih');
+  const [timeOfDay, setTimeOfDay] = useState(isRamadhanMode ? 'setelah_tarawih' : 'kapan_saja');
   
   const { data: dbTypes = [], isError: typesError } = useExerciseTypes();
   const types = dbTypes.length > 0 ? dbTypes : FALLBACK_EXERCISE_TYPES;
@@ -89,6 +89,31 @@ export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
   const handleAdd = async () => {
     if (!user || !selectedType) return;
     
+    // If using fallback types (not real DB UUIDs), save to localStorage instead
+    if (isFallbackMode) {
+      try {
+        const key = 'exercise_logs_local';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        const selectedExercise = types.find(t => t.id === selectedType);
+        existing.push({
+          id: `local-${Date.now()}`,
+          exercise_type: selectedExercise,
+          duration_minutes: duration,
+          intensity,
+          time_of_day: timeOfDay,
+          created_at: new Date().toISOString(),
+        });
+        localStorage.setItem(key, JSON.stringify(existing));
+        toast.success('Olahraga tercatat! Sehat terus 💪');
+        setShowAddModal(false);
+        setSelectedType(null);
+        setDuration(15);
+      } catch {
+        toast.error('Gagal mencatat olahraga');
+      }
+      return;
+    }
+
     try {
       await addExercise.mutateAsync({
         userId: user.id,
@@ -192,17 +217,19 @@ export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
         </Card>
       </div>
 
-      {/* Warning Banner */}
-      <div className="px-4">
-        <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
-          <CardContent className="py-2 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <p className="text-xs text-amber-700 dark:text-amber-300">
-              Jangan overwork saat puasa. Fokus konsistensi, bukan intensitas!
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Warning Banner - only show in Ramadan mode */}
+      {isRamadhanMode && (
+        <div className="px-4">
+          <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+            <CardContent className="py-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Jangan overwork saat puasa. Fokus konsistensi, bukan intensitas!
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Weekly Chart */}
       <div className="px-4">
@@ -258,7 +285,7 @@ export const OlahragaView = ({ isRamadhanMode = false }: OlahragaViewProps) => {
 
       {/* Exercise Types Grid */}
       <div className="px-4">
-        <h3 className="font-semibold mb-3">Jenis Olahraga Ramadan</h3>
+        <h3 className="font-semibold mb-3">{isRamadhanMode ? 'Jenis Olahraga Ramadan' : 'Jenis Olahraga'}</h3>
         <div className="grid grid-cols-2 gap-3">
           {types.map((type) => {
             const Icon = iconMap[type.icon] || Activity;

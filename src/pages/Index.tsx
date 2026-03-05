@@ -98,7 +98,7 @@ const Index = () => {
         openView('manasik');
         break;
       case 'doa':
-        openView('doa');
+        openView('doa');  // kept for backward compat
         break;
       case 'peta':
         openView('maps');
@@ -140,7 +140,7 @@ const Index = () => {
         handleTabChange('shop');
         break;
       case 'checklist':
-        openView('manasik');
+        openView('ibadah');
         break;
       case 'seller':
         break;
