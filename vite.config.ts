@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
+
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   return ({
   // Map VITE_SUPABASE_ANON_KEY to the correct env var so auto-generated client.ts works
   define: {
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_PUBLISHABLE_KEY),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
   },
   server: {
     host: "::",
@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
+
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

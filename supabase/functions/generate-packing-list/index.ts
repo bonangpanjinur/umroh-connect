@@ -60,8 +60,8 @@ const getSeasonalWeather = (date: Date): WeatherData => {
   };
 };
 
-// Generate packing list without AI as fallback
-const generateFallbackPackingList = (gender: 'male' | 'female', duration: number, weather: WeatherData) => {
+// Generate packing list
+const generatePackingList = (gender: 'male' | 'female', duration: number, weather: WeatherData) => {
   const isHot = weather.makkah.temp > 35;
   
   const baseItems = {
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { departureDate, returnDate, gender, duration, preferences } = await req.json() as PackingListRequest;
+    const { departureDate, returnDate, gender, duration } = await req.json() as PackingListRequest;
     
     console.log('Generating packing list for:', { departureDate, returnDate, gender, duration });
     
@@ -171,155 +171,7 @@ Deno.serve(async (req) => {
     const depDate = new Date(departureDate);
     const weather = getSeasonalWeather(depDate);
     
-    // Check for LOVABLE_API_KEY
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    
-    if (!LOVABLE_API_KEY) {
-      console.log('LOVABLE_API_KEY not found, using fallback packing list');
-      const fallbackList = generateFallbackPackingList(gender, duration, weather);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          weather: weather,
-          packing_list: fallbackList,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-    
-    // Build context for AI
-    const weatherContext = `
-Cuaca di Makkah: ${weather.makkah.temp}°C, ${weather.makkah.condition}, kelembaban ${weather.makkah.humidity}%
-Cuaca di Madinah: ${weather.madinah.temp}°C, ${weather.madinah.condition}, kelembaban ${weather.madinah.humidity}%
-    `.trim();
-    
-    const systemPrompt = `Anda adalah asisten persiapan umroh yang ahli. Buatkan daftar packing list yang lengkap dan terorganisir berdasarkan cuaca, durasi perjalanan, dan jenis kelamin jamaah. 
-
-Berikan rekomendasi dalam bahasa Indonesia dengan format terstruktur. Fokus pada:
-1. Pakaian sesuai cuaca dan ibadah
-2. Perlengkapan ibadah wajib
-3. Kebutuhan kesehatan dan kenyamanan
-4. Dokumen penting
-5. Elektronik dan aksesori
-
-Berikan tips khusus berdasarkan kondisi cuaca saat keberangkatan.`;
-
-    const userPrompt = `Buatkan packing list untuk:
-- Jenis Kelamin: ${gender === 'male' ? 'Laki-laki' : 'Perempuan'}
-- Durasi: ${duration} hari
-- Tanggal Berangkat: ${departureDate}
-- Tanggal Pulang: ${returnDate}
-- ${weatherContext}
-${preferences && preferences.length > 0 ? `- Preferensi khusus: ${preferences.join(', ')}` : ''}
-
-Berikan dalam format JSON dengan struktur:
-{
-  "weather_summary": "ringkasan cuaca dan rekomendasi",
-  "categories": [
-    {
-      "name": "nama kategori",
-      "icon": "emoji icon",
-      "items": [
-        {
-          "name": "nama item",
-          "quantity": "jumlah",
-          "priority": "high/medium/low",
-          "weather_note": "catatan terkait cuaca jika ada"
-        }
-      ]
-    }
-  ],
-  "tips": ["tip 1", "tip 2", ...]
-}`;
-
-    console.log('Calling AI gateway...');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('AI gateway error:', response.status);
-      
-      if (response.status === 429) {
-        // Rate limit - use fallback
-        console.log('Rate limited, using fallback');
-        const fallbackList = generateFallbackPackingList(gender, duration, weather);
-        return new Response(
-          JSON.stringify({
-            success: true,
-            weather: weather,
-            packing_list: fallbackList,
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        );
-      }
-      
-      if (response.status === 402) {
-        console.log('Credits exhausted, using fallback');
-        const fallbackList = generateFallbackPackingList(gender, duration, weather);
-        return new Response(
-          JSON.stringify({
-            success: true,
-            weather: weather,
-            packing_list: fallbackList,
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
-        );
-      }
-      
-      // Other errors - use fallback
-      const fallbackList = generateFallbackPackingList(gender, duration, weather);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          weather: weather,
-          packing_list: fallbackList,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content || '';
-    
-    console.log('AI response received');
-    
-    // Parse JSON from response
-    let packingList;
-    try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : content;
-      packingList = JSON.parse(jsonStr.trim());
-    } catch (parseError) {
-      console.error('Failed to parse AI response, using fallback');
-      packingList = generateFallbackPackingList(gender, duration, weather);
-    }
+    const packingList = generatePackingList(gender, duration, weather);
     
     return new Response(
       JSON.stringify({
@@ -336,29 +188,12 @@ Berikan dalam format JSON dengan struktur:
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error generating packing list:', error);
     
-    // Return fallback on any error
-    try {
-      const weather = getSeasonalWeather(new Date());
-      const fallbackList = generateFallbackPackingList('male', 9, weather);
-      return new Response(
-        JSON.stringify({
-          success: true,
-          weather: weather,
-          packing_list: fallbackList,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    } catch {
-      return new Response(
-        JSON.stringify({ error: errorMessage }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
-      );
-    }
+    return new Response(
+      JSON.stringify({ error: errorMessage }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      }
+    );
   }
 });
