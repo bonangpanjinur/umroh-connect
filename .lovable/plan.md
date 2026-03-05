@@ -1,190 +1,125 @@
 
-# Rencana Pengembangan Komprehensif: Arah Umroh
 
-## Visi: Pendamping Digital Ibadah Umroh Terlengkap
-
-Menjadikan Arah Umroh sebagai aplikasi #1 yang memandu jamaah dari niat hingga selesai ibadah, sambil menjalankan bisnis marketplace yang berkelanjutan.
+# Rencana Perbaikan: Menu Duplikat, Kesehatan/Olahraga UX, Manasik Admin, dan Bug Fix
 
 ---
 
-## BAGIAN A: ANALISIS BUG & PERBAIKAN
+## BAGIAN A: ANALISIS MENU DUPLIKAT & REDUNDAN
 
-### BUG 1 (Kritis): Data Edukasi Kosong -- Tidak Ada Konten Manasik di Database
-**Masalah**: Tabel `manasik_guides` kosong. Padahal ada data lengkap 6 langkah manasik di `src/data/manasikData.ts` (Ihram, Talbiyah, Tawaf, Shalat Tawaf, Sa'i, Tahallul) yang tidak pernah di-seed ke database.
-**Dampak**: Halaman "Belajar Umroh" menampilkan "Belum ada panduan manasik", Progress 0%, dan kartu UmrahQuickCard selalu menunjukkan "0 dari 0 langkah".
-**Perbaikan**: Buat migration SQL untuk seed 6 langkah manasik dari `manasikData.ts` ke tabel `manasik_guides` lengkap dengan doa Arab, latin, arti, dan tips.
+### Masalah yang Ditemukan
 
-### BUG 2 (Kritis): Data Doa Kosong
-**Masalah**: Tabel `prayers` dan `prayer_categories` kemungkinan kosong. Tab "Doa-doa" di Learning Hub dan DoaView menampilkan "Belum ada doa".
-**Dampak**: Fitur utama edukasi (doa umroh, doa harian, doa perjalanan) tidak berfungsi.
-**Perbaikan**: Seed minimal 20 doa esensial umroh ke database beserta 4 kategori (Doa Umroh, Doa Harian, Doa Perjalanan, Doa Lainnya).
+1. **Quick Access 4 Tombol + QuickMenu = Duplikasi**
+   - HomeView menampilkan 4 tombol besar (Manasik, Doa, Al-Quran, Kiblat) di baris Quick Access
+   - QuickMenu grid di bawahnya juga menampilkan item yang sama: Manasik, Doa, Al-Quran, Kiblat
+   - Total: 8 tombol yang mengarah ke 4 fitur yang sama
 
-### BUG 3 (Sedang): QuickMenu `doa` Membuka Manasik, Bukan Doa
-**Masalah**: Di `Index.tsx` baris 94, `case 'doa'` membuka `openView('manasik')` bukan `openView('doa')` atau mengarah ke DoaView. Ini membingungkan karena menu "Manasik" dan "Doa" mengarah ke halaman yang sama.
-**Perbaikan**: Ubah `case 'doa'` agar membuka `openView('manasik')` tetap untuk manasik, dan pastikan menu QuickMenu id `doa` sebenarnya merujuk manasik (atau pisahkan keduanya).
+2. **`doa` vs `doaharian` ID Ganda**
+   - QuickMenu menggunakan `id: 'doaharian'`, Quick Access juga `id: 'doaharian'`
+   - Di `Index.tsx`, ada `case 'doa'` DAN `case 'doaharian'` -- keduanya membuka `openView('doa')`
 
-### BUG 4 (Sedang): Tab `checklist` dan `haji` Masih Ada di TabId Tapi Tidak di BottomNav
-**Masalah**: `TabId` di `types/index.ts` masih memuat `'checklist'` dan `'haji'` dan `Index.tsx` masih punya case untuk `checklist` dan `haji` di switch, tapi BottomNav sudah tidak menampilkan tab-tab ini. Jika user navigate via URL `?tab=haji`, halaman tetap muncul tapi tanpa cara kembali yang jelas.
-**Perbaikan**: Bersihkan dead routes atau pastikan ada navigasi balik yang konsisten.
+3. **`checklist` di QuickMenu mengarah ke Manasik**
+   - `case 'checklist'` di `Index.tsx` baris 143 membuka `openView('manasik')` -- membingungkan karena user ekspektasi buka checklist
 
-### BUG 5 (Ringan): FeaturedPackages Tanpa Padding di HomeView
-**Masalah**: Komponen `FeaturedPackages` sudah ada padding internal (`-mx-4 px-4`), tapi `HomeView` tidak membungkusnya dalam container px-4 seperti komponen lain.
-**Perbaikan**: Tambahkan wrapper `px-4` di HomeView untuk konsistensi.
+### Rencana Perbaikan
 
-### BUG 6 (Ringan): UmrahQuickCard Progress Tidak Reaktif
-**Masalah**: `completedSteps` dibaca dari localStorage saat render, tapi tidak di-listen ulang saat user mencentang langkah di UmrahLearningHub. Event `storage` yang di-dispatch di LearningHub hanya bekerja cross-tab.
-**Perbaikan**: Gunakan state management yang shared (misalnya custom hook dengan `useSyncExternalStore`) atau re-read localStorage saat tab "home" aktif kembali.
+- **Hapus item duplikat dari QuickMenu**: Hilangkan Manasik, Doa, Al-Quran, Kiblat dari grid QuickMenu karena sudah ada di Quick Access 4 tombol besar
+- **Ubah `checklist`** agar mengarah ke tab Belajar section Persiapan, bukan ke Manasik
+- **Konsolidasi ID**: Hapus `case 'doa'` yang redundan, standardkan ke `doaharian`
+- **QuickMenu grid lebih ringkas**: Hanya tampilkan Tasbih, Tracker, Peta, Kalkulator, Checklist, Kurs, Jurnal, Offline (8 item = 2 baris grid-cols-4)
 
 ---
 
-## BAGIAN B: FITUR YANG HARUS DITAMBAHKAN
+## BAGIAN B: PERBAIKAN FITUR OLAHRAGA & KESEHATAN
 
-### Prioritas 1: Konten Edukasi Lengkap (Core Value)
+### Masalah UX Saat Ini
 
-#### B1. Seed Data Manasik + Doa ke Database
-- 6 langkah manasik umroh lengkap (dari `manasikData.ts`)
-- 4 kategori doa: Umroh, Harian, Perjalanan, Lainnya
-- 20+ doa esensial: Doa Ihram, Doa Tawaf (tiap putaran), Doa Sa'i, Doa di Multazam, Doa Naik Pesawat, Doa Safar, dll
-- Data mencakup: teks Arab, transliterasi, terjemahan, sumber hadits, keutamaan
+1. **OlahragaView hardcode "Ramadan"**: Label "Jenis Olahraga Ramadan" (baris 261) dan warning puasa selalu ditampilkan meskipun bukan mode Ramadan
+2. **Fallback mode tidak berfungsi untuk pencatatan**: Saat menggunakan `FALLBACK_EXERCISE_TYPES` (database kosong), `handleAdd` tetap insert ke database dengan `exercise_type_id` berupa `'fallback-jalan'` yang bukan UUID valid -- pasti gagal
+3. **Tidak ada empty state yang informatif untuk non-login**: Pesan hanya "Masuk untuk Tracking" tanpa preview fitur
+4. **Navigasi kembali dari Kesehatan sub-tab tidak jelas**: User masuk lewat Tracker > Kesehatan > Olahraga, tapi tidak ada breadcrumb
+5. **MealTrackingView**: Sepenuhnya localStorage-based, tidak ada sinkronisasi database, label "Sahur/Berbuka" muncul di luar mode Ramadan
+6. **OlahragaView `timeOfDay` default `setelah_tarawih`**: Hardcode Ramadan-centric bahkan saat tidak Ramadan
 
-#### B2. Panduan Interaktif Step-by-Step (Upgrade ManasikView)
-- Tambahkan checklist per-langkah yang disimpan ke database (untuk user login) atau localStorage
-- Tambahkan quiz singkat di akhir setiap langkah ("Sudah paham?")
-- Tampilkan video embed YouTube jika `video_url` tersedia
-- Mode "Simulasi" -- walkthrough interaktif yang memandu urutan ibadah
+### Rencana Perbaikan
 
-#### B3. Doa dengan Audio Recitation
-- Integrasikan audio player di setiap doa
-- Tombol "Putar Berulang" untuk latihan hafalan
-- Font Arab yang lebih besar dengan opsi zoom
-- Bookmark doa favorit (simpan ke database)
+**File: `src/components/habit/OlahragaView.tsx`**
+- Kondisikan label dan konten berdasarkan `isRamadhanMode` prop:
+  - Non-Ramadan: "Jenis Olahraga", sembunyikan warning puasa, default `timeOfDay = 'kapan_saja'`
+  - Ramadan: Tampilkan seperti sekarang
+- Fix fallback mode: Jika menggunakan fallback types, simpan log tanpa `exercise_type_id` (set null) atau simpan ke localStorage saja
+- Tambahkan ringkasan stats yang lebih visual (ikon dan warna per intensitas)
 
-### Prioritas 2: Persiapan Perjalanan (Praktis)
+**File: `src/components/habit/MealTrackingView.tsx`**
+- Kondisikan label berdasarkan mode: Non-Ramadan tampilkan "Sarapan/Makan Siang/Makan Malam", Ramadan tampilkan "Sahur/Berbuka"
 
-#### B4. Checklist Persiapan Universal (Tanpa Login)
-- Saat ini Checklist dikunci FeatureLock (butuh booking). Buat versi dasar yang bisa diakses semua orang
-- Template checklist: Dokumen (paspor, visa, tiket), Pakaian (ihram, sehari-hari), Obat-obatan, Perlengkapan ibadah
-- Checklist yang bisa dicentang dan tersimpan lokal
-
-#### B5. FAQ & Tips Perjalanan
-- Halaman FAQ terstruktur: Sebelum Berangkat, Di Tanah Suci, Setelah Pulang
-- Tips cuaca, mata uang, adat istiadat
-- Bisa diakses dari tab Belajar sebagai sub-section
-
-### Prioritas 3: Pengalaman Marketplace yang Lebih Baik
-
-#### B6. Paket Umroh -- Perbandingan Side-by-Side
-- Fitur "Bandingkan Paket" (max 3 paket) untuk membandingkan hotel, harga, fasilitas
-- Tombol "Bandingkan" di PackageCard
-
-#### B7. Testimoni & Review yang Lebih Menonjol
-- Tampilkan review jamaah langsung di halaman paket (bukan di halaman terpisah)
-- Rating bintang di PackageCard
-- Badge "Terpercaya" untuk travel dengan review > 4.5
-
-### Prioritas 4: Engagement & Retensi
-
-#### B8. Notifikasi Pengingat Ibadah
-- Reminder harian untuk melanjutkan belajar manasik
-- Pengingat sholat yang bisa dikustomisasi
-- Notifikasi countdown menjelang keberangkatan
-
-#### B9. Gamifikasi Progress Belajar
-- Badge/achievement saat menyelesaikan semua langkah manasik
-- Level: Pemula > Siap > Mahir
-- Shareable certificate "Saya Siap Umroh"
+**File: `src/components/habit/IbadahHubView.tsx`**
+- Tab "Kesehatan" rename menjadi context-aware: "Kesehatan" (non-Ramadan) tetap OK
+- Pastikan sub-tab Olahraga dan Diet menerima `isRamadhanMode` dengan benar
 
 ---
 
-## BAGIAN C: PERBAIKAN LAYOUT & UX
+## BAGIAN C: MANASIK ADMIN -- UPLOAD FOTO & UX
 
-### C1. Restrukturisasi HomeView (Beranda)
+### Masalah Saat Ini
 
-Layout saat ini sudah cukup baik setelah perubahan sebelumnya. Perbaikan tambahan:
+1. **Gambar hanya via URL input**: `ManasikManagement.tsx` baris 317 menggunakan `<Input placeholder="https://..."/>` untuk gambar -- admin harus paste URL eksternal
+2. **Tidak ada preview gambar**: Tidak ada tampilan preview saat URL diisi
+3. **Tidak ada drag-and-drop order**: Urutan langkah (`order_index`) tidak bisa diatur ulang secara visual
+4. **Tidak ada kolom "Gambar" di tabel**: Tabel list hanya menampilkan #, Judul, Kategori, Audio, Status, Aksi -- tidak ada preview gambar
 
-```text
-Urutan Baru:
-1. Waktu Sholat (tetap)
-2. UmrahQuickCard -- perbesar, tampilkan progress nyata
-3. Quick Access: 4 tombol besar (Manasik | Doa | Quran | Kiblat)
-4. Banner "Mulai Persiapan" (jika belum booking)
-   ATAU Countdown Keberangkatan (jika sudah booking)
-5. Quick Menu (sisanya)
-6. Paket Unggulan
-7. Banner Promo
-```
+### Rencana Perbaikan
 
-**Perubahan spesifik:**
-- UmrahQuickCard diperbesar: tampilkan langkah terakhir yang dipelajari, bukan hanya angka
-- Quick Access 4 tombol besar dipisahkan dari QuickMenu grid agar lebih menonjol
-- Hilangkan duplikasi: Manasik dan Doa sudah ada di Quick Access, hapus dari QuickMenu grid
+**File: `src/components/admin/ManasikManagement.tsx`**
+- **Ganti URL input gambar dengan ImageUpload component**: Gunakan komponen `ImageUpload` yang sudah ada (`src/components/common/ImageUpload.tsx`) untuk upload ke bucket `uploads`
+- **Tambahkan preview gambar**: Di form dialog, tampilkan preview gambar setelah upload
+- **Tambahkan kolom gambar di tabel**: Thumbnail kecil di kolom baru antara # dan Judul
+- **Tambahkan drag-and-drop reorder**: Gunakan `@dnd-kit/sortable` (sudah terinstall) untuk reorder `order_index`
+- **Fix: ManasikManagement tidak ada di admin sidebar** -- Ternyata sudah ada di navGroups? Cek... Tidak, `ManasikManagement` tidak ada case di `renderContent` dan tidak ada di `navGroups`. Ini bug serius: komponen ada tapi tidak pernah dimuat di admin dashboard.
 
-### C2. Perbaikan Tab Belajar (UmrahLearningHub)
-
-Layout saat ini:
-```text
-Header > Progress Card > Tabs (Tata Cara | Doa | Quran) > Persiapan Lainnya
-```
-
-Perbaikan:
-```text
-Header > Progress Card > Tabs (Tata Cara | Doa | Quran | Persiapan) > 
-  Tab Tata Cara: Langkah + Checklist interaktif
-  Tab Doa: Kategori + Pencarian + Bookmark
-  Tab Quran: Progress Khatam + Lanjut Baca
-  Tab Persiapan: Checklist universal + FAQ + Tips + Kalkulator
-```
-
-- Gabungkan "Persiapan Lainnya" ke dalam tab ke-4 agar tidak terasa terpisah
-- Tambahkan indikator progress per-tab (misal: "4/6 langkah", "12 doa dipelajari")
-
-### C3. Navigasi & Flow yang Lebih Intuitif
-
-- Saat user klik langkah manasik di LearningHub, langsung buka ManasikView di langkah tersebut (pass index)
-- Saat user klik doa di LearningHub, buka DoaView dengan filter kategori yang sesuai
-- Back button dari ManasikView/DoaView kembali ke tab yang benar di LearningHub
+**File: `src/pages/AdminDashboard.tsx`**
+- Tambahkan `{ id: 'manasik', label: 'Manasik', icon: <BookOpen /> }` ke group "Konten"
+- Tambahkan `case 'manasik': return <ManasikManagement />;` di `renderContent`
+- Import `ManasikManagement`
 
 ---
 
-## BAGIAN D: RENCANA IMPLEMENTASI BERTAHAP
+## BAGIAN D: ANALISIS BUG LAINNYA
 
-### Fase 1: Fondasi Konten (Paling Kritikal)
-| No | Task | File | Estimasi |
-|----|------|------|----------|
-| 1 | Seed 6 langkah manasik ke database | SQL migration | Kecil |
-| 2 | Seed 4 kategori + 20 doa ke database | SQL migration | Kecil |
-| 3 | Fix QuickMenu routing (doa vs manasik) | `Index.tsx` | Kecil |
-| 4 | Fix UmrahQuickCard reactivity | `UmrahQuickCard.tsx` | Kecil |
-| 5 | Bersihkan dead TabId routes | `types/index.ts`, `Index.tsx` | Kecil |
-
-### Fase 2: Peningkatan UX Edukasi
-| No | Task | File | Estimasi |
-|----|------|------|----------|
-| 6 | Tambah tab "Persiapan" di LearningHub | `UmrahLearningHub.tsx` | Sedang |
-| 7 | Checklist universal tanpa login | Komponen baru `BasicChecklist.tsx` | Sedang |
-| 8 | Bookmark doa favorit | `DoaView.tsx`, hook baru | Sedang |
-| 9 | Quick Access 4 tombol di HomeView | `HomeView.tsx` | Kecil |
-
-### Fase 3: Konten & Engagement
-| No | Task | File | Estimasi |
-|----|------|------|----------|
-| 10 | FAQ & Tips Perjalanan | Komponen baru | Sedang |
-| 11 | Gamifikasi + badge | Hook + komponen baru | Besar |
-| 12 | Perbandingan paket | `PaketView.tsx` | Besar |
-
-### Fase 4: Polish & Optimasi
-| No | Task | File | Estimasi |
-|----|------|------|----------|
-| 13 | Deep link dari LearningHub ke ManasikView | `UmrahLearningHub.tsx`, `Index.tsx` | Sedang |
-| 14 | Review terintegrasi di PackageCard | `PackageCard.tsx` | Sedang |
-| 15 | Notifikasi pengingat belajar | Edge function + hook | Besar |
+| # | Severity | Bug | Lokasi | Fix |
+|---|----------|-----|--------|-----|
+| 1 | Kritis | ManasikManagement tidak terdaftar di AdminDashboard | `AdminDashboard.tsx` | Tambah nav item + case |
+| 2 | Kritis | Fallback exercise types insert UUID invalid ke DB | `OlahragaView.tsx` | Guard: simpan ke localStorage atau set `exercise_type_id` null |
+| 3 | Sedang | Label Ramadan hardcode di OlahragaView (non-Ramadan) | `OlahragaView.tsx` | Kondisikan berdasarkan `isRamadhanMode` |
+| 4 | Sedang | 8 tombol duplikat di HomeView (Quick Access + QuickMenu) | `QuickMenu.tsx` | Hapus 4 item duplikat |
+| 5 | Sedang | `checklist` menu mengarah ke Manasik bukan Persiapan | `Index.tsx` | Redirect ke tab Belajar |
+| 6 | Ringan | MealTracking label Sahur/Berbuka di luar Ramadan | `MealTrackingView.tsx` | Kondisikan berdasarkan mode |
+| 7 | Ringan | `timeOfDay` default "setelah_tarawih" di luar Ramadan | `OlahragaView.tsx` | Default "kapan_saja" |
 
 ---
 
-## Ringkasan Prioritas
+## RENCANA IMPLEMENTASI
 
-**Harus segera (Fase 1):** Seed data manasik & doa, fix routing bugs -- tanpa ini, fitur inti aplikasi (edukasi umroh) tidak berfungsi sama sekali.
+### Task 1: Hapus Menu Duplikat di HomeView & QuickMenu
+- Hapus Manasik, Doa, Al-Quran, Kiblat dari `menuItems` di `QuickMenu.tsx`
+- Fix `checklist` routing di `Index.tsx` agar buka tab Belajar
+- Konsolidasi ID `doa`/`doaharian`
 
-**Penting (Fase 2):** Checklist universal, bookmark doa, perbaikan layout -- meningkatkan nilai guna harian aplikasi.
+### Task 2: Tambah Manasik Management ke Admin Dashboard
+- Tambah nav item dan case di `AdminDashboard.tsx`
+- Import `ManasikManagement`
 
-**Nilai tambah (Fase 3-4):** Gamifikasi, perbandingan paket, deep linking -- diferensiasi dari kompetitor.
+### Task 3: Upgrade ManasikManagement dengan Image Upload
+- Ganti URL input dengan `ImageUpload` component  
+- Tambah preview gambar di form dan thumbnail di tabel
+- Tambah drag-and-drop reorder menggunakan `@dnd-kit/sortable`
+
+### Task 4: Fix OlahragaView Context-Aware
+- Kondisikan semua label, warning, dan default values berdasarkan `isRamadhanMode`
+- Fix fallback exercise types agar tidak crash saat insert ke DB
+- Fix `MealTrackingView` label berdasarkan mode
+
+### Task 5: Polish UX Kesehatan & Olahraga
+- Perbaiki empty state dengan preview fitur
+- Tambah ringkasan visual yang lebih menarik
+- Pastikan navigasi kembali konsisten
+
