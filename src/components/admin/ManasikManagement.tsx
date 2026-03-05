@@ -10,8 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, Music, Upload, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Music, Upload, Loader2, ImageIcon, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUpload } from '@/components/common/ImageUpload';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ManasikGuide {
   id: string;
@@ -312,11 +316,14 @@ export const ManasikManagement = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>URL Gambar</Label>
-                    <Input
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://..."
+                    <Label>Gambar</Label>
+                    <ImageUpload
+                      bucket="uploads"
+                      folder="manasik"
+                      currentUrl={formData.image_url || null}
+                      onUpload={(url) => setFormData({ ...formData, image_url: url })}
+                      onRemove={() => setFormData({ ...formData, image_url: '' })}
+                      aspectRatio="landscape"
                     />
                   </div>
                   <div>
@@ -447,6 +454,7 @@ export const ManasikManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">#</TableHead>
+                <TableHead className="w-16">Gambar</TableHead>
                 <TableHead>Judul</TableHead>
                 <TableHead>Kategori</TableHead>
                 <TableHead>Audio</TableHead>
@@ -459,6 +467,19 @@ export const ManasikManagement = () => {
                 <TableRow key={guide.id}>
                   <TableCell className="font-mono text-muted-foreground">
                     {index + 1}
+                  </TableCell>
+                  <TableCell>
+                    {guide.image_url ? (
+                      <img 
+                        src={guide.image_url} 
+                        alt={guide.title}
+                        className="w-12 h-12 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div>

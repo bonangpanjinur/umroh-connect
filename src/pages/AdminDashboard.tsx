@@ -34,6 +34,7 @@ import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
 import ShopDashboard from '@/components/admin/ShopDashboard';
 import SellerManagement from '@/components/admin/SellerManagement';
 import QuranManagement from '@/components/admin/QuranManagement';
+import { ManasikManagement } from '@/components/admin/ManasikManagement';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -78,6 +79,7 @@ const navGroups: NavGroup[] = [
       { id: 'quran', label: 'Al-Quran', icon: <Book className="h-4 w-4" /> },
       { id: 'prayers', label: 'Doa', icon: <BookOpen className="h-4 w-4" /> },
       { id: 'tasbih', label: 'Tasbih', icon: <Fingerprint className="h-4 w-4" /> },
+      { id: 'manasik', label: 'Manasik', icon: <BookOpen className="h-4 w-4" /> },
       { id: 'reviews', label: 'Review', icon: <MessageSquare className="h-4 w-4" /> },
     ],
   },
@@ -155,6 +157,7 @@ const AdminDashboard = () => {
       case 'quran': return <QuranManagement />;
       case 'prayers': return <PrayersManagement />;
       case 'tasbih': return <TasbihManagement />;
+      case 'manasik': return <ManasikManagement />;
       case 'reviews': return <ReviewsManagement />;
       case 'memberships': return <MembershipsManagement />;
       case 'credits': return <CreditsManagement />;
