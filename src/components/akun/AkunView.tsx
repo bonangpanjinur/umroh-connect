@@ -365,7 +365,7 @@ const AkunView = () => {
         <HajiRegistrationButton />
 
         {/* Shop Admin Dashboard Button */}
-        {(isShopAdmin() || profile?.role === 'admin') && profile?.role !== 'admin' && (
+        {(isShopAdmin() || profile?.role === 'admin') && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
@@ -395,7 +395,7 @@ const AkunView = () => {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={() => navigate('/admin')}
-            className={`w-full bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-between ${
+            className={`w-full bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-between mb-3 ${
               isElderlyMode ? 'p-5' : 'p-4'
             }`}
           >
