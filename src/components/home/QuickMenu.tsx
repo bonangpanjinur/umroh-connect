@@ -4,16 +4,13 @@ import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 
 // Consolidated menu items - removed duplicates (tracker/tracking, notifikasi/pengingat)
+// Only items NOT in Quick Access (Manasik, Doa, Al-Quran, Kiblat are in Quick Access already)
 const menuItems = [
-  { id: 'manasik', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik', isHighlight: true, highlightColor: 'primary' },
-  { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian', isHighlight: true, highlightColor: 'emerald' },
-  { id: 'quran', label: 'Al-Quran', icon: Book, color: 'text-emerald-700', audioLabel: 'Al Quran Digital' },
-  { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
-  { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah' },
+  { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
   { id: 'tabungan', label: 'Kalkulator', icon: Wallet, color: 'text-emerald-600', audioLabel: 'Kalkulator Islami' },
-  { id: 'checklist', label: 'Checklist', icon: Sparkles, color: 'text-blue-500', audioLabel: 'Checklist Persiapan' },
+  { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-blue-500', audioLabel: 'Checklist Persiapan' },
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
