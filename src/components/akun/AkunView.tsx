@@ -121,7 +121,7 @@ const BookingButton = ({ onClick }: { onClick: () => void }) => {
 
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const { user, profile, signOut, loading, isShopAdmin, isSeller } = useAuthContext();
+  const { user, profile, signOut, loading, isShopAdmin, isSeller, isAdmin } = useAuthContext();
   const { t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
@@ -332,7 +332,7 @@ const AkunView = () => {
         )}
 
         {/* Seller Dashboard Button */}
-        {(isSeller() || !!sellerProfile) && (
+        {(isSeller() || !!sellerProfile || isAdmin()) && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
