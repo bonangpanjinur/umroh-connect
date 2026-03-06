@@ -121,7 +121,7 @@ const BookingButton = ({ onClick }: { onClick: () => void }) => {
 
 const AkunView = () => {
   const { isElderlyMode, toggleElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const { user, profile, signOut, loading, isShopAdmin, isSeller, isAdmin } = useAuthContext();
+  const { user, profile, roles, signOut, loading, isShopAdmin, isSeller, isAdmin, isAgent, isJamaah } = useAuthContext();
   const { t } = useLanguage();
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
@@ -242,7 +242,21 @@ const AkunView = () => {
     );
   }
 
-  const isAgentOrAdmin = profile?.role === 'agent' || profile?.role === 'admin';
+  const isAgentOrAdmin = isAgent() || isAdmin();
+
+  // Build role display labels
+  const getRoleLabels = () => {
+    const labelMap: Record<string, string> = {
+      admin: 'Admin',
+      super_admin: 'Super Admin',
+      agent: 'Travel Agent',
+      shop_admin: 'Admin Toko',
+      seller: 'Seller',
+      jamaah: 'Jamaah',
+    };
+    if (roles.length === 0) return 'Jamaah';
+    return roles.map(r => labelMap[r] || r).join(' • ');
+  };
 
   return (
     <motion.div
@@ -296,7 +310,7 @@ const AkunView = () => {
               )}
             </h2>
             <p className={`text-muted-foreground ${fontSize.sm}`}>
-              {profile?.role === 'agent' ? 'Travel Agent' : profile?.role === 'admin' ? 'Admin' : profile?.role === 'shop_admin' ? 'Admin Toko' : 'Jamaah'}
+              {getRoleLabels()}
               <span className="mx-1">•</span>
               <span className={`font-medium ${isPremium ? 'text-amber-500' : 'text-primary'}`}>{getPlanLabel()}</span>
             </p>
@@ -365,7 +379,7 @@ const AkunView = () => {
         <HajiRegistrationButton />
 
         {/* Shop Admin Dashboard Button */}
-        {(isShopAdmin() || profile?.role === 'admin') && (
+        {(isShopAdmin() || isAdmin()) && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
@@ -390,7 +404,7 @@ const AkunView = () => {
         )}
 
         {/* Admin Dashboard Button */}
-        {profile?.role === 'admin' && (
+        {isAdmin() && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
@@ -416,7 +430,7 @@ const AkunView = () => {
       </div>
 
       {/* Agent Registration CTA - only for jamaah users */}
-      {profile?.role === 'jamaah' && (
+      {isJamaah() && !isAdmin() && !isAgent() && (
         <div className={`${isElderlyMode ? 'px-5' : 'px-4'} pb-2`}>
           <motion.button
             whileHover={{ scale: 1.01 }}
