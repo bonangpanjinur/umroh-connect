@@ -7,33 +7,32 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer profile fetch
         if (session?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfileAndRoles(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setRoles([]);
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfileAndRoles(session.user.id);
       }
       setLoading(false);
     });
@@ -41,18 +40,36 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfileAndRoles = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      // Fetch profile and roles in parallel
+      const [profileResult, rolesResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single(),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId),
+      ]);
 
-      if (error) throw error;
-      setProfile(data as Profile);
+      if (profileResult.error) {
+        console.error('Error fetching profile:', profileResult.error);
+      } else {
+        setProfile(profileResult.data as Profile);
+      }
+
+      if (rolesResult.error) {
+        console.error('Error fetching roles:', rolesResult.error);
+        setRoles([]);
+      } else {
+        const fetchedRoles = (rolesResult.data || []).map(r => r.role as AppRole);
+        setRoles(fetchedRoles);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error fetching profile/roles:', error);
     }
   };
 
@@ -83,16 +100,18 @@ export const useAuth = () => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    setRoles([]);
     return { error };
   };
 
+  // Multi-role: check from user_roles table
   const hasRole = (role: AppRole): boolean => {
-    return profile?.role === role;
+    return roles.includes(role);
   };
 
   const isAgent = (): boolean => hasRole('agent');
-  const isAdmin = (): boolean => hasRole('admin');
-  const isJamaah = (): boolean => hasRole('jamaah');
+  const isAdmin = (): boolean => hasRole('admin') || hasRole('super_admin' as AppRole);
+  const isJamaah = (): boolean => roles.length === 0 || (roles.length === 1 && hasRole('jamaah'));
   const isShopAdmin = (): boolean => hasRole('shop_admin');
   const isSeller = (): boolean => hasRole('seller');
 
@@ -100,6 +119,7 @@ export const useAuth = () => {
     user,
     session,
     profile,
+    roles,
     loading,
     signUp,
     signIn,
