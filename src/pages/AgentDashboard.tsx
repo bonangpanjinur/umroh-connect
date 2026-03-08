@@ -42,7 +42,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
-  const { user, profile, loading: authLoading } = useAuthContext();
+  const { user, profile, loading: authLoading, isAgent, isAdmin } = useAuthContext();
   
   const [showTravelForm, setShowTravelForm] = useState(false);
   const [showPackageForm, setShowPackageForm] = useState(false);
@@ -75,10 +75,10 @@ const AgentDashboard = () => {
 
   // Redirect if not logged in or not agent
   useEffect(() => {
-    if (!authLoading && (!user || (profile && profile.role !== 'agent' && profile.role !== 'admin'))) {
+    if (!authLoading && (!user || (!isAgent() && !isAdmin()))) {
       navigate('/');
     }
-  }, [authLoading, user, profile, navigate]);
+  }, [authLoading, user, isAgent, isAdmin, navigate]);
 
   if (authLoading || travelLoading) {
     return (
