@@ -66,16 +66,16 @@ const Auth = () => {
           }
         }
       } else {
-        const { error, data } = await signUp(email, password, fullName);
-70:         if (error) {
-71:           if (error.message.includes('already registered')) {
-72:             setError('Email sudah terdaftar. Silakan login.');
-73:           } else {
-74:             setError(error.message);
-75:           }
-76:         } else {
-77:           setSignupSuccess(true);
-78:         }
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          if (error.message.includes('already registered')) {
+            setError('Email sudah terdaftar. Silakan login.');
+          } else {
+            setError(error.message);
+          }
+        } else {
+          setSignupSuccess(true);
+        }
       }
     } catch (err) {
       setError('Terjadi kesalahan. Silakan coba lagi.');
