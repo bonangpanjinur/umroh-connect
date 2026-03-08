@@ -27,12 +27,12 @@ export const useAuth = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfileAndRoles(session.user.id);
+        await fetchProfileAndRoles(session.user.id);
       }
       setLoading(false);
     });

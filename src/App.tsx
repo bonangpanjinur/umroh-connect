@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import AgentOnboarding from "./pages/AgentOnboarding";
 import SellerRegistration from "./pages/SellerRegistration";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgentDashboard from "./pages/AgentDashboard";
@@ -51,6 +52,7 @@ const AppContent = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/offline" element={<OfflineManagerView />} />
               <Route path="/daftar-agen" element={<AgentOnboarding />} />
               <Route path="/daftar-seller" element={<SellerRegistration />} />

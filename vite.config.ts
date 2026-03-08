@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   return ({
   // Map VITE_SUPABASE_ANON_KEY to the correct env var so auto-generated client.ts works
   define: {
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY),
   },
   server: {
     host: "::",
