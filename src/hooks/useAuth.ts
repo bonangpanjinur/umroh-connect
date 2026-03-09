@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { Profile, AppRole } from '@/types/database';
@@ -9,12 +9,14 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        userIdRef.current = session?.user?.id ?? null;
         
         if (session?.user) {
           fetchProfileAndRoles(session.user.id);
@@ -28,6 +30,7 @@ export const useAuth = () => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      userIdRef.current = session?.user?.id ?? null;
       
       if (session?.user) {
         await fetchProfileAndRoles(session.user.id);
@@ -35,11 +38,10 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    // Listen for profile updates to re-fetch
+    // Listen for profile updates to re-fetch using ref to avoid stale closure
     const handleProfileUpdate = () => {
-      const currentUser = user;
-      if (currentUser) {
-        fetchProfileAndRoles(currentUser.id);
+      if (userIdRef.current) {
+        fetchProfileAndRoles(userIdRef.current);
       }
     };
     window.addEventListener('profile-updated', handleProfileUpdate);
