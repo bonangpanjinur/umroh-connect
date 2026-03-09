@@ -579,6 +579,11 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
               </Button>
             </div>
           </TabsContent>
+
+          {/* Tab: Quiz */}
+          <TabsContent value="quiz" className="mt-3">
+            <ManasikQuiz />
+          </TabsContent>
         </Tabs>
       </div>
     </motion.div>
