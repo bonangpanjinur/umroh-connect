@@ -20,6 +20,8 @@ const navItems: { id: TabId; label: string; icon: typeof Home; audioLabel: strin
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
+  const { user } = useAuthContext();
+  const { totalItems: cartCount } = useShopCart();
 
   const handleTabChange = (item: typeof navItems[0]) => {
     // Audio feedback in elderly mode
