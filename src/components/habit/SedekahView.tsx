@@ -1,24 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Heart, Banknote, Utensils, HandHeart, Package, Smile, 
   BookOpen, Plus, TrendingUp, Sun, Trash2, X, Check
 } from 'lucide-react';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { 
-  useSedekahTypes, 
-  useSedekahLogs, 
-  useSedekahStats, 
-  useWeeklySedekah,
-  useAddSedekah,
-  useDeleteSedekah 
-} from '@/hooks/useSedekah';
+  useLocalSedekahTypes, 
+  useLocalSedekahLogs, 
+  useLocalSedekahStats, 
+  useLocalWeeklySedekah,
+  useAddLocalSedekah,
+  useDeleteLocalSedekah,
+  defaultSedekahTypes,
+  LocalSedekahLog 
+} from '@/hooks/useLocalSedekah';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -48,26 +48,39 @@ const categoryColors: Record<string, string> = {
 };
 
 export const SedekahView = () => {
-  const { user } = useAuthContext();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [isSubuhMode, setIsSubuhMode] = useState(false);
+  const [logs, setLogs] = useState<LocalSedekahLog[]>([]);
   
-  const { data: types = [] } = useSedekahTypes();
-  const { data: logs = [] } = useSedekahLogs(user?.id);
-  const { data: stats } = useSedekahStats(user?.id);
-  const { data: weeklyData = [] } = useWeeklySedekah(user?.id);
-  const addSedekah = useAddSedekah();
-  const deleteSedekah = useDeleteSedekah();
+  const { data: types = defaultSedekahTypes } = useLocalSedekahTypes();
+  const stats = useLocalSedekahStats();
+  const weeklyData = useLocalWeeklySedekah();
+  const addSedekah = useAddLocalSedekah();
+  const deleteSedekah = useDeleteLocalSedekah();
+
+  // Load logs from localStorage
+  useEffect(() => {
+    const loadLogs = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('sedekah_logs_local') || '[]');
+        setLogs(stored);
+      } catch {
+        setLogs([]);
+      }
+    };
+    loadLogs();
+    window.addEventListener('sedekah_updated', loadLogs);
+    return () => window.removeEventListener('sedekah_updated', loadLogs);
+  }, []);
 
   const handleAdd = async () => {
-    if (!user || !selectedType) return;
+    if (!selectedType) return;
     
     try {
       await addSedekah.mutateAsync({
-        userId: user.id,
         sedekahTypeId: selectedType,
         amount: parseFloat(amount) || 0,
         description: description || undefined,
@@ -94,23 +107,11 @@ export const SedekahView = () => {
     }
   };
 
-  const maxWeeklyAmount = Math.max(...weeklyData.map(d => d.amount), 1);
+  const getSedekahType = (typeId: string) => {
+    return types.find(t => t.id === typeId);
+  };
 
-  if (!user) {
-    return (
-      <div className="p-4 text-center">
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg mb-2">Masuk untuk Tracking Sedekah</h3>
-            <p className="text-muted-foreground text-sm">
-              Login untuk mulai mencatat sedekah harian Anda
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const maxWeeklyAmount = Math.max(...weeklyData.map(d => d.amount), 1);
 
   return (
     <div className="pb-24 space-y-4">
@@ -127,7 +128,7 @@ export const SedekahView = () => {
             <div className="flex items-center gap-2 mb-1">
               <Heart className="w-5 h-5" />
               <span className="text-sm font-medium opacity-90">Habit Sedekah</span>
-              {stats?.hasSedekahToday && (
+              {stats.hasSedekahToday && (
                 <Badge className="bg-white/20 text-white text-xs">
                   ✓ Sudah Sedekah
                 </Badge>
@@ -141,16 +142,16 @@ export const SedekahView = () => {
               <div>
                 <p className="text-xs opacity-80">Total Bulan Ini</p>
                 <p className="text-xl font-bold">
-                  Rp {(stats?.totalAmount || 0).toLocaleString('id-ID')}
+                  Rp {(stats.totalAmount || 0).toLocaleString('id-ID')}
                 </p>
               </div>
               <div>
                 <p className="text-xs opacity-80">Jumlah Sedekah</p>
-                <p className="text-xl font-bold">{stats?.totalCount || 0}x</p>
+                <p className="text-xl font-bold">{stats.totalCount || 0}x</p>
               </div>
               <div>
                 <p className="text-xs opacity-80">Hari Bersedekah</p>
-                <p className="text-xl font-bold">{stats?.uniqueDays || 0} hari</p>
+                <p className="text-xl font-bold">{stats.uniqueDays || 0} hari</p>
               </div>
             </div>
           </div>
@@ -277,7 +278,8 @@ export const SedekahView = () => {
         <div className="space-y-2">
           <AnimatePresence>
             {logs.slice(0, 5).map((log, index) => {
-              const Icon = iconMap[log.sedekah_type?.icon || 'heart'] || Heart;
+              const sedekahType = getSedekahType(log.sedekah_type_id);
+              const Icon = iconMap[sedekahType?.icon || 'heart'] || Heart;
               return (
                 <motion.div
                   key={log.id}
@@ -289,12 +291,12 @@ export const SedekahView = () => {
                   <Card>
                     <CardContent className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${categoryColors[log.sedekah_type?.category || 'kebaikan']}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${categoryColors[sedekahType?.category || 'kebaikan']}`}>
                           <Icon className="w-5 h-5" />
                         </div>
                         <div>
                           <p className="font-medium text-sm">
-                            {log.sedekah_type?.name || 'Sedekah'}
+                            {sedekahType?.name || 'Sedekah'}
                             {log.is_subuh_mode && <Sun className="w-3 h-3 inline ml-1 text-amber-500" />}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -329,13 +331,14 @@ export const SedekahView = () => {
               <CardContent className="py-8 text-center">
                 <Heart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Belum ada catatan sedekah</p>
+                <p className="text-xs text-muted-foreground mt-1">Data disimpan di perangkat ini</p>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
 
-      {/* Add Modal - Improved UX */}
+      {/* Add Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-h-[85vh] flex flex-col p-0">
           <DialogHeader className="p-4 pb-2 border-b sticky top-0 bg-background z-10">
