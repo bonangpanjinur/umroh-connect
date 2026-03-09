@@ -24,7 +24,7 @@ const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
 const SellerDashboard = () => {
-  const { user, loading } = useAuthContext();
+  const { user, loading, isAdmin } = useAuthContext();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: sellerProfile, isLoading: loadingProfile } = useSellerProfile();
