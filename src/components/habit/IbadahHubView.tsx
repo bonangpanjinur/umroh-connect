@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Flame, Moon, Sparkles, Crown, Zap, ChevronRight, Plus,
-  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer, Activity
+  BookOpen, Utensils, Heart, BarChart3, Cloud, Sunset, Printer, Activity, Droplets
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
@@ -30,6 +30,11 @@ import SedekahView from './SedekahView';
 import RamadhanDashboard from './RamadhanDashboard';
 import PdfTrackerBuilder from './PdfTrackerBuilder';
 import OlahragaView from './OlahragaView';
+import AchievementBadges from './AchievementBadges';
+import { MoodCheckIn } from './MoodCheckIn';
+import WeeklySummaryCard from './WeeklySummaryCard';
+import WaterIntakeTracker from './WaterIntakeTracker';
+import SleepTracker from './SleepTracker';
 
 interface IbadahHubViewProps {
   onOpenTasbih?: () => void;
