@@ -21,12 +21,13 @@ const WeeklySummaryCard = () => {
 
   const avgMood = useMemo(() => {
     try {
-      const history = getMoodHistory(7);
-      if (history.length === 0) return null;
-      const avg = history.reduce((s, m) => s + m.moodLevel, 0) / history.length;
+      const weekAgo = subDays(new Date(), 7).getTime();
+      const recent = moodHistory.filter(m => m.timestamp >= weekAgo);
+      if (recent.length === 0) return null;
+      const avg = recent.reduce((s, m) => s + m.moodLevel, 0) / recent.length;
       return Math.round(avg * 10) / 10;
     } catch { return null; }
-  }, []);
+  }, [moodHistory]);
 
   const sedekahTotal = useMemo(() => {
     try {
