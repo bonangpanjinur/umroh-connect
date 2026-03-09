@@ -420,15 +420,17 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
   );
 };
 
-// Sub-tabs for Kesehatan (Olahraga + Diet)
+// Sub-tabs for Kesehatan (Olahraga + Diet + Water + Sleep)
 const KesehatanSubTabs = ({ isRamadhanMode }: { isRamadhanMode: boolean }) => {
   const [subTab, setSubTab] = useState('olahraga');
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 pb-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {[
           { id: 'olahraga', label: 'Olahraga', icon: Activity },
-          { id: 'diet', label: 'Diet & Makan', icon: Utensils },
+          { id: 'diet', label: 'Diet', icon: Utensils },
+          { id: 'water', label: 'Air', icon: Droplets },
+          { id: 'sleep', label: 'Tidur', icon: Moon },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = subTab === tab.id;
