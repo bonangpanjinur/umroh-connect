@@ -378,6 +378,52 @@ const AkunView = () => {
         {/* Haji Registration Status Button */}
         <HajiRegistrationButton />
 
+        {/* Shop Order History Shortcut */}
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('/?tab=shop&view=orders')}
+          className={`w-full bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`rounded-full bg-pink-500 text-primary-foreground flex items-center justify-center ${
+              isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+            }`}>
+              <Package style={{ width: iconSize.md, height: iconSize.md }} />
+            </div>
+            <div className="text-left">
+              <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Riwayat Pesanan</h4>
+              <p className={`text-muted-foreground ${fontSize.xs}`}>Lihat status pesanan shop</p>
+            </div>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </motion.button>
+
+        {/* Wishlist Shortcut */}
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('/?tab=shop&view=wishlist')}
+          className={`w-full bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`rounded-full bg-red-500 text-primary-foreground flex items-center justify-center ${
+              isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+            }`}>
+              <Heart style={{ width: iconSize.md, height: iconSize.md }} />
+            </div>
+            <div className="text-left">
+              <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Wishlist</h4>
+              <p className={`text-muted-foreground ${fontSize.xs}`}>Produk favorit Anda</p>
+            </div>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </motion.button>
+
         {/* Shop Admin Dashboard Button */}
         {(isShopAdmin() || isAdmin()) && (
           <motion.button
