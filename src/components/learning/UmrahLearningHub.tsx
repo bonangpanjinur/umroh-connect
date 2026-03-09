@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, HandHeart, Book, MapPin, Compass, GraduationCap, ChevronRight, CheckCircle2, Search, ClipboardCheck, ChevronDown, ChevronUp, HelpCircle, Lightbulb, Plane, Building, Shirt, Pill, BookHeart, Check, Brain, ShoppingCart } from 'lucide-react';
+import { BookOpen, HandHeart, Book, MapPin, Compass, GraduationCap, ChevronRight, CheckCircle2, Search, ClipboardCheck, ChevronDown, ChevronUp, HelpCircle, Lightbulb, Plane, Building, Shirt, Pill, BookHeart, Check, Brain } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
