@@ -25,14 +25,20 @@ const Auth = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(false);
   
-  const { signIn, signUp, user } = useAuthContext();
+  const { signIn, signUp, user, roles, isAdmin, isAgent, loading: authLoading } = useAuthContext();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate('/');
+    if (user && !authLoading) {
+      if (isAdmin()) {
+        navigate('/admin');
+      } else if (isAgent()) {
+        navigate('/agent');
+      } else {
+        navigate('/');
+      }
     }
-  }, [user, navigate]);
+  }, [user, roles, authLoading, navigate]);
 
   const validateForm = (): boolean => {
     try {
