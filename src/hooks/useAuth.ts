@@ -17,9 +17,7 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfileAndRoles(session.user.id);
-          }, 0);
+          fetchProfileAndRoles(session.user.id);
         } else {
           setProfile(null);
           setRoles([]);
