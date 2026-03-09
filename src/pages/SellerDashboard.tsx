@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare, ExternalLink, Copy } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare, ExternalLink, Copy, Store } from 'lucide-react';
 import ChatNotificationBell from '@/components/shop/ChatNotificationBell';
 import OrderNotificationBell from '@/components/shop/OrderNotificationBell';
 import { useToast } from '@/hooks/use-toast';

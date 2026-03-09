@@ -84,6 +84,13 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                     }}
                   />
                   
+                  {/* Cart badge for shop */}
+                  {item.id === 'shop' && user && cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[9px] font-bold min-w-[16px] h-4 flex items-center justify-center rounded-full px-1">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
+                  
                   {/* Active dot indicator */}
                   {isActive && !isElderlyMode && (
                     <motion.div 
