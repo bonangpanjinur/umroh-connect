@@ -154,6 +154,7 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
         </div>
       </div>
 
+      <DailyDoaCard />
       <QuickMenu onMenuClick={onMenuClick} />
       <FeaturedPackages onPackageClick={onPackageClick} />
       <PromoBanner />

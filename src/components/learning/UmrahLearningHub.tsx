@@ -223,7 +223,7 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
       {/* Tabs */}
       <div className="px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-5">
             <TabsTrigger value="tatacara" className="text-[10px] gap-0.5 px-1">
               <BookOpen className="w-3 h-3" />
               Tata Cara
@@ -239,6 +239,10 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
             <TabsTrigger value="persiapan" className="text-[10px] gap-0.5 px-1">
               <ClipboardCheck className="w-3 h-3" />
               Persiapan
+            </TabsTrigger>
+            <TabsTrigger value="quiz" className="text-[10px] gap-0.5 px-1">
+              <Brain className="w-3 h-3" />
+              Quiz
             </TabsTrigger>
           </TabsList>
 
