@@ -13,6 +13,8 @@ import { useManasikGuides } from '@/hooks/useManasikGuides';
 import { usePrayers } from '@/hooks/usePrayers';
 import { useManasikProgress } from '@/hooks/useManasikProgress';
 import LearningBadgesCard from './LearningBadgesCard';
+import ManasikQuiz from './ManasikQuiz';
+import { ShoppingCart } from 'lucide-react';
 
 interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
