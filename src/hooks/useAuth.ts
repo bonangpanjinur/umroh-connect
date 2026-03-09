@@ -35,7 +35,19 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for profile updates to re-fetch
+    const handleProfileUpdate = () => {
+      const currentUser = user;
+      if (currentUser) {
+        fetchProfileAndRoles(currentUser.id);
+      }
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('profile-updated', handleProfileUpdate);
+    };
   }, []);
 
   const fetchProfileAndRoles = async (userId: string) => {
