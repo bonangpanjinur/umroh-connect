@@ -386,7 +386,7 @@ export const useUpdateUserRole = () => {
       // Update profile role
       await supabase
         .from('profiles')
-        .update({ role })
+        .update({ role } as any)
         .eq('user_id', user_id);
 
       // Update or insert user_roles
@@ -399,13 +399,13 @@ export const useUpdateUserRole = () => {
       if (existingRole) {
         const { error } = await supabase
           .from('user_roles')
-          .update({ role })
+          .update({ role } as any)
           .eq('user_id', user_id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('user_roles')
-          .insert({ user_id, role });
+          .insert({ user_id, role } as any);
         if (error) throw error;
       }
 
