@@ -477,9 +477,20 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
                               checked={checkedItems.includes(item.id)}
                               onCheckedChange={() => toggleChecklist(item.id)}
                             />
-                            <span className={`text-sm ${checkedItems.includes(item.id) ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                            <span className={`text-sm flex-1 ${checkedItems.includes(item.id) ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                               {item.label}
                             </span>
+                            {shopSearchMap[item.id] && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] text-primary gap-1 shrink-0"
+                                onClick={(e) => { e.preventDefault(); onMenuClick?.(`shop:${shopSearchMap[item.id]}`); }}
+                              >
+                                <ShoppingBag className="w-3 h-3" />
+                                Beli
+                              </Button>
+                            )}
                           </label>
                         ))}
                       </div>
