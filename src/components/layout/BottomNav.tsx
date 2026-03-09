@@ -2,6 +2,8 @@ import { Home, Briefcase, User, BookOpen, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TabId } from '@/types';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useShopCart } from '@/hooks/useShopCart';
 
 interface BottomNavProps {
   activeTab: TabId;
