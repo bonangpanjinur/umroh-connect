@@ -20,6 +20,26 @@ interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
 }
 
+// Map checklist items to shop search terms
+const shopSearchMap: Record<string, string> = {
+  'ihram': 'kain ihram',
+  'mukena': 'mukena',
+  'sajadah': 'sajadah travel',
+  'sandal': 'sandal',
+  'quran-kecil': 'al-quran kecil',
+  'tasbih': 'tasbih',
+  'peniti': 'peniti ihram',
+  'ikat-pinggang': 'money belt ihram',
+  'koper': 'koper',
+  'tas-kecil': 'sling bag',
+  'charger': 'power bank',
+  'botol-zamzam': 'botol zamzam',
+  'masker': 'masker',
+  'hand-sanitizer': 'hand sanitizer',
+  'sunblock': 'sunblock',
+  'buku-doa': 'buku doa manasik',
+};
+
 // Universal checklist data
 const checklistCategories = [
   {
