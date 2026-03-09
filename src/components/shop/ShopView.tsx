@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Search, ClipboardList, SlidersHorizontal, ArrowUpDown, Store, Star, BadgeCheck, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +35,10 @@ const sortLabels: Record<SortOption, string> = {
 };
 
 const ShopView = ({ onBack }: ShopViewProps) => {
+  const [urlSearchParams] = useSearchParams();
+  const initialSearch = urlSearchParams.get('search') || '';
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
@@ -48,6 +50,12 @@ const ShopView = ({ onBack }: ShopViewProps) => {
   const [activeTab, setActiveTab] = useState<'products' | 'stores' | 'wishlist'>('products');
   const [storeSearch, setStoreSearch] = useState('');
   const navigate = useNavigate();
+
+  // Sync search from URL params
+  useEffect(() => {
+    const s = urlSearchParams.get('search');
+    if (s) setSearch(s);
+  }, [urlSearchParams]);
 
   const { data: categories = [] } = useShopCategories();
   const { data: products = [], isLoading } = useShopProducts(selectedCategory, search || undefined);

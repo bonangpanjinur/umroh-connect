@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLearningReminder } from '@/hooks/useLearningReminder';
 import PrayerTimeCard from './PrayerTimeCard';
+import DailyDoaCard from './DailyDoaCard';
 import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
 import JourneyTimeline from './JourneyTimeline';
@@ -153,6 +154,7 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
         </div>
       </div>
 
+      <DailyDoaCard />
       <QuickMenu onMenuClick={onMenuClick} />
       <FeaturedPackages onPackageClick={onPackageClick} />
       <PromoBanner />

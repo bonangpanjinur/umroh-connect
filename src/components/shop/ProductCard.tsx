@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingBag } from 'lucide-react';
 import WishlistButton from './WishlistButton';
 import ShareButton from '@/components/common/ShareButton';
+import ProductRatingBadge from './ProductRatingBadge';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -55,6 +56,7 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
             <span className="text-xs text-muted-foreground line-through">{formatRupiah(product.compare_price)}</span>
           )}
         </div>
+        <ProductRatingBadge productId={product.id} />
         {product.stock > 0 && product.stock <= 5 && (
           <p className="text-xs text-destructive mt-1">Sisa {product.stock}</p>
         )}

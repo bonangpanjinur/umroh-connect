@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ProductReviews from './ProductReviews';
 import WishlistButton from './WishlistButton';
+import RelatedProducts from './RelatedProducts';
+import { Truck } from 'lucide-react';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -139,8 +141,23 @@ const ProductDetailModal = ({ product, open, onOpenChange }: ProductDetailModalP
             </button>
           )}
 
+          {/* Shipping estimate */}
+          {product.seller && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+              <Truck className="w-4 h-4 text-primary shrink-0" />
+              <span>Ongkir dihitung saat checkout berdasarkan lokasi</span>
+            </div>
+          )}
+
           {/* Reviews */}
           <ProductReviews productId={product.id} />
+
+          {/* Related Products */}
+          <RelatedProducts 
+            categoryId={product.category_id} 
+            currentProductId={product.id} 
+            onSelect={(p) => { onOpenChange(false); setTimeout(() => { onOpenChange(true); }, 100); }}
+          />
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>Stok: <strong className={product.stock > 0 ? 'text-foreground' : 'text-destructive'}>{product.stock > 0 ? product.stock : 'Habis'}</strong></span>

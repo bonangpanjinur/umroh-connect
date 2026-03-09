@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, HandHeart, Book, MapPin, Compass, GraduationCap, ChevronRight, CheckCircle2, Search, ClipboardCheck, ChevronDown, ChevronUp, HelpCircle, Lightbulb, Plane, Building, Shirt, Pill, BookHeart, Check } from 'lucide-react';
+import { BookOpen, HandHeart, Book, MapPin, Compass, GraduationCap, ChevronRight, CheckCircle2, Search, ClipboardCheck, ChevronDown, ChevronUp, HelpCircle, Lightbulb, Plane, Building, Shirt, Pill, BookHeart, Check, Brain } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,32 @@ import { useManasikGuides } from '@/hooks/useManasikGuides';
 import { usePrayers } from '@/hooks/usePrayers';
 import { useManasikProgress } from '@/hooks/useManasikProgress';
 import LearningBadgesCard from './LearningBadgesCard';
+import ManasikQuiz from './ManasikQuiz';
+import { ShoppingBag } from 'lucide-react';
 
 interface UmrahLearningHubProps {
   onMenuClick?: (menuId: string) => void;
 }
+
+// Map checklist items to shop search terms
+const shopSearchMap: Record<string, string> = {
+  'ihram': 'kain ihram',
+  'mukena': 'mukena',
+  'sajadah': 'sajadah travel',
+  'sandal': 'sandal',
+  'quran-kecil': 'al-quran kecil',
+  'tasbih': 'tasbih',
+  'peniti': 'peniti ihram',
+  'ikat-pinggang': 'money belt ihram',
+  'koper': 'koper',
+  'tas-kecil': 'sling bag',
+  'charger': 'power bank',
+  'botol-zamzam': 'botol zamzam',
+  'masker': 'masker',
+  'hand-sanitizer': 'hand sanitizer',
+  'sunblock': 'sunblock',
+  'buku-doa': 'buku doa manasik',
+};
 
 // Universal checklist data
 const checklistCategories = [
@@ -221,7 +243,7 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
       {/* Tabs */}
       <div className="px-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-5">
             <TabsTrigger value="tatacara" className="text-[10px] gap-0.5 px-1">
               <BookOpen className="w-3 h-3" />
               Tata Cara
@@ -237,6 +259,10 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
             <TabsTrigger value="persiapan" className="text-[10px] gap-0.5 px-1">
               <ClipboardCheck className="w-3 h-3" />
               Persiapan
+            </TabsTrigger>
+            <TabsTrigger value="quiz" className="text-[10px] gap-0.5 px-1">
+              <Brain className="w-3 h-3" />
+              Quiz
             </TabsTrigger>
           </TabsList>
 
@@ -451,9 +477,20 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
                               checked={checkedItems.includes(item.id)}
                               onCheckedChange={() => toggleChecklist(item.id)}
                             />
-                            <span className={`text-sm ${checkedItems.includes(item.id) ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                            <span className={`text-sm flex-1 ${checkedItems.includes(item.id) ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                               {item.label}
                             </span>
+                            {shopSearchMap[item.id] && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[10px] text-primary gap-1 shrink-0"
+                                onClick={(e) => { e.preventDefault(); onMenuClick?.(`shop:${shopSearchMap[item.id]}`); }}
+                              >
+                                <ShoppingBag className="w-3 h-3" />
+                                Beli
+                              </Button>
+                            )}
                           </label>
                         ))}
                       </div>
@@ -541,6 +578,11 @@ const UmrahLearningHub = ({ onMenuClick }: UmrahLearningHubProps) => {
                 Peta
               </Button>
             </div>
+          </TabsContent>
+
+          {/* Tab: Quiz */}
+          <TabsContent value="quiz" className="mt-3">
+            <ManasikQuiz />
           </TabsContent>
         </Tabs>
       </div>
