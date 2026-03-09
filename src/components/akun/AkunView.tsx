@@ -191,10 +191,8 @@ const AkunView = () => {
       if (error) throw error;
       toast({ title: 'Profil berhasil diperbarui' });
       setIsEditingProfile(false);
-      // Re-fetch profile without full page reload
-      if (profile) {
-        (profile as any).full_name = editName.trim();
-      }
+      // Force re-render by reloading auth state
+      window.dispatchEvent(new Event('profile-updated'));
     } catch (err: any) {
       toast({ title: 'Gagal memperbarui profil', description: err.message, variant: 'destructive' });
     } finally {
