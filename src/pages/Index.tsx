@@ -87,6 +87,13 @@ const Index = () => {
       return;
     }
 
+    // Support shop:searchTerm to open shop with pre-filled search
+    if (menuId.startsWith('shop:')) {
+      const searchTerm = menuId.substring(5);
+      openView('shop', { search: searchTerm });
+      return;
+    }
+
     switch (menuId) {
       case 'tasbih':
         setIsTasbihOpen(true);
