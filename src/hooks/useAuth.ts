@@ -17,9 +17,7 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfileAndRoles(session.user.id);
-          }, 0);
+          fetchProfileAndRoles(session.user.id);
         } else {
           setProfile(null);
           setRoles([]);
@@ -37,7 +35,19 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for profile updates to re-fetch
+    const handleProfileUpdate = () => {
+      const currentUser = user;
+      if (currentUser) {
+        fetchProfileAndRoles(currentUser.id);
+      }
+    };
+    window.addEventListener('profile-updated', handleProfileUpdate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('profile-updated', handleProfileUpdate);
+    };
   }, []);
 
   const fetchProfileAndRoles = async (userId: string) => {
@@ -110,7 +120,7 @@ export const useAuth = () => {
   };
 
   const isAgent = (): boolean => hasRole('agent');
-  const isAdmin = (): boolean => hasRole('admin') || hasRole('super_admin' as AppRole);
+  const isAdmin = (): boolean => hasRole('admin') || hasRole('super_admin');
   const isJamaah = (): boolean => roles.length === 0 || (roles.length === 1 && hasRole('jamaah'));
   const isShopAdmin = (): boolean => hasRole('shop_admin');
   const isSeller = (): boolean => hasRole('seller');
