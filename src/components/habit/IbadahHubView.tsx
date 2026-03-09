@@ -450,6 +450,8 @@ const KesehatanSubTabs = ({ isRamadhanMode }: { isRamadhanMode: boolean }) => {
       </div>
       {subTab === 'olahraga' && <OlahragaView isRamadhanMode={isRamadhanMode} />}
       {subTab === 'diet' && <MealTrackingView isRamadhanMode={isRamadhanMode} />}
+      {subTab === 'water' && <WaterIntakeTracker />}
+      {subTab === 'sleep' && <SleepTracker />}
     </div>
   );
 };
