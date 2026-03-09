@@ -10,6 +10,8 @@ import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import ProductReviews from './ProductReviews';
 import WishlistButton from './WishlistButton';
+import RelatedProducts from './RelatedProducts';
+import { Truck } from 'lucide-react';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
