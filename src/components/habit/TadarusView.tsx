@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuthContext } from '@/contexts/AuthContext';
 import { 
-  useQuranSurahs, 
-  useTodayQuranLogs, 
-  useQuranStats, 
-  useDeleteQuranLog,
-  useQuranLastRead 
-} from '@/hooks/useQuranTracking';
+  useLocalQuranSurahs, 
+  useLocalTodayQuranLogs, 
+  useLocalQuranStats, 
+  useDeleteLocalTadarusLog,
+  useLocalQuranLastRead,
+  basicSurahs
+} from '@/hooks/useLocalTadarus';
 import { BookOpen, Plus, Trash2, ChevronRight, History, Target, Calendar, BookMarked, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import KhatamCalculator from './KhatamCalculator';
@@ -22,12 +22,11 @@ interface TadarusViewProps {
 }
 
 const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
-  const { user } = useAuthContext();
-  const { data: surahs } = useQuranSurahs();
-  const { data: todayLogs, isLoading: logsLoading } = useTodayQuranLogs(user?.id);
-  const stats = useQuranStats(user?.id);
-  const deleteLog = useDeleteQuranLog();
-  const { data: lastRead } = useQuranLastRead(user?.id);
+  const { data: surahs } = useLocalQuranSurahs();
+  const { data: todayLogs, isLoading: logsLoading } = useLocalTodayQuranLogs();
+  const stats = useLocalQuranStats();
+  const deleteLog = useDeleteLocalTadarusLog();
+  const { data: lastRead } = useLocalQuranLastRead();
 
   const targetJuz = 30;
   const progressPercentage = Math.min((stats.estimatedJuz / targetJuz) * 100, 100);
@@ -43,33 +42,18 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
   };
 
   const handleDelete = (logId: string) => {
-    if (!user) return;
-    deleteLog.mutate({ logId, userId: user.id });
+    deleteLog.mutate(logId);
   };
 
   const getSurahName = (surahNumber: number) => {
-    const surah = surahs?.find(s => s.number === surahNumber);
+    const surah = basicSurahs.find(s => s.number === surahNumber);
     return surah?.name || `Surah ${surahNumber}`;
   };
 
   const getSurahArabic = (surahNumber: number) => {
-    const surah = surahs?.find(s => s.number === surahNumber);
+    const surah = basicSurahs.find(s => s.number === surahNumber);
     return surah?.name_arabic || '';
   };
-
-  if (!user) {
-    return (
-      <Card className="border-dashed border-2 border-muted">
-        <CardContent className="py-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-8 h-8 text-primary/50" />
-          </div>
-          <p className="text-muted-foreground font-medium">Silakan login untuk melacak tadarus Anda</p>
-          <p className="text-xs text-muted-foreground mt-1">Catatan bacaan akan tersimpan ke akun Anda</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -162,7 +146,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
       </div>
 
       {/* Last Read Card - Direct Link to Quran */}
-      {lastRead && 'surah_number' in lastRead && (
+      {lastRead && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -179,15 +163,15 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
                       Terakhir Baca
                     </p>
                     <p className="text-base font-bold text-foreground">
-                      {getSurahName((lastRead as any).surah_number)}
+                      {getSurahName(lastRead.surah_number)}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-xs text-muted-foreground">
-                        Ayat {(lastRead as any).ayah_number}
+                        Ayat {lastRead.ayah_number}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                       <span className="text-xs text-muted-foreground">
-                        Juz {(lastRead as any).juz_number}
+                        Juz {lastRead.juz_number}
                       </span>
                     </div>
                   </div>
@@ -232,7 +216,6 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
           ) : todayLogs && todayLogs.length > 0 ? (
             <div className="divide-y divide-muted/30">
               {todayLogs.map((log, index) => {
-                const surah = log.quran_surahs;
                 return (
                   <motion.div 
                     key={log.id} 
@@ -248,13 +231,11 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-sm">
-                            {surah?.name || getSurahName(log.surah_start)}
+                            {getSurahName(log.surah_start)}
                           </p>
-                          {surah?.name_arabic && (
-                            <span className="text-xs text-muted-foreground font-arabic">
-                              {surah.name_arabic}
-                            </span>
-                          )}
+                          <span className="text-xs text-muted-foreground font-arabic">
+                            {getSurahArabic(log.surah_start)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">
@@ -310,6 +291,7 @@ const TadarusView = ({ onOpenQuran }: TadarusViewProps) => {
                 <BookOpen className="w-4 h-4 mr-2" />
                 Buka Al-Quran
               </Button>
+              <p className="text-[10px] text-muted-foreground mt-3">Data disimpan di perangkat ini</p>
             </div>
           )}
         </CardContent>
