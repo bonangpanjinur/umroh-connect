@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X, ClipboardEdit, Heart, Package } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X, ClipboardEdit, Heart, Package, Shield, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -355,6 +355,32 @@ const AkunView = () => {
           </button>
         </div>
 
+
+        {/* Admin Dashboard Button */}
+        {isAdmin() && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/admin')}
+            className={`w-full bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+              isElderlyMode ? 'p-5' : 'p-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full bg-red-600 text-primary-foreground flex items-center justify-center ${
+                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+              }`}>
+                <Shield style={{ width: iconSize.md, height: iconSize.md }} />
+              </div>
+              <div className="text-left">
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Admin Dashboard</h4>
+                <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola seluruh platform</p>
+              </div>
+            </div>
+            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+          </motion.button>
+        )}
+
         {/* Agent Dashboard Button */}
         {isAgentOrAdmin && (
           <motion.button
@@ -380,6 +406,31 @@ const AkunView = () => {
           </motion.button>
         )}
 
+        {/* Shop Admin Dashboard Button */}
+        {(isShopAdmin() || isAdmin()) && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => navigate('/shop-admin')}
+            className={`w-full bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-between mb-3 ${
+              isElderlyMode ? 'p-5' : 'p-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`rounded-full bg-purple-500 text-primary-foreground flex items-center justify-center ${
+                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
+              }`}>
+                <ShoppingCart style={{ width: iconSize.md, height: iconSize.md }} />
+              </div>
+              <div className="text-left">
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Shop Admin</h4>
+                <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola toko & produk</p>
+              </div>
+            </div>
+            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+          </motion.button>
+        )}
+
         {/* Seller Dashboard Button */}
         {(isSeller() || !!sellerProfile || isAdmin()) && (
           <motion.button
@@ -397,9 +448,9 @@ const AkunView = () => {
                 <Store style={{ width: iconSize.md, height: iconSize.md }} />
               </div>
               <div className="text-left">
-                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Dashboard Store</h4>
+                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Seller Center</h4>
                 <p className={`text-muted-foreground ${fontSize.xs}`}>
-                  {sellerProfile?.shop_name || 'Kelola produk & penjualan Anda'}
+                  {sellerProfile?.shop_name || 'Kelola produk & penjualan'}
                 </p>
               </div>
             </div>
