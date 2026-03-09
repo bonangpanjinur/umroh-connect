@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingBag } from 'lucide-react';
 import WishlistButton from './WishlistButton';
 import ShareButton from '@/components/common/ShareButton';
+import ProductRatingBadge from './ProductRatingBadge';
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
