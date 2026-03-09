@@ -138,6 +138,7 @@ const AkunView = () => {
   const [showProfileDetail, setShowProfileDetail] = useState(false);
   const [editName, setEditName] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return localStorage.getItem('prayer-card-background');
   });
