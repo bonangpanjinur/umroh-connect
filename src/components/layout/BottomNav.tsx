@@ -2,6 +2,8 @@ import { Home, Briefcase, User, BookOpen, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { TabId } from '@/types';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useShopCart } from '@/hooks/useShopCart';
 
 interface BottomNavProps {
   activeTab: TabId;
@@ -18,6 +20,8 @@ const navItems: { id: TabId; label: string; icon: typeof Home; audioLabel: strin
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
+  const { user } = useAuthContext();
+  const { totalItems: cartCount } = useShopCart();
 
   const handleTabChange = (item: typeof navItems[0]) => {
     // Audio feedback in elderly mode
@@ -79,6 +83,13 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
                       height: isElderlyMode ? iconSize.md : 22 
                     }}
                   />
+                  
+                  {/* Cart badge for shop */}
+                  {item.id === 'shop' && user && cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2.5 bg-destructive text-destructive-foreground text-[9px] font-bold min-w-[16px] h-4 flex items-center justify-center rounded-full px-1">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
                   
                   {/* Active dot indicator */}
                   {isActive && !isElderlyMode && (

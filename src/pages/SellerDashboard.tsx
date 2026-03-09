@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare, ExternalLink, Copy } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Plus, BarChart3, Settings, Trash2, Edit, Star, ClipboardList, MessageSquare, ExternalLink, Copy, Store } from 'lucide-react';
 import ChatNotificationBell from '@/components/shop/ChatNotificationBell';
 import OrderNotificationBell from '@/components/shop/OrderNotificationBell';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ const formatRupiah = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
 const SellerDashboard = () => {
-  const { user, loading } = useAuthContext();
+  const { user, loading, isAdmin } = useAuthContext();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: sellerProfile, isLoading: loadingProfile } = useSellerProfile();
@@ -51,8 +51,8 @@ const SellerDashboard = () => {
     );
   }
 
-  // Not a seller yet -> show application form
-  if (!sellerProfile) {
+  // Not a seller yet -> show application form (unless admin)
+  if (!sellerProfile && !isAdmin()) {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-10 bg-card border-b border-border">
@@ -65,6 +65,32 @@ const SellerDashboard = () => {
         </header>
         <main className="container mx-auto px-4 py-6 max-w-lg">
           <SellerApplicationForm />
+        </main>
+      </div>
+    );
+  }
+
+  // Admin without seller profile - show admin overview
+  if (!sellerProfile && isAdmin()) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 bg-card border-b border-border">
+          <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Seller Center (Admin View)</h1>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-6 max-w-lg">
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <Store className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="font-medium">Anda login sebagai Admin</p>
+              <p className="text-sm mt-1">Kelola seller dari Admin Dashboard</p>
+              <Button className="mt-4" onClick={() => navigate('/admin')}>Buka Admin Dashboard</Button>
+            </CardContent>
+          </Card>
         </main>
       </div>
     );
