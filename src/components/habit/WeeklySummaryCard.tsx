@@ -9,7 +9,7 @@ import { format, subDays } from 'date-fns';
 const WeeklySummaryCard = () => {
   const stats = useLocalHabitStats();
   const weeklyProgress = useLocalWeeklyProgress();
-  const { getMoodHistory } = useMoodTracking();
+  const { moodHistory } = useMoodTracking();
 
   const weeklyCompletions = useMemo(() => {
     return weeklyProgress.reduce((sum, d) => sum + d.completedCount, 0);
