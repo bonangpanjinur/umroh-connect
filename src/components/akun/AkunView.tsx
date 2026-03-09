@@ -279,15 +279,49 @@ const AkunView = () => {
       {/* Profile Header */}
       <div className={`bg-card border-b border-border ${isElderlyMode ? 'pb-8 pt-6 px-5' : 'pb-6 pt-4 px-4'}`}>
         <div className={`flex items-center mb-6 ${isElderlyMode ? 'gap-5' : 'gap-4'}`}>
-          <div className={`rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground border-2 border-card shadow-primary ${
+          <label className={`rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground border-2 border-card shadow-primary cursor-pointer relative group ${
             isElderlyMode ? 'w-24 h-24 text-4xl' : 'w-16 h-16 text-2xl'
           }`}>
-            {profile?.avatar_url ? (
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file || !user?.id || !profile?.id) return;
+                if (file.size > 2 * 1024 * 1024) {
+                  toast({ title: 'Maksimal 2MB', variant: 'destructive' });
+                  return;
+                }
+                setUploadingAvatar(true);
+                try {
+                  const ext = file.name.split('.').pop();
+                  const path = `avatars/${user.id}.${ext}`;
+                  const { error: uploadErr } = await supabase.storage.from('uploads').upload(path, file, { upsert: true });
+                  if (uploadErr) throw uploadErr;
+                  const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path);
+                  const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+                  await supabase.from('profiles').update({ avatar_url: avatarUrl } as any).eq('id', profile.id);
+                  window.dispatchEvent(new Event('profile-updated'));
+                  toast({ title: 'Foto profil diperbarui' });
+                } catch (err: any) {
+                  toast({ title: 'Gagal upload foto', description: err.message, variant: 'destructive' });
+                } finally {
+                  setUploadingAvatar(false);
+                }
+              }}
+            />
+            {uploadingAvatar ? (
+              <div className="animate-spin w-6 h-6 border-2 border-primary-foreground border-t-transparent rounded-full" />
+            ) : profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-full object-cover" />
             ) : (
               <User style={{ width: isElderlyMode ? 48 : 28, height: isElderlyMode ? 48 : 28 }} />
             )}
-          </div>
+            <div className="absolute inset-0 bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <ImageIcon className="w-5 h-5 text-white" />
+            </div>
+          </label>
           <div className="flex-1">
             <h2 className={`font-bold text-foreground ${fontSize.lg}`}>
               {isEditingProfile ? (
