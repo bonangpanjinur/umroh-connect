@@ -56,6 +56,7 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
             <span className="text-xs text-muted-foreground line-through">{formatRupiah(product.compare_price)}</span>
           )}
         </div>
+        <ProductRatingBadge productId={product.id} />
         {product.stock > 0 && product.stock <= 5 && (
           <p className="text-xs text-destructive mt-1">Sisa {product.stock}</p>
         )}
