@@ -280,6 +280,25 @@ export const IbadahHubView = ({ onOpenTasbih, onOpenQuran, onNavigateToAuth }: I
         </Card>
       </div>
 
+      {/* Mood Check-In (prominent if not done today) */}
+      <div className="px-4 pt-2">
+        {!todayMood ? (
+          <MoodCheckIn compact={false} />
+        ) : (
+          <MoodCheckIn compact={true} />
+        )}
+      </div>
+
+      {/* Achievement Badges */}
+      <div className="px-4 pt-2">
+        <AchievementBadges />
+      </div>
+
+      {/* Weekly Summary */}
+      <div className="px-4 pt-2">
+        <WeeklySummaryCard />
+      </div>
+
       {/* Premium / Trial Status Banner */}
       <div className="px-4 pt-2">
         <TrialStatusBanner 
