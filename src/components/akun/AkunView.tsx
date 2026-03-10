@@ -464,11 +464,16 @@ const AkunView = () => {
         {/* Haji Registration Status Button */}
         <HajiRegistrationButton />
 
+        {/* --- Aktivitas Saya --- */}
+        <h3 className={`font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-2 ${fontSize.xs}`}>
+          Aktivitas Saya
+        </h3>
+
         {/* Shop Order History Shortcut */}
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
-          onClick={() => navigate('/?tab=shop&view=orders')}
+          onClick={() => navigate('/?view=shop&shopTab=orders')}
           className={`w-full bg-pink-500/10 border border-pink-500/20 rounded-2xl flex items-center justify-between mb-3 ${
             isElderlyMode ? 'p-5' : 'p-4'
           }`}
@@ -491,7 +496,7 @@ const AkunView = () => {
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.99 }}
-          onClick={() => navigate('/?tab=shop&view=wishlist')}
+          onClick={() => navigate('/?view=shop&shopTab=wishlist')}
           className={`w-full bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-between mb-3 ${
             isElderlyMode ? 'p-5' : 'p-4'
           }`}
@@ -509,56 +514,6 @@ const AkunView = () => {
           </div>
           <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
         </motion.button>
-
-        {/* Shop Admin Dashboard Button */}
-        {(isShopAdmin() || isAdmin()) && (
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={() => navigate('/shop-admin')}
-            className={`w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between mb-3 ${
-              isElderlyMode ? 'p-5' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`rounded-full bg-emerald-500 text-primary-foreground flex items-center justify-center ${
-                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
-              }`}>
-                <Store style={{ width: iconSize.md, height: iconSize.md }} />
-              </div>
-              <div className="text-left">
-                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Admin Toko</h4>
-                <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola produk & pesanan toko</p>
-              </div>
-            </div>
-            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
-          </motion.button>
-        )}
-
-        {/* Admin Dashboard Button */}
-        {isAdmin() && (
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={() => navigate('/admin')}
-            className={`w-full bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-between mb-3 ${
-              isElderlyMode ? 'p-5' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`rounded-full bg-purple-500 text-primary-foreground flex items-center justify-center ${
-                isElderlyMode ? 'w-14 h-14' : 'w-10 h-10'
-              }`}>
-                <Briefcase style={{ width: iconSize.md, height: iconSize.md }} />
-              </div>
-              <div className="text-left">
-                <h4 className={`font-bold text-foreground ${fontSize.sm}`}>Admin Dashboard</h4>
-                <p className={`text-muted-foreground ${fontSize.xs}`}>Kelola platform & monetisasi</p>
-              </div>
-            </div>
-            <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
-          </motion.button>
-        )}
       </div>
 
       {/* Agent Registration CTA - only for jamaah users */}
