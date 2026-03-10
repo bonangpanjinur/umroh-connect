@@ -16,20 +16,16 @@ const menuItems = [
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
 ];
 
-// Ramadan-specific menu items - prioritize ibadah features
+// Ramadan-specific menu items - deduplicated (Doa, Kiblat, Manasik, Quran already in Quick Access)
 const ramadanMenuItems = [
   { id: 'ibadah', label: 'Ramadhan', icon: Moon, color: 'text-amber-600', audioLabel: 'Dashboard Ramadhan', isHighlight: true, highlightColor: 'amber' },
-  { id: 'quran', label: 'Tadarus', icon: Book, color: 'text-emerald-700', audioLabel: 'Tadarus Al-Quran', isHighlight: true, highlightColor: 'emerald' },
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-primary', audioLabel: 'Tasbih Digital' },
-  { id: 'doaharian', label: 'Doa', icon: HandHeart, color: 'text-orange-500', audioLabel: 'Doa Harian' },
-  { id: 'qibla', label: 'Kiblat', icon: Compass, color: 'text-primary', audioLabel: 'Arah Kiblat' },
   { id: 'tabungan', label: 'Kalkulator', icon: Wallet, color: 'text-emerald-600', audioLabel: 'Kalkulator Islami' },
-  { id: 'manasik', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
+  { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-blue-500', audioLabel: 'Checklist Persiapan' },
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
   { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
-  { id: 'shop', label: 'Oleh-oleh', icon: ShoppingBag, color: 'text-amber-600', audioLabel: 'Toko Oleh-oleh' },
 ];
 
 interface QuickMenuProps {

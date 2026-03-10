@@ -147,7 +147,7 @@ const Index = () => {
         handleTabChange('shop');
         break;
       case 'checklist':
-        openView('ibadah');
+        handleTabChange('belajar');
         break;
       case 'seller':
         break;
