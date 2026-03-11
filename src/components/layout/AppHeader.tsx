@@ -12,7 +12,6 @@ interface AppHeaderProps {
 
 const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
   const { isRamadhanMode, toggleRamadhanMode } = useRamadhanMode();
-  const { language, setLanguage } = useLanguage();
   const { data: platformConfig } = usePlatformConfig();
   const siteName = platformConfig?.site_name || 'Arah Umroh';
   const siteDesc = platformConfig?.site_description || 'Marketplace & Ibadah';
