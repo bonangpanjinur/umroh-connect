@@ -154,10 +154,10 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
         </div>
       </div>
 
+      <PromoBanner />
       <DailyDoaCard />
       <QuickMenu onMenuClick={onMenuClick} />
       <FeaturedPackages onPackageClick={onPackageClick} />
-      <PromoBanner />
 
       {/* Journey Timeline - only for users with active booking */}
       {user && hasActiveBooking && (

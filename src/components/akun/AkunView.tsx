@@ -37,7 +37,7 @@ const HajiRegistrationButton = () => {
     <motion.button
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
-      onClick={() => navigate('/?tab=haji')}
+      onClick={() => navigate('/?tab=belajar')}
       className={`w-full bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between mb-3 ${
         isElderlyMode ? 'p-5' : 'p-4'
       }`}
