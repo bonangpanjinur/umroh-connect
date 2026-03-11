@@ -681,7 +681,7 @@ const AkunView = () => {
 
         {/* Offline Manager */}
         <button 
-          onClick={() => onMenuClick?.('offline')}
+          onClick={() => navigate('/?view=offline')}
           className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
             isElderlyMode ? 'p-5' : 'p-4'
           }`}
