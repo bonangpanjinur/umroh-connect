@@ -14,7 +14,7 @@ const ProductRatingBadge = ({ productId }: ProductRatingBadgeProps) => {
     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
       <span>{average}</span>
-      <span>• Terjual {count}</span>
+      <span>• {count} ulasan</span>
     </div>
   );
 };

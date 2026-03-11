@@ -51,10 +51,13 @@ const ShopView = ({ onBack }: ShopViewProps) => {
   const [storeSearch, setStoreSearch] = useState('');
   const navigate = useNavigate();
 
-  // Sync search from URL params
+  // Sync search and shopTab from URL params
   useEffect(() => {
     const s = urlSearchParams.get('search');
     if (s) setSearch(s);
+    const shopTab = urlSearchParams.get('shopTab');
+    if (shopTab === 'orders') setShowOrders(true);
+    else if (shopTab === 'wishlist') setActiveTab('wishlist');
   }, [urlSearchParams]);
 
   const { data: categories = [] } = useShopCategories();
