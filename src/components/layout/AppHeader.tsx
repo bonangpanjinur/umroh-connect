@@ -4,24 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 import { useLanguage, Language } from '@/contexts/LanguageContext';
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Check } from 'lucide-react';
 import GlobalSearch from '@/components/common/GlobalSearch';
 
 interface AppHeaderProps {
   onSOSClick: () => void;
 }
-
-const langOptions: { code: Language; label: string; flag: string }[] = [
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-];
 
 const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
   const { isRamadhanMode, toggleRamadhanMode } = useRamadhanMode();
