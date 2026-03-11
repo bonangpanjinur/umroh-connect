@@ -2,30 +2,16 @@ import { useState } from 'react';
 import { AlertTriangle, Moon, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
-import { useLanguage, Language } from '@/contexts/LanguageContext';
+
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Check } from 'lucide-react';
 import GlobalSearch from '@/components/common/GlobalSearch';
 
 interface AppHeaderProps {
   onSOSClick: () => void;
 }
 
-const langOptions: { code: Language; label: string; flag: string }[] = [
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-];
-
 const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
   const { isRamadhanMode, toggleRamadhanMode } = useRamadhanMode();
-  const { language, setLanguage } = useLanguage();
   const { data: platformConfig } = usePlatformConfig();
   const siteName = platformConfig?.site_name || 'Arah Umroh';
   const siteDesc = platformConfig?.site_description || 'Marketplace & Ibadah';
@@ -87,23 +73,6 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
           )}
         </motion.button>
 
-        {/* Language Toggle */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-xs font-bold text-muted-foreground border border-border px-2.5 py-1.5 rounded-lg hover:bg-secondary transition-colors">
-              {language.toUpperCase()}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            {langOptions.map((opt) => (
-              <DropdownMenuItem key={opt.code} onClick={() => setLanguage(opt.code)} className="flex items-center justify-between">
-                <span>{opt.flag} {opt.label}</span>
-                {language === opt.code && <Check className="h-4 w-4 text-primary" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
         {/* SOS Button */}
         <motion.button
           whileHover={{ scale: 1.05 }}

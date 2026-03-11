@@ -1,31 +1,53 @@
-import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, CloudDownload, DollarSign, Book, Flame, Sparkles, BookHeart, Wallet, ClipboardCheck, Moon, ShoppingBag } from 'lucide-react';
+import { Compass, Fingerprint, BookOpen, Map, HandHeart, Volume2, DollarSign, Book, Flame, Sparkles, BookHeart, Wallet, ClipboardCheck, Moon, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useElderlyMode } from '@/contexts/ElderlyModeContext';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
 
-// Consolidated menu items - removed duplicates (tracker/tracking, notifikasi/pengingat)
-// Only items NOT in Quick Access (Manasik, Doa, Al-Quran, Kiblat are in Quick Access already)
-const menuItems = [
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  audioLabel: string;
+  isCore?: boolean;
+  gradient?: string;
+  shadow?: string;
+  color?: string;
+  isHighlight?: boolean;
+  highlightColor?: string;
+}
+
+const menuItems: MenuItem[] = [
+  // Row 1 - Spiritual core (gradient style)
+  { id: 'manasik', label: 'Manasik', icon: BookOpen, gradient: 'from-purple-500 to-purple-600', shadow: 'shadow-purple-500/25', isCore: true, audioLabel: 'Panduan Manasik' },
+  { id: 'doaharian', label: 'Doa', icon: HandHeart, gradient: 'from-orange-500 to-orange-600', shadow: 'shadow-orange-500/25', isCore: true, audioLabel: 'Doa Harian' },
+  { id: 'quran', label: 'Al-Quran', icon: Book, gradient: 'from-emerald-500 to-emerald-600', shadow: 'shadow-emerald-500/25', isCore: true, audioLabel: 'Al-Quran' },
+  { id: 'qibla', label: 'Kiblat', icon: Compass, gradient: 'from-sky-500 to-sky-600', shadow: 'shadow-sky-500/25', isCore: true, audioLabel: 'Arah Kiblat' },
+  // Row 2-3 - Utilitas
   { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
-  { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Habit & Ibadah', isHighlight: true, highlightColor: 'primary' },
+  { id: 'ibadah', label: 'Tracker', icon: Flame, color: 'text-primary', audioLabel: 'Tracker Ibadah', isHighlight: true, highlightColor: 'primary' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
   { id: 'tabungan', label: 'Kalkulator', icon: Wallet, color: 'text-emerald-600', audioLabel: 'Kalkulator Islami' },
   { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-blue-500', audioLabel: 'Checklist Persiapan' },
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
-  { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
+  { id: 'shop', label: 'Shop', icon: ShoppingBag, color: 'text-amber-600', audioLabel: 'Belanja Oleh-oleh' },
 ];
 
-// Ramadan-specific menu items - deduplicated (Doa, Kiblat, Manasik, Quran already in Quick Access)
-const ramadanMenuItems = [
-  { id: 'ibadah', label: 'Ramadhan', icon: Moon, color: 'text-amber-600', audioLabel: 'Dashboard Ramadhan', isHighlight: true, highlightColor: 'amber' },
-  { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-primary', audioLabel: 'Tasbih Digital' },
+const ramadanMenuItems: MenuItem[] = [
+  // Row 1 - Ramadan spiritual core
+  { id: 'ibadah', label: 'Ramadhan', icon: Moon, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/25', isCore: true, audioLabel: 'Dashboard Ramadhan' },
+  { id: 'doaharian', label: 'Doa', icon: HandHeart, gradient: 'from-orange-500 to-orange-600', shadow: 'shadow-orange-500/25', isCore: true, audioLabel: 'Doa Harian' },
+  { id: 'quran', label: 'Al-Quran', icon: Book, gradient: 'from-emerald-500 to-emerald-600', shadow: 'shadow-emerald-500/25', isCore: true, audioLabel: 'Al-Quran & Tadarus' },
+  { id: 'qibla', label: 'Kiblat', icon: Compass, gradient: 'from-sky-500 to-sky-600', shadow: 'shadow-sky-500/25', isCore: true, audioLabel: 'Arah Kiblat' },
+  // Row 2-3
+  { id: 'manasik', label: 'Manasik', icon: BookOpen, color: 'text-purple-600', audioLabel: 'Panduan Manasik' },
+  { id: 'tasbih', label: 'Tasbih', icon: Fingerprint, color: 'text-blue-600', audioLabel: 'Tasbih Digital' },
   { id: 'tabungan', label: 'Kalkulator', icon: Wallet, color: 'text-emerald-600', audioLabel: 'Kalkulator Islami' },
   { id: 'peta', label: 'Peta', icon: Map, color: 'text-accent', audioLabel: 'Peta Lokasi' },
   { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, color: 'text-blue-500', audioLabel: 'Checklist Persiapan' },
   { id: 'kurs', label: 'Kurs', icon: DollarSign, color: 'text-emerald-600', audioLabel: 'Konversi Kurs' },
   { id: 'journal', label: 'Jurnal', icon: BookHeart, color: 'text-pink-500', audioLabel: 'Jurnal Ibadah' },
-  { id: 'offline', label: 'Offline', icon: CloudDownload, color: 'text-cyan-500', audioLabel: 'Mode Offline' },
+  { id: 'shop', label: 'Shop', icon: ShoppingBag, color: 'text-amber-600', audioLabel: 'Belanja Oleh-oleh' },
 ];
 
 interface QuickMenuProps {
@@ -37,13 +59,9 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
   const { isRamadhanMode } = useRamadhanMode();
 
   const activeMenuItems = isRamadhanMode ? ramadanMenuItems : menuItems;
+  const displayItems = isElderlyMode ? activeMenuItems.slice(0, 8) : activeMenuItems;
 
-  // In elderly mode, show simplified menu with larger buttons
-  const displayItems = isElderlyMode ? activeMenuItems.slice(0, 6) : activeMenuItems;
-  const gridCols = isElderlyMode ? 'grid-cols-3' : 'grid-cols-4';
-
-  const handleClick = (item: typeof menuItems[0]) => {
-    // In elderly mode, use speech synthesis for audio feedback
+  const handleClick = (item: MenuItem) => {
     if (isElderlyMode && 'speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(item.audioLabel);
       utterance.lang = 'id-ID';
@@ -56,9 +74,7 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
   return (
     <div className={`mb-4 ${isElderlyMode ? 'px-5' : 'px-4'}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className={`font-bold text-foreground ${fontSize.sm}`}>
-          Menu Utama
-        </h3>
+        <h3 className={`font-bold text-foreground ${fontSize.sm}`}>Menu</h3>
         {isElderlyMode && (
           <div className="flex items-center gap-1.5 text-primary">
             <Volume2 className="w-4 h-4" />
@@ -67,78 +83,55 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
         )}
       </div>
       
-      <div className={`grid ${gridCols} ${isElderlyMode ? 'gap-4' : 'gap-3'}`}>
+      <div className={`grid grid-cols-4 ${isElderlyMode ? 'gap-4' : 'gap-3'}`}>
         {displayItems.map((item, index) => {
           const Icon = item.icon;
-          const isHighlight = 'isHighlight' in item && item.isHighlight;
+          const isCore = item.isCore;
+          const isHighlight = item.isHighlight;
+
           return (
             <motion.button
               key={item.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + index * 0.05 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              transition={{ delay: 0.05 + index * 0.03 }}
+              whileTap={{ scale: 0.93 }}
               onClick={() => handleClick(item)}
-              className="flex flex-col items-center gap-2 group relative"
+              className="flex flex-col items-center gap-1.5 group relative"
               aria-label={item.audioLabel}
             >
-              {/* Highlight Badge */}
+              {/* Highlight badge for special items */}
               {isHighlight && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 z-10"
-                >
-                  <span className="flex h-5 w-5">
-                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      item.highlightColor === 'emerald' ? 'bg-emerald-500' :
-                      item.highlightColor === 'blue' ? 'bg-blue-500' :
-                      item.highlightColor === 'purple' ? 'bg-purple-500' :
-                      'bg-primary'
-                    }`}></span>
-                    <span className={`relative inline-flex items-center justify-center rounded-full h-5 w-5 text-[8px] text-white font-bold ${
-                      item.highlightColor === 'emerald' ? 'bg-emerald-500' :
-                      item.highlightColor === 'blue' ? 'bg-blue-500' :
-                      item.highlightColor === 'purple' ? 'bg-purple-500' :
-                      'bg-primary'
-                    }`}>
-                      <Sparkles className="w-3 h-3" />
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 z-10">
+                  <span className="flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-primary text-[7px] text-primary-foreground">
+                      <Sparkles className="w-2.5 h-2.5" />
                     </span>
                   </span>
                 </motion.div>
               )}
-              
+
               <div className={`rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                isHighlight 
-                  ? item.highlightColor === 'emerald' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 border-0' 
-                    : item.highlightColor === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 border-0'
-                    : item.highlightColor === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30 border-0'
-                    : 'bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30 border-0' 
-                  : 'bg-card border border-border shadow-card group-hover:shadow-float'
-              } ${
-                isElderlyMode 
-                  ? 'w-20 h-20 border-2' 
-                  : 'w-14 h-14'
+                isCore
+                  ? `bg-gradient-to-br ${item.gradient} ${item.shadow} shadow-lg w-14 h-14`
+                  : isHighlight
+                    ? 'bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/30 w-14 h-14 border-0'
+                    : `bg-card border border-border shadow-card group-hover:shadow-float ${isElderlyMode ? 'w-18 h-18' : 'w-14 h-14'}`
               }`}>
-                <Icon 
-                  className={isHighlight ? 'text-white' : item.color}
-                  style={{ 
-                    width: isElderlyMode ? iconSize.lg : 24, 
-                    height: isElderlyMode ? iconSize.lg : 24 
-                  }} 
+                <Icon
+                  className={isCore ? 'text-white' : isHighlight ? 'text-primary-foreground' : (item.color || 'text-muted-foreground')}
+                  style={{
+                    width: isElderlyMode ? iconSize.lg : isCore ? 24 : 22,
+                    height: isElderlyMode ? iconSize.lg : isCore ? 24 : 22,
+                  }}
                 />
               </div>
-              <span className={`font-medium text-center ${
-                isHighlight 
-                  ? item.highlightColor === 'emerald' ? 'text-emerald-600 font-semibold' 
-                    : item.highlightColor === 'blue' ? 'text-blue-600 font-semibold'
-                    : item.highlightColor === 'purple' ? 'text-purple-600 font-semibold'
-                    : 'text-primary font-semibold' 
+              <span className={`font-medium text-center leading-tight ${
+                isCore ? 'text-foreground font-semibold' 
+                  : isHighlight ? 'text-primary font-semibold'
                   : 'text-muted-foreground'
-              } ${
-                isElderlyMode ? fontSize.sm : 'text-[10px]'
-              }`}>
+              } ${isElderlyMode ? fontSize.sm : 'text-[10px]'}`}>
                 {item.label}
               </span>
             </motion.button>
@@ -146,7 +139,6 @@ const QuickMenu = ({ onMenuClick }: QuickMenuProps) => {
         })}
       </div>
 
-      {/* Audio instruction for elderly mode */}
       {isElderlyMode && (
         <p className={`text-center text-muted-foreground mt-4 ${fontSize.xs}`}>
           Tekan tombol untuk membuka fitur. Audio akan berbunyi.
