@@ -73,23 +73,6 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
           )}
         </motion.button>
 
-        {/* Language Toggle */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-xs font-bold text-muted-foreground border border-border px-2.5 py-1.5 rounded-lg hover:bg-secondary transition-colors">
-              {language.toUpperCase()}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            {langOptions.map((opt) => (
-              <DropdownMenuItem key={opt.code} onClick={() => setLanguage(opt.code)} className="flex items-center justify-between">
-                <span>{opt.flag} {opt.label}</span>
-                {language === opt.code && <Check className="h-4 w-4 text-primary" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
         {/* SOS Button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
