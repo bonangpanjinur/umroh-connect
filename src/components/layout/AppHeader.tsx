@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { AlertTriangle, Moon, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRamadhanMode } from '@/contexts/RamadhanModeContext';
-import { useLanguage, Language } from '@/contexts/LanguageContext';
+
 import { usePlatformConfig } from '@/hooks/usePlatformConfig';
 import GlobalSearch from '@/components/common/GlobalSearch';
 
