@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X, ClipboardEdit, Heart, Package, Shield, ShoppingCart } from 'lucide-react';
+import { User, Briefcase, Glasses, Globe, HelpCircle, LogOut, ChevronRight, Pen, LogIn, LayoutDashboard, FileText, Volume2, ShoppingBag, Store, Bell, Moon, Sun, ImageIcon, Trash2, Check, X, ClipboardEdit, Heart, Package, Shield, ShoppingCart, CloudDownload } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -675,6 +675,20 @@ const AkunView = () => {
           <div className="flex items-center gap-3">
             <Globe style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
             <span className={`font-medium text-foreground ${fontSize.sm}`}>{t('account.language')}</span>
+          </div>
+          <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
+        </button>
+
+        {/* Offline Manager */}
+        <button 
+          onClick={() => navigate('/?view=offline')}
+          className={`w-full bg-card rounded-2xl border border-border flex items-center justify-between shadow-card text-left hover:border-primary/30 transition-colors ${
+            isElderlyMode ? 'p-5' : 'p-4'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <CloudDownload style={{ width: iconSize.md, height: iconSize.md }} className="text-muted-foreground" />
+            <span className={`font-medium text-foreground ${fontSize.sm}`}>Mode Offline</span>
           </div>
           <ChevronRight style={{ width: iconSize.sm, height: iconSize.sm }} className="text-muted-foreground" />
         </button>
