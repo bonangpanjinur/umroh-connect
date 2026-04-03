@@ -95,17 +95,19 @@ const App = () => {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <ElderlyModeProvider>
-            <RamadhanModeProvider>
-              <AppContent />
-            </RamadhanModeProvider>
-          </ElderlyModeProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider>
+            <ElderlyModeProvider>
+              <RamadhanModeProvider>
+                <AppContent />
+              </RamadhanModeProvider>
+            </ElderlyModeProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
