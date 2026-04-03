@@ -406,8 +406,8 @@ const AkunView = () => {
           </motion.button>
         )}
 
-        {/* Shop Admin Dashboard Button */}
-        {(isShopAdmin() || isAdmin()) && (
+        {/* Shop Admin Dashboard Button - only for shop_admin role, not for full admins (already in Admin Dashboard) */}
+        {isShopAdmin() && !isAdmin() && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
