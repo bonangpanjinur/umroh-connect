@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, ChevronRight } from 'lucide-react';
+import { GraduationCap, ChevronRight, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -17,6 +17,7 @@ const UmrahQuickCard = ({ onNavigateBelajar, onMenuClick }: UmrahQuickCardProps)
 
   const completedCount = completedSteps.filter(id => guides.some(g => g.id === id)).length;
   const progress = guides.length > 0 ? Math.round((completedCount / guides.length) * 100) : 0;
+  const nextGuide = guides.find(g => !completedSteps.includes(g.id));
 
   return (
     <div className="px-4">
@@ -50,6 +51,17 @@ const UmrahQuickCard = ({ onNavigateBelajar, onMenuClick }: UmrahQuickCardProps)
               </Button>
             </div>
             <Progress value={progress} className="h-1.5" />
+            {nextGuide && (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Sparkles className="w-3 h-3 text-primary/60" />
+                <span>Selanjutnya: <span className="font-medium text-foreground">{nextGuide.title}</span></span>
+              </div>
+            )}
+            {!nextGuide && guides.length > 0 && completedCount === guides.length && (
+              <div className="text-[11px] text-emerald-600 font-medium">
+                ✅ Alhamdulillah! Semua langkah telah dipelajari
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

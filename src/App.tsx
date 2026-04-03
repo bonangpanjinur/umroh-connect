@@ -75,14 +75,19 @@ const AppContent = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (sessionStorage.getItem('splash_shown')) return false;
+    sessionStorage.setItem('splash_shown', 'true');
+    return true;
+  });
 
   useEffect(() => {
+    if (!showSplash) return;
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2000);
+    }, 1500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
