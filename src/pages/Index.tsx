@@ -76,8 +76,13 @@ const Index = () => {
   }, [setSearchParams]);
 
   const closeView = useCallback(() => {
-    setSearchParams({});
-  }, [setSearchParams]);
+    const currentTab = searchParams.get('tab');
+    if (currentTab) {
+      setSearchParams({ tab: currentTab });
+    } else {
+      setSearchParams({});
+    }
+  }, [setSearchParams, searchParams]);
 
   const handleMenuClick = (menuId: string) => {
     // Support deep links like "manasik:3" to go to step 3
