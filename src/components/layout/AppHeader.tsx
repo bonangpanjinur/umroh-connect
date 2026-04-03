@@ -55,23 +55,19 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
           <Search className="w-4 h-4" />
         </motion.button>
 
-        {/* Ramadan Mode Toggle */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={toggleRamadhanMode}
-          className={`relative w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
-            isRamadhanMode 
-              ? 'bg-amber-500/20 text-amber-600 border-amber-300 dark:border-amber-700' 
-              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
-          }`}
-          title={isRamadhanMode ? 'Matikan Mode Ramadhan' : 'Aktifkan Mode Ramadhan'}
-        >
-          <Moon className={`w-4 h-4 ${isRamadhanMode ? 'fill-amber-500 text-amber-600' : ''}`} />
-          {isRamadhanMode && (
+        {/* Ramadan Mode Toggle - only show when active */}
+        {isRamadhanMode && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleRamadhanMode}
+            className="relative w-9 h-9 rounded-full flex items-center justify-center border bg-amber-500/20 text-amber-600 border-amber-300 dark:border-amber-700"
+            title="Matikan Mode Ramadhan"
+          >
+            <Moon className="w-4 h-4 fill-amber-500 text-amber-600" />
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-background" />
-          )}
-        </motion.button>
+          </motion.button>
+        )}
 
         {/* SOS Button */}
         <motion.button

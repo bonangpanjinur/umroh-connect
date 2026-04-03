@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -75,31 +76,38 @@ const AppContent = () => {
 };
 
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    if (sessionStorage.getItem('splash_shown')) return false;
+    sessionStorage.setItem('splash_shown', 'true');
+    return true;
+  });
 
   useEffect(() => {
+    if (!showSplash) return;
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 2000);
+    }, 1500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LanguageProvider>
-          <ElderlyModeProvider>
-            <RamadhanModeProvider>
-              <AppContent />
-            </RamadhanModeProvider>
-          </ElderlyModeProvider>
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LanguageProvider>
+            <ElderlyModeProvider>
+              <RamadhanModeProvider>
+                <AppContent />
+              </RamadhanModeProvider>
+            </ElderlyModeProvider>
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 
