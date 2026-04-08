@@ -36,6 +36,7 @@ type FullscreenView = typeof FULLSCREEN_VIEWS[number];
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const jamaahAccess = useJamaahAccess();
   
   const tabFromUrl = searchParams.get('tab') as TabId | null;
   const viewFromUrl = searchParams.get('view') as FullscreenView | null;
