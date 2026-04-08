@@ -1,0 +1,12 @@
+
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS shipping_address TEXT,
+ADD COLUMN IF NOT EXISTS shipping_city TEXT,
+ADD COLUMN IF NOT EXISTS shipping_postal_code TEXT,
+ADD COLUMN IF NOT EXISTS shipping_phone TEXT,
+ADD COLUMN IF NOT EXISTS passport_number TEXT,
+ADD COLUMN IF NOT EXISTS passport_expiry DATE,
+ADD COLUMN IF NOT EXISTS emergency_contact_name TEXT,
+ADD COLUMN IF NOT EXISTS emergency_contact_phone TEXT,
+ADD COLUMN IF NOT EXISTS umrah_count INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS hajj_count INTEGER DEFAULT 0;
