@@ -8,9 +8,10 @@ import GlobalSearch from '@/components/common/GlobalSearch';
 
 interface AppHeaderProps {
   onSOSClick: () => void;
+  hasActiveBooking?: boolean;
 }
 
-const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
+const AppHeader = ({ onSOSClick, hasActiveBooking = false }: AppHeaderProps) => {
   const { isRamadhanMode, toggleRamadhanMode } = useRamadhanMode();
   const { data: platformConfig } = usePlatformConfig();
   const siteName = platformConfig?.site_name || 'Arah Umroh';
@@ -69,16 +70,18 @@ const AppHeader = ({ onSOSClick }: AppHeaderProps) => {
           </motion.button>
         )}
 
-        {/* SOS Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onSOSClick}
-          className="relative w-9 h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20"
-        >
-          <span className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse-ring" />
-          <AlertTriangle className="w-4 h-4 relative z-10" />
-        </motion.button>
+        {/* SOS Button - only show when user has active booking */}
+        {hasActiveBooking && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onSOSClick}
+            className="relative w-9 h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20"
+          >
+            <span className="absolute inset-0 rounded-full bg-destructive/20 animate-pulse-ring" />
+            <AlertTriangle className="w-4 h-4 relative z-10" />
+          </motion.button>
+        )}
       </div>
     </header>
     </>

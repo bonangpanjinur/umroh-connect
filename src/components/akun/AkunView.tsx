@@ -432,7 +432,7 @@ const AkunView = () => {
         )}
 
         {/* Seller Dashboard Button */}
-        {(isSeller() || !!sellerProfile || isAdmin()) && (
+        {(isSeller() || !!sellerProfile) && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
