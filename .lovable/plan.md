@@ -1,73 +1,38 @@
+# Konsolidasi Migrasi Database
 
+## Masalah
+73 file migrasi terpisah di `supabase/migrations/` — banyak yang saling tumpang tindih (CREATE IF NOT EXISTS, ALTER ADD COLUMN IF NOT EXISTS, duplikat policy). Saat dipindah ke Supabase baru, urutan eksekusi bisa error.
 
-# Analisis Bug — Rencana Perbaikan
+## Rencana
 
----
+### 1. Generate satu file SQL bersih dari schema aktual
+- Query schema database **yang sudah jalan** (89 tabel, functions, triggers, RLS policies, storage buckets) menggunakan `pg_dump`-style approach
+- Hasilkan satu file `supabase/migrations/00000000000000_initial_schema.sql` yang berisi:
+  - Semua `CREATE TYPE` (enum: `app_role`, dll)
+  - Semua `CREATE TABLE` dengan kolom final (bukan incremental ALTER)
+  - Semua `CREATE INDEX`
+  - Semua `CREATE FUNCTION` (18 functions yang ada)
+  - Semua `CREATE TRIGGER`
+  - Semua `ALTER TABLE ENABLE ROW LEVEL SECURITY`
+  - Semua `CREATE POLICY`
+  - Semua `ALTER PUBLICATION supabase_realtime` (jika ada)
+  - Storage bucket setup
 
-## Bug yang Ditemukan
+### 2. Hapus semua 73 file migrasi lama
+- Hapus seluruh isi `supabase/migrations/`
+- Ganti dengan satu file baru
 
-### 1. FeaturedPackages Loading State Tidak Punya Padding
-**Lokasi:** `FeaturedPackages.tsx` baris 17-28
-**Masalah:** Saat loading, wrapper div menggunakan `<div className="space-y-3">` tanpa `px-4`. Padahal saat data sudah tampil (baris 36), sudah ada `px-4`. Ini menyebabkan skeleton loading menempel ke tepi layar.
-**Perbaikan:** Tambah `px-4` pada loading state wrapper.
+### 3. Simpan backup file lama
+- Pindahkan semua file lama ke `docs/migrations_backup/` sebagai referensi
 
-### 2. `openView` Menghapus `tab` Param
-**Lokasi:** `Index.tsx` baris 74-76
-**Masalah:** `openView` memanggil `setSearchParams({ view, ...params })` yang menghapus `tab` param. Jadi jika user di tab Shop lalu buka view, param `tab=shop` hilang. Saat `closeView` dipanggil, `searchParams.get('tab')` return null — user kembali ke home bukan ke Shop.
-**Perbaikan:** `openView` harus preserve `tab` param yang ada.
+## Catatan Penting
+- File baru akan menggunakan `CREATE TABLE IF NOT EXISTS` dan `DROP POLICY IF EXISTS` agar idempoten
+- Seed data (doa, manasik, dll) **tidak** dimasukkan ke migration — tetap di `docs/SEED_DATA_IDEMPOTENT.sql`
+- File `supabase/config.toml` tidak berubah
 
-### 3. Seller Dashboard Tampil untuk Admin Tanpa Seller Profile
-**Lokasi:** `AkunView.tsx` baris 435
-**Masalah:** Kondisi `(isSeller() || !!sellerProfile || isAdmin())` menampilkan Seller Center untuk admin meskipun admin tidak punya seller profile. Klik tombol ini akan membuka halaman kosong.
-**Perbaikan:** Tampilkan hanya jika `isSeller() || !!sellerProfile`.
-
-### 4. Profile `avatar_url` Pakai `as any` Type Cast
-**Lokasi:** `AkunView.tsx` baris 304
-**Masalah:** `await supabase.from('profiles').update({ avatar_url: avatarUrl } as any)` — `as any` menyembunyikan potensi error jika kolom `avatar_url` tidak ada di types.
-**Perbaikan:** Kolom `avatar_url` sudah ada di database (terlihat di network response), jadi masalah ada di types yang belum ter-regenerate. Cast tetap aman untuk sekarang, tapi idealnya types harus di-update.
-
-### 5. SOS Button Selalu Tampil — Tidak Kontekstual
-**Lokasi:** `AppHeader.tsx` baris 72-81
-**Masalah:** SOS selalu tampil di header untuk semua user, meskipun user tidak punya booking aktif. Untuk user biasa di Indonesia, tombol ini tidak relevan dan menghabiskan space header.
-**Perbaikan:** Tampilkan SOS hanya jika user memiliki active booking, atau sembunyikan di balik menu overflow.
-
-### 6. Duplicate Shop Rendering — Tab dan View
-**Lokasi:** `Index.tsx` baris 166-168 dan 252-253
-**Masalah:** ShopView bisa di-render melalui dua jalur: `activeView === 'shop'` (baris 166) dan `activeTab === 'shop'` (baris 252). Keduanya render `<ShopView>` tapi dengan `onBack` handler berbeda. Dari QuickMenu, `handleMenuClick('shop')` memanggil `handleTabChange('shop')` yang set `tab=shop`. Tapi dari AkunView, navigate ke `/?view=shop&shopTab=orders` yang set `view=shop`. Ini bisa membingungkan karena perilaku back button berbeda.
-
-### 7. Sheets di AkunView Tidak Support Browser Back Button
-**Lokasi:** `AkunView.tsx` baris 723-876
-**Masalah:** 6 sheet/modal (Bookings, Notifications, Language, Theme, Profile, Background) semuanya menggunakan state boolean biasa (`showBookings`, `showNotifications`, dll). Tidak ada integrasi dengan browser history. Jika user menekan tombol back di Android, mereka keluar dari halaman — bukan menutup sheet.
-**Perbaikan:** Prioritas rendah — perlu refactor signifikan untuk menggunakan URL-based state atau `popstate` listener.
-
----
-
-## Rencana Implementasi (Prioritas)
-
-| # | Fix | File | Effort |
-|---|-----|------|--------|
-| 1 | FeaturedPackages loading padding | `FeaturedPackages.tsx` | Kecil |
-| 2 | `openView` preserve `tab` param | `Index.tsx` | Kecil |
-| 3 | Seller Center hanya tampil jika ada seller profile | `AkunView.tsx` | Kecil |
-| 4 | SOS button conditional (hanya saat ada booking) | `AppHeader.tsx`, `Index.tsx` | Sedang |
-
-### Detail Fix #2 — openView preserve tab:
-```typescript
-const openView = useCallback((view: string, params?: Record<string, string>) => {
-  const currentTab = searchParams.get('tab');
-  const newParams: Record<string, string> = { view, ...params };
-  if (currentTab) newParams.tab = currentTab;
-  setSearchParams(newParams);
-}, [setSearchParams, searchParams]);
-```
-
-### Detail Fix #3 — Seller Center conditional:
-```typescript
-{(isSeller() || !!sellerProfile) && (
-  // Seller Center button...
-)}
-```
-
-### Detail Fix #4 — SOS conditional:
-AppHeader perlu menerima prop `hasActiveBooking` dari Index.tsx, lalu hanya render SOS jika `hasActiveBooking` true.
-
+## File yang Diubah
+| Aksi | File |
+|------|------|
+| Hapus | 73 file di `supabase/migrations/*.sql` |
+| Buat | `supabase/migrations/00000000000000_initial_schema.sql` |
+| Buat | `docs/migrations_backup/` (backup file lama) |
