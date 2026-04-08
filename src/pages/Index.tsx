@@ -72,8 +72,11 @@ const Index = () => {
   };
 
   const openView = useCallback((view: string, params?: Record<string, string>) => {
-    setSearchParams({ view, ...params });
-  }, [setSearchParams]);
+    const currentTab = searchParams.get('tab');
+    const newParams: Record<string, string> = { view, ...params };
+    if (currentTab) newParams.tab = currentTab;
+    setSearchParams(newParams);
+  }, [setSearchParams, searchParams]);
 
   const closeView = useCallback(() => {
     const currentTab = searchParams.get('tab');
