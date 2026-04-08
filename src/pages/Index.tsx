@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { TabId } from '@/types';
+import { useJamaahAccess } from '@/hooks/useJamaahAccess';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import HomeView from '@/components/home/HomeView';
@@ -35,6 +36,7 @@ type FullscreenView = typeof FULLSCREEN_VIEWS[number];
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const jamaahAccess = useJamaahAccess();
   
   const tabFromUrl = searchParams.get('tab') as TabId | null;
   const viewFromUrl = searchParams.get('view') as FullscreenView | null;
@@ -72,8 +74,11 @@ const Index = () => {
   };
 
   const openView = useCallback((view: string, params?: Record<string, string>) => {
-    setSearchParams({ view, ...params });
-  }, [setSearchParams]);
+    const currentTab = searchParams.get('tab');
+    const newParams: Record<string, string> = { view, ...params };
+    if (currentTab) newParams.tab = currentTab;
+    setSearchParams(newParams);
+  }, [setSearchParams, searchParams]);
 
   const closeView = useCallback(() => {
     const currentTab = searchParams.get('tab');
@@ -264,7 +269,7 @@ const Index = () => {
     <div className="min-h-screen bg-secondary/30 flex justify-center">
       <PWAInstallPrompt />
       <div className="w-full max-w-md bg-background min-h-screen relative shadow-float">
-        <AppHeader onSOSClick={() => setIsSOSOpen(true)} />
+        <AppHeader onSOSClick={() => setIsSOSOpen(true)} hasActiveBooking={jamaahAccess.hasActiveBooking} />
         <main className="animate-fade-in">
           <AnimatePresence mode="wait">
             {renderView()}
