@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { TabId } from '@/types';
+import { useJamaahAccess } from '@/hooks/useJamaahAccess';
 import AppHeader from '@/components/layout/AppHeader';
 import BottomNav from '@/components/layout/BottomNav';
 import HomeView from '@/components/home/HomeView';
@@ -267,7 +268,7 @@ const Index = () => {
     <div className="min-h-screen bg-secondary/30 flex justify-center">
       <PWAInstallPrompt />
       <div className="w-full max-w-md bg-background min-h-screen relative shadow-float">
-        <AppHeader onSOSClick={() => setIsSOSOpen(true)} />
+        <AppHeader onSOSClick={() => setIsSOSOpen(true)} hasActiveBooking={jamaahAccess.hasActiveBooking} />
         <main className="animate-fade-in">
           <AnimatePresence mode="wait">
             {renderView()}
