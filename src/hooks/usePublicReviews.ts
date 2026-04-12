@@ -63,20 +63,20 @@ export const usePublicReviews = () => {
         .in('id', travelIds);
       
       // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
+      const { data: profiles } = await (supabase
+        .from('public_profiles' as any)
         .select('user_id, full_name, avatar_url')
-        .in('user_id', userIds);
+        .in('user_id', userIds)) as any;
       
       // Map travels and profiles to reviews
       const travelsMap = new Map(travels?.map(t => [t.id, t]) || []);
-      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const profilesMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
       
       return reviews.map(review => ({
         ...review,
         travel: travelsMap.get(review.travel_id) || null,
-        profile: profilesMap.get(review.user_id) || null,
-      }));
+        profile: (profilesMap.get(review.user_id) || null) as any,
+      })) as PublicReview[];
     },
   });
 };

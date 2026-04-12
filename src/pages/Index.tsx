@@ -30,7 +30,7 @@ import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { ArrowLeft } from 'lucide-react';
 
 // Views that render as full sub-pages (hide bottom nav)
-const FULLSCREEN_VIEWS = ['shop', 'quran', 'ibadah', 'savings', 'reviews', 'manasik', 'maps', 'reminder', 'journal', 'doa', 'notifications', 'offline'] as const;
+const FULLSCREEN_VIEWS = ['quran', 'ibadah', 'savings', 'reviews', 'manasik', 'maps', 'reminder', 'journal', 'doa', 'notifications', 'offline'] as const;
 type FullscreenView = typeof FULLSCREEN_VIEWS[number];
 
 const Index = () => {
@@ -167,10 +167,7 @@ const Index = () => {
   };
 
   const renderView = () => {
-    // Route-based sub-views
-    if (activeView === 'shop') {
-      return <ShopView onBack={closeView} />;
-    }
+    // Route-based sub-views (shop handled via tab, not view)
 
     if (activeView === 'ibadah') {
       return (
@@ -183,7 +180,7 @@ const Index = () => {
           </div>
           <IbadahHubView 
             onOpenTasbih={() => { closeView(); setIsTasbihOpen(true); }} 
-            onOpenQuran={() => { setSearchParams({ view: 'quran' }); }}
+            onOpenQuran={() => { openView('quran'); }}
           />
         </div>
       );
