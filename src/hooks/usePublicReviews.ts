@@ -70,7 +70,7 @@ export const usePublicReviews = () => {
       
       // Map travels and profiles to reviews
       const travelsMap = new Map(travels?.map(t => [t.id, t]) || []);
-      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const profilesMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
       
       return reviews.map(review => ({
         ...review,
