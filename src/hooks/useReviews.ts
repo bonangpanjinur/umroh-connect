@@ -45,7 +45,7 @@ export const useTravelReviews = (travelId: string | undefined) => {
       const reviewsWithProfiles = await Promise.all(
         (reviews || []).map(async (review) => {
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('public_profiles' as any)
             .select('full_name, avatar_url')
             .eq('user_id', review.user_id)
             .maybeSingle();

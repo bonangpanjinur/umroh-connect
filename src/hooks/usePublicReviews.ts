@@ -64,7 +64,7 @@ export const usePublicReviews = () => {
       
       // Fetch profiles
       const { data: profiles } = await supabase
-        .from('profiles')
+        .from('public_profiles' as any)
         .select('user_id, full_name, avatar_url')
         .in('user_id', userIds);
       

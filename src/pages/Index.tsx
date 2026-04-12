@@ -167,10 +167,7 @@ const Index = () => {
   };
 
   const renderView = () => {
-    // Route-based sub-views
-    if (activeView === 'shop') {
-      return <ShopView onBack={closeView} />;
-    }
+    // Route-based sub-views (shop handled via tab, not view)
 
     if (activeView === 'ibadah') {
       return (
@@ -183,7 +180,7 @@ const Index = () => {
           </div>
           <IbadahHubView 
             onOpenTasbih={() => { closeView(); setIsTasbihOpen(true); }} 
-            onOpenQuran={() => { setSearchParams({ view: 'quran' }); }}
+            onOpenQuran={() => { openView('quran'); }}
           />
         </div>
       );
