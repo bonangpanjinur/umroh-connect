@@ -157,7 +157,7 @@ export const useSellerChatList = (sellerId: string | null) => {
       let buyerNames: Record<string, string> = {};
       if (buyerIds.size > 0) {
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('public_profiles' as any)
           .select('user_id, full_name')
           .in('user_id', Array.from(buyerIds));
         if (profiles) {
