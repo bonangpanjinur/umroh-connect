@@ -242,6 +242,13 @@ export type Database = {
             foreignKeyName: "banners_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banners_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -345,6 +352,13 @@ export type Database = {
             foreignKeyName: "bookings_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -390,6 +404,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
             referencedColumns: ["id"]
           },
           {
@@ -551,6 +572,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
             referencedColumns: ["id"]
           },
           {
@@ -795,6 +823,13 @@ export type Database = {
             foreignKeyName: "featured_packages_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_packages_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -968,6 +1003,13 @@ export type Database = {
             foreignKeyName: "geofences_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geofences_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -1135,6 +1177,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haji_registrations_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
             referencedColumns: ["id"]
           },
           {
@@ -1463,6 +1512,13 @@ export type Database = {
             foreignKeyName: "memberships_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -1616,6 +1672,13 @@ export type Database = {
             foreignKeyName: "package_credits_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: true
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_credits_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: true
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -1686,6 +1749,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_inquiries_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
             referencedColumns: ["id"]
           },
           {
@@ -1825,6 +1895,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "packages_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "packages_travel_id_fkey"
             columns: ["travel_id"]
@@ -3492,6 +3569,13 @@ export type Database = {
             foreignKeyName: "tracking_groups_travel_id_fkey"
             columns: ["travel_id"]
             isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_groups_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
             referencedRelation: "travels"
             referencedColumns: ["id"]
           },
@@ -3535,6 +3619,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "travel_reviews_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "travel_reviews_travel_id_fkey"
             columns: ["travel_id"]
@@ -4196,6 +4287,89 @@ export type Database = {
       }
     }
     Views: {
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      public_travels: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string | null
+          logo_url: string | null
+          name: string | null
+          owner_id: string | null
+          phone: string | null
+          rating: number | null
+          review_count: number | null
+          status: string | null
+          updated_at: string | null
+          verified: boolean | null
+          verified_at: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          status?: string | null
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          phone?: string | null
+          rating?: number | null
+          review_count?: number | null
+          status?: string | null
+          updated_at?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travels_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_tadarus_dashboard: {
         Row: {
           hari_tadarus: number | null
