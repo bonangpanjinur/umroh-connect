@@ -75,8 +75,8 @@ export const usePublicReviews = () => {
       return reviews.map(review => ({
         ...review,
         travel: travelsMap.get(review.travel_id) || null,
-        profile: profilesMap.get(review.user_id) || null,
-      }));
+        profile: (profilesMap.get(review.user_id) || null) as any,
+      })) as PublicReview[];
     },
   });
 };
