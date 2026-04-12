@@ -30,7 +30,7 @@ import FeedbackForm from '@/components/feedback/FeedbackForm';
 import { ArrowLeft } from 'lucide-react';
 
 // Views that render as full sub-pages (hide bottom nav)
-const FULLSCREEN_VIEWS = ['shop', 'quran', 'ibadah', 'savings', 'reviews', 'manasik', 'maps', 'reminder', 'journal', 'doa', 'notifications', 'offline'] as const;
+const FULLSCREEN_VIEWS = ['quran', 'ibadah', 'savings', 'reviews', 'manasik', 'maps', 'reminder', 'journal', 'doa', 'notifications', 'offline'] as const;
 type FullscreenView = typeof FULLSCREEN_VIEWS[number];
 
 const Index = () => {
