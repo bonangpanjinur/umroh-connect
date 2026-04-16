@@ -3,6 +3,36 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
+// Helper: resolve signed URLs for journal photos stored as file paths
+const resolveJournalPhotoUrls = async (journals: Journal[]): Promise<Journal[]> => {
+  const allPaths: string[] = [];
+  journals.forEach(j => j.photos?.forEach(p => {
+    // Only resolve if it's a path (not already a full URL)
+    if (p.photo_url && !p.photo_url.startsWith('http')) {
+      allPaths.push(p.photo_url);
+    }
+  }));
+
+  if (allPaths.length === 0) return journals;
+
+  const { data: signedUrls } = await supabase.storage
+    .from('journal-photos')
+    .createSignedUrls(allPaths, 60 * 60); // 1 hour
+
+  const urlMap = new Map<string, string>();
+  signedUrls?.forEach(item => {
+    if (item.signedUrl) urlMap.set(item.path ?? '', item.signedUrl);
+  });
+
+  return journals.map(j => ({
+    ...j,
+    photos: j.photos?.map(p => ({
+      ...p,
+      photo_url: (!p.photo_url.startsWith('http') && urlMap.get(p.photo_url)) || p.photo_url
+    }))
+  }));
+};
+
 export type JournalMood = 'grateful' | 'peaceful' | 'emotional' | 'inspired' | 'tired' | 'happy';
 
 export interface Journal {
@@ -61,7 +91,7 @@ export const useJournals = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Journal[];
+      return resolveJournalPhotoUrls(data as Journal[]);
     },
     enabled: !!user
   });
@@ -83,7 +113,8 @@ export const useJournal = (journalId: string | null) => {
         .single();
 
       if (error) throw error;
-      return data as Journal;
+      const resolved = await resolveJournalPhotoUrls([data as Journal]);
+      return resolved[0];
     },
     enabled: !!journalId
   });
@@ -208,16 +239,13 @@ export const useUploadJournalPhoto = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('journal-photos')
-        .getPublicUrl(fileName);
-
+      // Store the file path — we'll generate signed URLs on read
       // Add photo to journal_photos table
       const { data, error } = await supabase
         .from('journal_photos')
         .insert({
           journal_id: journalId,
-          photo_url: urlData.publicUrl,
+          photo_url: fileName, // store path, not URL
           order_index: Date.now()
         })
         .select()
