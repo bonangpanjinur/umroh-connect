@@ -113,7 +113,8 @@ export const useJournal = (journalId: string | null) => {
         .single();
 
       if (error) throw error;
-      return data as Journal;
+      const resolved = await resolveJournalPhotoUrls([data as Journal]);
+      return resolved[0];
     },
     enabled: !!journalId
   });
