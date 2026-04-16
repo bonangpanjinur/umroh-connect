@@ -163,6 +163,14 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     const { departureDate, returnDate, gender, duration } = await req.json() as PackingListRequest;
     
     console.log('Generating packing list for:', { departureDate, returnDate, gender, duration });
