@@ -23,6 +23,14 @@ serve(async (req) => {
   }
 
   try {
+    // Validate caller has authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
     const payload = await req.json() as PushPayload;
     const { userId, title, body, data, icon, badge, tag } = payload;
 
