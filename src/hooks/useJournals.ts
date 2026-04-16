@@ -220,7 +220,7 @@ export const useUploadJournalPhoto = () => {
         .from('journal_photos')
         .insert({
           journal_id: journalId,
-          photo_url: urlData.publicUrl,
+          photo_url: urlData.signedUrl,
           order_index: Date.now()
         })
         .select()
