@@ -91,7 +91,7 @@ export const useJournals = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Journal[];
+      return resolveJournalPhotoUrls(data as Journal[]);
     },
     enabled: !!user
   });
