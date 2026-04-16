@@ -3,6 +3,36 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 
+// Helper: resolve signed URLs for journal photos stored as file paths
+const resolveJournalPhotoUrls = async (journals: Journal[]): Promise<Journal[]> => {
+  const allPaths: string[] = [];
+  journals.forEach(j => j.photos?.forEach(p => {
+    // Only resolve if it's a path (not already a full URL)
+    if (p.photo_url && !p.photo_url.startsWith('http')) {
+      allPaths.push(p.photo_url);
+    }
+  }));
+
+  if (allPaths.length === 0) return journals;
+
+  const { data: signedUrls } = await supabase.storage
+    .from('journal-photos')
+    .createSignedUrls(allPaths, 60 * 60); // 1 hour
+
+  const urlMap = new Map<string, string>();
+  signedUrls?.forEach(item => {
+    if (item.signedUrl) urlMap.set(item.path ?? '', item.signedUrl);
+  });
+
+  return journals.map(j => ({
+    ...j,
+    photos: j.photos?.map(p => ({
+      ...p,
+      photo_url: (!p.photo_url.startsWith('http') && urlMap.get(p.photo_url)) || p.photo_url
+    }))
+  }));
+};
+
 export type JournalMood = 'grateful' | 'peaceful' | 'emotional' | 'inspired' | 'tired' | 'happy';
 
 export interface Journal {
