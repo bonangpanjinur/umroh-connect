@@ -208,9 +208,12 @@ export const useUploadJournalPhoto = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      // Get signed URL (bucket is private)
+      const { data: urlData, error: urlError } = await supabase.storage
         .from('journal-photos')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year
+
+      if (urlError) throw urlError;
 
       // Add photo to journal_photos table
       const { data, error } = await supabase
