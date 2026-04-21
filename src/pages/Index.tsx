@@ -39,9 +39,11 @@ const Index = () => {
   const jamaahAccess = useJamaahAccess();
   
   const tabFromUrl = searchParams.get('tab') as TabId | null;
-  const viewFromUrl = searchParams.get('view') as FullscreenView | null;
+  const rawViewFromUrl = searchParams.get('view');
+  const viewFromUrl = rawViewFromUrl === 'shop' ? null : (rawViewFromUrl as FullscreenView | null);
+  const resolvedTabFromUrl = tabFromUrl || (rawViewFromUrl === 'shop' ? 'shop' : null);
   
-  const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || 'home');
+  const [activeTab, setActiveTab] = useState<TabId>(resolvedTabFromUrl || 'home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
@@ -59,10 +61,10 @@ const Index = () => {
 
   // Sync URL param with active tab
   useEffect(() => {
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl);
+    if (resolvedTabFromUrl && resolvedTabFromUrl !== activeTab) {
+      setActiveTab(resolvedTabFromUrl);
     }
-  }, [tabFromUrl]);
+  }, [resolvedTabFromUrl, activeTab]);
 
   const handleTabChange = (tab: TabId) => {
     setActiveTab(tab);
@@ -100,7 +102,8 @@ const Index = () => {
     // Support shop:searchTerm to open shop with pre-filled search
     if (menuId.startsWith('shop:')) {
       const searchTerm = menuId.substring(5);
-      openView('shop', { search: searchTerm });
+      setActiveTab('shop');
+      setSearchParams({ tab: 'shop', search: searchTerm });
       return;
     }
 
