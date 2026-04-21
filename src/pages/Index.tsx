@@ -39,9 +39,11 @@ const Index = () => {
   const jamaahAccess = useJamaahAccess();
   
   const tabFromUrl = searchParams.get('tab') as TabId | null;
-  const viewFromUrl = searchParams.get('view') as FullscreenView | null;
+  const rawViewFromUrl = searchParams.get('view');
+  const viewFromUrl = rawViewFromUrl === 'shop' ? null : (rawViewFromUrl as FullscreenView | null);
+  const resolvedTabFromUrl = tabFromUrl || (rawViewFromUrl === 'shop' ? 'shop' : null);
   
-  const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || 'home');
+  const [activeTab, setActiveTab] = useState<TabId>(resolvedTabFromUrl || 'home');
   const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [isTasbihOpen, setIsTasbihOpen] = useState(false);
   const [isQiblaOpen, setIsQiblaOpen] = useState(false);
