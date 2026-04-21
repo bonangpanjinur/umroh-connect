@@ -61,23 +61,22 @@ const PaymentProofUpload = ({ schedule, bookingCode, onSuccess, onCancel }: Paym
       };
       reader.readAsDataURL(file);
 
-      // Upload to Supabase Storage
+      // Upload to private bucket using {user_id}/ folder for RLS
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${bookingCode}-${schedule.id}-${Date.now()}.${fileExt}`;
-      const filePath = `payment-proofs/${fileName}`;
+      const filePath = `${user.id}/payment-proofs/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('uploads')
+        .from('private-uploads')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath);
-
-      setUploadedPath(publicUrl);
+      // Store storage path (not public URL) — readers must createSignedUrl
+      setUploadedPath(filePath);
       toast.success('Bukti pembayaran berhasil diupload');
     } catch (error) {
       console.error('Upload error:', error);

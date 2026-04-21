@@ -94,18 +94,18 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
 
     setIsUploading(true);
     try {
-      const fileName = `membership/${travelId}/${Date.now()}_${file.name}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileName = `${user.id}/membership/${travelId}/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage
-        .from('uploads')
+        .from('private-uploads')
         .upload(fileName, file);
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
-
-      setPaymentProofUrl(publicUrl);
+      // Store path (private bucket — read via signed URL)
+      setPaymentProofUrl(fileName);
       toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
       toast({
