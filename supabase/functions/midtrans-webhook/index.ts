@@ -2,7 +2,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import { createHash } from "https://deno.land/std@0.168.0/hash/mod.ts";
+
+async function sha512Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -34,7 +41,7 @@ serve(async (req) => {
     }
 
     const signaturePayload = `${orderId}${statusCode}${grossAmount}${serverKey}`;
-    const expectedSignature = createHash("sha512").update(signaturePayload).toString();
+    const expectedSignature = await sha512Hex(signaturePayload);
 
     if (expectedSignature !== receivedSignature) {
       console.error("Invalid Midtrans signature for order:", orderId);
