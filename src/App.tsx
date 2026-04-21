@@ -27,6 +27,7 @@ import SplashScreen from "./components/pwa/SplashScreen";
 import { UpdatePrompt } from "./components/pwa/UpdatePrompt";
 import { OfflineBanner } from "./components/pwa/OfflineBanner";
 import OfflineManagerView from "./components/offline/OfflineManagerView";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 import { useEffect, useState } from "react";
 
 const queryClient = new QueryClient({
@@ -57,10 +58,10 @@ const AppContent = () => {
               <Route path="/offline" element={<OfflineManagerView />} />
               <Route path="/daftar-agen" element={<AgentOnboarding />} />
               <Route path="/daftar-seller" element={<SellerRegistration />} />
-              <Route path="/admin/*" element={<AdminDashboard />} />
-              <Route path="/shop-admin/*" element={<ShopAdminDashboard />} />
-              <Route path="/agent/*" element={<AgentDashboard />} />
-              <Route path="/seller/*" element={<SellerDashboard />} />
+              <Route path="/admin/*" element={<ProtectedRoute anyOf={['admin']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/shop-admin/*" element={<ProtectedRoute anyOf={['admin', 'shop_admin']}><ShopAdminDashboard /></ProtectedRoute>} />
+              <Route path="/agent/*" element={<ProtectedRoute anyOf={['agent', 'admin']}><AgentDashboard /></ProtectedRoute>} />
+              <Route path="/seller/*" element={<ProtectedRoute anyOf={['seller', 'shop_admin', 'admin']}><SellerDashboard /></ProtectedRoute>} />
               <Route path="/travel/:slug" element={<AgentPublicProfile />} />
               <Route path="/travel/:slug/:packageSlug" element={<AgentPublicProfile />} />
               <Route path="/store/:sellerId" element={<StorePage />} />

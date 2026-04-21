@@ -224,18 +224,15 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/payment-proof-${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
-        .from('uploads')
+        .from('private-uploads')
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
-
-      setPaymentProofUrl(urlData.publicUrl);
+      // Store storage path — readers must createSignedUrl
+      setPaymentProofUrl(fileName);
       toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
       toast({
