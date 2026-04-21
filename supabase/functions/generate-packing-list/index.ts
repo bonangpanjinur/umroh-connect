@@ -18,6 +18,34 @@ interface WeatherData {
   madinah: { temp: number; condition: string; humidity: number };
 }
 
+// ---- Input validation ----
+function validateInput(body: any): { ok: true; data: PackingListRequest } | { ok: false; error: string } {
+  if (!body || typeof body !== 'object') return { ok: false, error: 'Invalid body' };
+  const { departureDate, returnDate, gender, duration, preferences } = body;
+
+  if (typeof departureDate !== 'string' || isNaN(new Date(departureDate).getTime())) {
+    return { ok: false, error: 'departureDate must be a valid ISO date string' };
+  }
+  if (typeof returnDate !== 'string' || isNaN(new Date(returnDate).getTime())) {
+    return { ok: false, error: 'returnDate must be a valid ISO date string' };
+  }
+  if (gender !== 'male' && gender !== 'female') {
+    return { ok: false, error: "gender must be 'male' or 'female'" };
+  }
+  if (typeof duration !== 'number' || !Number.isFinite(duration) || duration < 1 || duration > 90) {
+    return { ok: false, error: 'duration must be a number between 1 and 90' };
+  }
+  if (preferences !== undefined) {
+    if (!Array.isArray(preferences) || preferences.length > 20) {
+      return { ok: false, error: 'preferences must be an array of max 20 items' };
+    }
+    if (!preferences.every((p) => typeof p === 'string' && p.length <= 100)) {
+      return { ok: false, error: 'each preference must be a string ≤100 chars' };
+    }
+  }
+  return { ok: true, data: { departureDate, returnDate, gender, duration, preferences } };
+}
+
 // Approximate weather data for Makkah/Madinah based on month
 const getSeasonalWeather = (date: Date): WeatherData => {
   const month = date.getMonth(); // 0-11
@@ -171,37 +199,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { departureDate, returnDate, gender, duration } = await req.json() as PackingListRequest;
-    
-    console.log('Generating packing list for:', { departureDate, returnDate, gender, duration });
-    
-    // Get weather data
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const validation = validateInput(body);
+    if (!validation.ok) {
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const { departureDate, gender, duration } = validation.data;
+
+    console.log('Generating packing list for:', validation.data);
+
     const depDate = new Date(departureDate);
     const weather = getSeasonalWeather(depDate);
-    
     const packingList = generatePackingList(gender, duration, weather);
-    
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        weather: weather,
-        packing_list: packingList,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      JSON.stringify({ success: true, weather, packing_list: packingList }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error generating packing list:', error);
-    
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

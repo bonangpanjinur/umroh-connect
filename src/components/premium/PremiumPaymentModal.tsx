@@ -97,18 +97,18 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
 
     setIsUploading(true);
     try {
-      const fileName = `premium/${Date.now()}_${file.name}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileName = `${user.id}/premium/${Date.now()}_${file.name}`;
       const { error } = await supabase.storage
-        .from('uploads')
+        .from('private-uploads')
         .upload(fileName, file);
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
-
-      setPaymentProofUrl(publicUrl);
+      // Store path (private bucket — read via signed URL)
+      setPaymentProofUrl(fileName);
       toast({ title: 'Bukti transfer berhasil diupload' });
     } catch (error: any) {
       toast({
