@@ -91,8 +91,34 @@ serve(async (req) => {
       });
     }
 
-    const { preferences } = await req.json() as { preferences: PackagePreferences };
-    
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const preferences = body?.preferences;
+    // ---- Input validation ----
+    const validationError = (() => {
+      if (!preferences || typeof preferences !== 'object') return 'preferences object is required';
+      const { budget, duration, hotelStar, flightType } = preferences;
+      if (!budget || typeof budget.min !== 'number' || typeof budget.max !== 'number') return 'budget.min and budget.max must be numbers';
+      if (budget.min < 0 || budget.max < budget.min || budget.max > 1_000_000_000) return 'budget out of bounds (0 - 1,000,000,000)';
+      if (!duration || typeof duration.min !== 'number' || typeof duration.max !== 'number') return 'duration.min and duration.max must be numbers';
+      if (duration.min < 1 || duration.max < duration.min || duration.max > 90) return 'duration must be 1-90 days';
+      if (typeof hotelStar !== 'number' || hotelStar < 0 || hotelStar > 5) return 'hotelStar must be 0-5';
+      if (flightType !== undefined && !['direct', 'transit', 'any'].includes(flightType)) return "flightType must be 'direct'|'transit'|'any'";
+      return null;
+    })();
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log('Getting recommendations for preferences:', preferences);
     
     // Initialize Supabase client
