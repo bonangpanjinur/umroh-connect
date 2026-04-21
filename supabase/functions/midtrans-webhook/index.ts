@@ -2,6 +2,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createHash } from "https://deno.land/std@0.168.0/hash/mod.ts";
 
 serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -16,8 +17,29 @@ serve(async (req) => {
     console.log("Midtrans Notification:", JSON.stringify(notification));
 
     const orderId = notification.order_id;
+    const statusCode = notification.status_code;
+    const grossAmount = notification.gross_amount;
+    const receivedSignature = notification.signature_key;
     const transactionStatus = notification.transaction_status;
     const fraudStatus = notification.fraud_status;
+
+    // 0. VALIDASI SIGNATURE MIDTRANS (SHA512)
+    const serverKey = Deno.env.get("MIDTRANS_SERVER_KEY") ?? "";
+    if (!serverKey) {
+      console.error("MIDTRANS_SERVER_KEY not configured");
+      return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500 });
+    }
+    if (!orderId || !statusCode || !grossAmount || !receivedSignature) {
+      return new Response(JSON.stringify({ error: "Invalid payload" }), { status: 400 });
+    }
+
+    const signaturePayload = `${orderId}${statusCode}${grossAmount}${serverKey}`;
+    const expectedSignature = createHash("sha512").update(signaturePayload).toString();
+
+    if (expectedSignature !== receivedSignature) {
+      console.error("Invalid Midtrans signature for order:", orderId);
+      return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401 });
+    }
 
     // 1. Ambil transaksi
     const { data: transaction, error: fetchError } = await supabase
@@ -48,16 +70,14 @@ serve(async (req) => {
         .eq("id", transaction.id);
       
       // 4. Tambah Kredit (Jika Sukses)
-      // Note: Sesuaikan logika update saldo di bawah dengan tabel yang Anda gunakan (package_credits vs agent_profiles)
       if (isSuccess && transaction.transaction_type === 'credit_topup') {
         const metadata = transaction.metadata as any;
-        const creditsToAdd = metadata?.item_details?.[0]?.quantity || 0; // Atau ambil dari logic lain
+        const creditsToAdd = metadata?.item_details?.[0]?.quantity || 0;
         
-        // Contoh update ke tabel package_credits (sesuai file frontend Anda)
         const { data: currentCredit } = await supabase
             .from('package_credits')
             .select('*')
-            .eq('travel_id', transaction.agent_id) // Asumsi agent_id == travel_id di tabel ini
+            .eq('travel_id', transaction.agent_id)
             .single();
 
         if (currentCredit) {
@@ -65,7 +85,6 @@ serve(async (req) => {
                 credits_remaining: (currentCredit.credits_remaining || 0) + creditsToAdd
             }).eq('id', currentCredit.id);
             
-            // Catat juga di credit_transactions agar muncul di riwayat dashboard
             await supabase.from('credit_transactions').insert({
                 travel_id: transaction.agent_id,
                 transaction_type: 'purchase',
@@ -91,6 +110,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ status: "OK" }), { headers: { "Content-Type": "application/json" } });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("Webhook error:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 });
