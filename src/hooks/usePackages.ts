@@ -6,11 +6,11 @@ export const usePackages = () => {
   return useQuery({
     queryKey: ['packages'],
     queryFn: async (): Promise<PackageWithDetails[]> => {
-      // Fetch packages with travel info
+      // Fetch only published/active packages for public view
       const { data: packages, error: packagesError } = await supabase
         .from('packages')
         .select('*')
-        .eq('is_active', true)
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (packagesError) throw packagesError;
