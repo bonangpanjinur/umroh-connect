@@ -1837,6 +1837,7 @@ export type Database = {
           package_type: Database["public"]["Enums"]["package_type"]
           quota_type: string | null
           registration_deadline: string | null
+          status: Database["public"]["Enums"]["package_status"]
           travel_id: string
           updated_at: string
         }
@@ -1864,6 +1865,7 @@ export type Database = {
           package_type?: Database["public"]["Enums"]["package_type"]
           quota_type?: string | null
           registration_deadline?: string | null
+          status?: Database["public"]["Enums"]["package_status"]
           travel_id: string
           updated_at?: string
         }
@@ -1891,6 +1893,7 @@ export type Database = {
           package_type?: Database["public"]["Enums"]["package_type"]
           quota_type?: string | null
           registration_deadline?: string | null
+          status?: Database["public"]["Enums"]["package_status"]
           travel_id?: string
           updated_at?: string
         }
@@ -4410,6 +4413,7 @@ export type Database = {
       app_role: "jamaah" | "agent" | "admin" | "shop_admin" | "seller"
       checklist_category: "dokumen" | "perlengkapan" | "kesehatan" | "mental"
       feedback_type: "bug" | "suggestion" | "rating" | "other"
+      package_status: "draft" | "active" | "closed"
       package_type: "umroh" | "haji_reguler" | "haji_plus" | "haji_furoda"
       shop_order_status:
         | "pending"
@@ -4548,6 +4552,7 @@ export const Constants = {
       app_role: ["jamaah", "agent", "admin", "shop_admin", "seller"],
       checklist_category: ["dokumen", "perlengkapan", "kesehatan", "mental"],
       feedback_type: ["bug", "suggestion", "rating", "other"],
+      package_status: ["draft", "active", "closed"],
       package_type: ["umroh", "haji_reguler", "haji_plus", "haji_furoda"],
       shop_order_status: [
         "pending",
