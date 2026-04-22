@@ -4,6 +4,7 @@ export type AppRole = 'jamaah' | 'agent' | 'admin' | 'shop_admin' | 'seller' | '
 export type TravelStatus = 'active' | 'suspended' | 'pending';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 export type PackageType = 'umroh' | 'haji_reguler' | 'haji_plus' | 'haji_furoda';
+export type PackageStatus = 'draft' | 'active' | 'closed';
 
 export interface Profile {
   id: string;
@@ -61,6 +62,7 @@ export interface Package {
   facilities: string[];
   images: string[];
   is_active: boolean;
+  status: PackageStatus;
   package_type: PackageType;
   base_price?: number | null;
   // Haji-specific fields
