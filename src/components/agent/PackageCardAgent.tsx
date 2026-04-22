@@ -84,11 +84,20 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                  pkg.is_active ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground border-border'
-                }`}>
-                  {pkg.is_active ? 'AKTIF' : 'NONAKTIF'}
-                </span>
+                {(() => {
+                  const status = (pkg as any).status || (pkg.is_active ? 'active' : 'draft');
+                  const map: Record<string, string> = {
+                    active: 'bg-primary/10 text-primary border-primary/20',
+                    draft: 'bg-muted text-muted-foreground border-border',
+                    closed: 'bg-destructive/10 text-destructive border-destructive/20',
+                  };
+                  const label: Record<string, string> = { active: 'AKTIF', draft: 'DRAFT', closed: 'TUTUP' };
+                  return (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${map[status]}`}>
+                      {label[status]}
+                    </span>
+                  );
+                })()}
                 <span className="text-[10px] text-muted-foreground">
                   {pkg.duration_days} Hari
                 </span>

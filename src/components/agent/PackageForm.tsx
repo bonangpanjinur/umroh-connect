@@ -45,7 +45,7 @@ const packageSchema = z.object({
   airline_id: z.string().optional(),
   flight_type: z.enum(['direct', 'transit']),
   meal_type: z.enum(['fullboard', 'halfboard', 'breakfast']),
-  is_active: z.boolean().default(true),
+  status: z.enum(['draft', 'active', 'closed']).default('draft'),
 });
 
 type PackageFormValues = z.infer<typeof packageSchema>;
@@ -92,7 +92,7 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
       airline_id: initialData?.airline_id || undefined,
       flight_type: initialData?.flight_type || "direct",
       meal_type: initialData?.meal_type || "fullboard",
-      is_active: initialData?.is_active ?? true,
+      status: initialData?.status || (initialData?.is_active ? 'active' : 'draft'),
     },
   });
 
@@ -177,22 +177,37 @@ export function PackageForm({ onSuccess, initialData, travelId }: PackageFormPro
           </TabsList>
 
           <TabsContent value="info" className="space-y-6">
-            {/* Status Toggle */}
+            {/* Status Paket */}
             <Card>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">Status Paket</p>
-                  <p className="text-xs text-muted-foreground">Paket aktif akan tampil di halaman publik</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={form.watch('is_active') ? 'default' : 'secondary'}>
-                    {form.watch('is_active') ? 'Aktif' : 'Nonaktif'}
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <p className="font-medium text-sm">Status Paket</p>
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Draft</strong>: belum publish · <strong>Aktif</strong>: tampil di halaman publik · <strong>Tutup</strong>: tidak menerima pendaftaran baru
+                    </p>
+                  </div>
+                  <Badge variant={
+                    form.watch('status') === 'active' ? 'default'
+                    : form.watch('status') === 'closed' ? 'destructive'
+                    : 'secondary'
+                  }>
+                    {form.watch('status') === 'active' ? 'Aktif' : form.watch('status') === 'closed' ? 'Tutup' : 'Draft'}
                   </Badge>
-                  <Switch
-                    checked={form.watch('is_active')}
-                    onCheckedChange={(val) => form.setValue('is_active', val)}
-                  />
                 </div>
+                <FormField control={form.control} name="status" render={({ field }) => (
+                  <FormItem>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">📝 Draft (Belum dipublikasi)</SelectItem>
+                        <SelectItem value="active">✅ Aktif (Tampil & terima pendaftaran)</SelectItem>
+                        <SelectItem value="closed">🔒 Tutup (Tidak terima pendaftaran)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </CardContent>
             </Card>
 
