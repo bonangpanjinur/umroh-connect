@@ -53,6 +53,7 @@ const PaketView = ({ initialPackageId }: PaketViewProps) => {
         facilities: pkg.facilities,
         images: pkg.images,
         is_active: true,
+        status: 'active' as const,
         package_type: 'umroh' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
