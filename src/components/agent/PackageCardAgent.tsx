@@ -5,7 +5,8 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Package, Departure } from '@/types/database';
-import { usePackageDepartures, useDeletePackage, useDeleteDeparture } from '@/hooks/useAgentData';
+import { usePackageDepartures, useDeletePackage, useDeleteDeparture, useUpdatePackage } from '@/hooks/useAgentData';
+import { Rocket } from 'lucide-react';
 import DepartureForm from './DepartureForm';
 import {
   DropdownMenu,
@@ -48,9 +49,24 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
   const { data: departures, isLoading: departuresLoading } = usePackageDepartures(pkg.id);
   const deletePackage = useDeletePackage();
   const deleteDeparture = useDeleteDeparture();
+  const updatePackage = useUpdatePackage();
 
   const activeDepartures = departures?.filter(d => d.status !== 'cancelled') || [];
   const totalSeats = activeDepartures.reduce((sum, d) => sum + d.available_seats, 0);
+  const totalCapacity = activeDepartures.reduce((sum, d) => sum + d.total_seats, 0);
+  const seatsByStatus = (departures || []).reduce(
+    (acc, d) => {
+      acc[d.status] = (acc[d.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<Departure['status'], number>
+  );
+
+  const pkgStatus = (pkg as any).status || (pkg.is_active ? 'active' : 'draft');
+
+  const handlePublish = async () => {
+    await updatePackage.mutateAsync({ id: pkg.id, status: 'active' } as any);
+  };
 
   const handleDeletePackage = async () => {
     await deletePackage.mutateAsync(pkg.id);
@@ -118,7 +134,12 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
                 <DropdownMenuItem onClick={onEdit}>
                   <Edit2 className="mr-2 h-4 w-4" /> Edit Paket
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                {pkgStatus === 'draft' && (
+                  <DropdownMenuItem onClick={handlePublish}>
+                    <Rocket className="mr-2 h-4 w-4" /> Publish (Aktifkan)
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
                   onClick={() => setDeletePackageDialog(true)}
                   className="text-destructive focus:text-destructive"
                 >
@@ -139,6 +160,33 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
               {pkg.meal_type === 'fullboard' ? 'Fullboard' : pkg.meal_type === 'halfboard' ? 'Halfboard' : 'Breakfast'}
             </span>
           </div>
+
+          {/* Quota Summary */}
+          {(departures && departures.length > 0) && (
+            <>
+              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-primary">{seatsByStatus.available || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Available</div>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-amber-600">{seatsByStatus.limited || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Limited</div>
+                </div>
+                <div className="bg-destructive/5 border border-destructive/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-destructive">{seatsByStatus.full || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Full</div>
+                </div>
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-blue-600">{seatsByStatus.waitlist || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Waitlist</div>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Total {totalSeats} dari {totalCapacity} seat tersedia
+              </p>
+            </>
+          )}
         </div>
 
         {/* Departures Toggle */}
