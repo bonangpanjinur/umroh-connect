@@ -134,7 +134,12 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
                 <DropdownMenuItem onClick={onEdit}>
                   <Edit2 className="mr-2 h-4 w-4" /> Edit Paket
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                {pkgStatus === 'draft' && (
+                  <DropdownMenuItem onClick={handlePublish}>
+                    <Rocket className="mr-2 h-4 w-4" /> Publish (Aktifkan)
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
                   onClick={() => setDeletePackageDialog(true)}
                   className="text-destructive focus:text-destructive"
                 >
@@ -155,6 +160,33 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
               {pkg.meal_type === 'fullboard' ? 'Fullboard' : pkg.meal_type === 'halfboard' ? 'Halfboard' : 'Breakfast'}
             </span>
           </div>
+
+          {/* Quota Summary */}
+          {(departures && departures.length > 0) && (
+            <>
+              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-primary">{seatsByStatus.available || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Available</div>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-amber-600">{seatsByStatus.limited || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Limited</div>
+                </div>
+                <div className="bg-destructive/5 border border-destructive/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-destructive">{seatsByStatus.full || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Full</div>
+                </div>
+                <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg py-1.5">
+                  <div className="text-sm font-bold text-blue-600">{seatsByStatus.waitlist || 0}</div>
+                  <div className="text-[9px] text-muted-foreground uppercase">Waitlist</div>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Total {totalSeats} dari {totalCapacity} seat tersedia
+              </p>
+            </>
+          )}
         </div>
 
         {/* Departures Toggle */}
