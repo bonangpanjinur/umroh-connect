@@ -300,6 +300,13 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
         )}
       </AnimatePresence>
 
+      {/* Quota Detail Modal */}
+      <AnimatePresence>
+        {showQuotaDetail && (
+          <PackageQuotaDetail package={pkg} onClose={() => setShowQuotaDetail(false)} />
+        )}
+      </AnimatePresence>
+
       {/* Delete Package Dialog */}
       <AlertDialog open={deletePackageDialog} onOpenChange={setDeletePackageDialog}>
         <AlertDialogContent>
