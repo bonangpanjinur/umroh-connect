@@ -49,6 +49,7 @@ const AgentDashboard = () => {
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [packageStatusFilter, setPackageStatusFilter] = useState<'all' | 'draft' | 'active' | 'closed'>('all');
 
   const { data: travel, isLoading: travelLoading } = useAgentTravel();
   const { data: packages, isLoading: packagesLoading } = useAgentPackages(travel?.id);
