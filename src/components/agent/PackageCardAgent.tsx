@@ -136,6 +136,9 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
                 <DropdownMenuItem onClick={onEdit}>
                   <Edit2 className="mr-2 h-4 w-4" /> Edit Paket
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowQuotaDetail(true)}>
+                  <BarChart3 className="mr-2 h-4 w-4" /> Detail Kuota
+                </DropdownMenuItem>
                 {pkgStatus === 'draft' && (
                   <DropdownMenuItem onClick={handlePublish}>
                     <Rocket className="mr-2 h-4 w-4" /> Publish (Aktifkan)
