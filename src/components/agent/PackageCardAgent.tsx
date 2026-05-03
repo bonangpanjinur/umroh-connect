@@ -49,9 +49,24 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
   const { data: departures, isLoading: departuresLoading } = usePackageDepartures(pkg.id);
   const deletePackage = useDeletePackage();
   const deleteDeparture = useDeleteDeparture();
+  const updatePackage = useUpdatePackage();
 
   const activeDepartures = departures?.filter(d => d.status !== 'cancelled') || [];
   const totalSeats = activeDepartures.reduce((sum, d) => sum + d.available_seats, 0);
+  const totalCapacity = activeDepartures.reduce((sum, d) => sum + d.total_seats, 0);
+  const seatsByStatus = (departures || []).reduce(
+    (acc, d) => {
+      acc[d.status] = (acc[d.status] || 0) + 1;
+      return acc;
+    },
+    {} as Record<Departure['status'], number>
+  );
+
+  const pkgStatus = (pkg as any).status || (pkg.is_active ? 'active' : 'draft');
+
+  const handlePublish = async () => {
+    await updatePackage.mutateAsync({ id: pkg.id, status: 'active' } as any);
+  };
 
   const handleDeletePackage = async () => {
     await deletePackage.mutateAsync(pkg.id);
