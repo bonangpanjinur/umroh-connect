@@ -45,6 +45,7 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
   const [editingDeparture, setEditingDeparture] = useState<Departure | null>(null);
   const [deletePackageDialog, setDeletePackageDialog] = useState(false);
   const [deleteDepartureId, setDeleteDepartureId] = useState<string | null>(null);
+  const [showQuotaDetail, setShowQuotaDetail] = useState(false);
 
   // Always fetch departures for summary count
   const { data: departures, isLoading: departuresLoading } = usePackageDepartures(pkg.id);
