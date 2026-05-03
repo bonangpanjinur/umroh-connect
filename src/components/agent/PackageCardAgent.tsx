@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Calendar, MoreVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, MoreVertical, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -8,6 +8,7 @@ import { Package, Departure } from '@/types/database';
 import { usePackageDepartures, useDeletePackage, useDeleteDeparture, useUpdatePackage } from '@/hooks/useAgentData';
 import { Rocket } from 'lucide-react';
 import DepartureForm from './DepartureForm';
+import PackageQuotaDetail from './PackageQuotaDetail';
 import {
   DropdownMenu,
   DropdownMenuContent,
