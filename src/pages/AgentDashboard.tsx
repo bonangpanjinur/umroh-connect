@@ -329,7 +329,21 @@ const AgentDashboard = () => {
               case 'analytics':
                 return <AnalyticsDashboard travelId={travel?.id || ''} />;
               case 'packages':
-                return (
+                {
+                  const filteredPackages = (packages || []).filter((p: any) => {
+                    if (packageStatusFilter === 'all') return true;
+                    const s = p.status || (p.is_active ? 'active' : 'draft');
+                    return s === packageStatusFilter;
+                  });
+                  const counts = (packages || []).reduce(
+                    (acc: any, p: any) => {
+                      const s = p.status || (p.is_active ? 'active' : 'draft');
+                      acc[s] = (acc[s] || 0) + 1;
+                      return acc;
+                    },
+                    { draft: 0, active: 0, closed: 0 }
+                  );
+                  return (
                   <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
@@ -344,14 +358,37 @@ const AgentDashboard = () => {
                         <Plus className="w-4 h-4" /> Tambah Paket
                       </Button>
                     </div>
+
+                    {/* Status Filter */}
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { v: 'all', l: 'Semua', c: packages?.length || 0 },
+                        { v: 'draft', l: '📝 Draft', c: counts.draft },
+                        { v: 'active', l: '✅ Aktif', c: counts.active },
+                        { v: 'closed', l: '🔒 Tutup', c: counts.closed },
+                      ] as const).map((opt) => (
+                        <button
+                          key={opt.v}
+                          onClick={() => setPackageStatusFilter(opt.v as any)}
+                          className={cn(
+                            'px-4 py-2 rounded-xl text-sm font-medium border transition-colors',
+                            packageStatusFilter === opt.v
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-card text-muted-foreground border-border hover:bg-secondary'
+                          )}
+                        >
+                          {opt.l} <span className="ml-1 text-xs opacity-70">({opt.c})</span>
+                        </button>
+                      ))}
+                    </div>
                     
                     {packagesLoading ? (
                       <div className="flex justify-center py-24">
                         <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
                       </div>
-                    ) : packages && packages.length > 0 ? (
+                    ) : filteredPackages.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {packages.map((pkg) => (
+                        {filteredPackages.map((pkg) => (
                           <PackageCardAgent 
                             key={pkg.id} 
                             package={pkg} 
@@ -371,7 +408,9 @@ const AgentDashboard = () => {
                         <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                           <Package className="w-10 h-10 text-muted-foreground/40" />
                         </div>
-                        <p className="text-xl font-bold text-foreground mb-2">Belum ada paket umroh</p>
+                        <p className="text-xl font-bold text-foreground mb-2">
+                          {packageStatusFilter === 'all' ? 'Belum ada paket umroh' : `Tidak ada paket dengan status "${packageStatusFilter}"`}
+                        </p>
                         <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">Mulai buat paket pertama Anda untuk menarik pelanggan</p>
                         <Button size="lg" onClick={handleCreatePackage} disabled={!canCreatePackage} className="rounded-full px-8">
                           <Plus className="w-4 h-4 mr-2" /> Buat Paket Pertama
@@ -379,7 +418,8 @@ const AgentDashboard = () => {
                       </motion.div>
                     )}
                   </div>
-                );
+                  );
+                }
               case 'bookings':
                 return <BookingsManagement travelId={travel?.id} />;
               case 'chat':
