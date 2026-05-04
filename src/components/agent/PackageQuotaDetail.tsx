@@ -35,7 +35,7 @@ interface PackageQuotaDetailProps {
   onClose: () => void;
 }
 
-type DepartureLifecycleStatus = 'available' | 'closed' | 'cancelled';
+type DepartureLifecycleStatus = 'available' | 'full' | 'cancelled';
 
 const STATUS_META: Record<Departure['status'], { label: string; color: string; bg: string }> = {
   available: { label: 'Available', color: 'text-primary', bg: 'bg-primary/10 border-primary/20' },
@@ -418,11 +418,11 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
                                     <CheckCircle2 className="w-4 h-4 mr-2 text-primary" /> Aktifkan
                                   </DropdownMenuItem>
                                 )}
-                                {!isCancelled && (
+                                {!isCancelled && d.status !== 'full' && (
                                   <DropdownMenuItem
-                                    onClick={() => setPendingAction({ departure: d, target: 'closed' as any })}
+                                    onClick={() => setPendingAction({ departure: d, target: 'full' })}
                                   >
-                                    <XCircle className="w-4 h-4 mr-2 text-amber-600" /> Tutup
+                                    <XCircle className="w-4 h-4 mr-2 text-amber-600" /> Tandai Penuh / Tutup pendaftaran
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
@@ -476,7 +476,7 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
                 const booked = departure.total_seats - departure.available_seats;
                 const labels: Record<string, string> = {
                   available: 'Aktifkan (available)',
-                  closed: 'Tutup',
+                  full: 'Penuh / Tutup pendaftaran',
                   cancelled: 'Batalkan',
                 };
                 return (
