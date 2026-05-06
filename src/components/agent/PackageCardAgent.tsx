@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Calendar, MoreVertical, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, MoreVertical, ChevronDown, ChevronUp, BarChart3, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -9,6 +9,7 @@ import { usePackageDepartures, useDeletePackage, useDeleteDeparture, useUpdatePa
 import { Rocket } from 'lucide-react';
 import DepartureForm from './DepartureForm';
 import PackageQuotaDetail from './PackageQuotaDetail';
+import PackageAuditHistory from './PackageAuditHistory';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,7 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
   const [deletePackageDialog, setDeletePackageDialog] = useState(false);
   const [deleteDepartureId, setDeleteDepartureId] = useState<string | null>(null);
   const [showQuotaDetail, setShowQuotaDetail] = useState(false);
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
 
   // Always fetch departures for summary count
   const { data: departures, isLoading: departuresLoading } = usePackageDepartures(pkg.id);
@@ -138,6 +140,9 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowQuotaDetail(true)}>
                   <BarChart3 className="mr-2 h-4 w-4" /> Detail Kuota
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAuditHistory(true)}>
+                  <History className="mr-2 h-4 w-4" /> Riwayat Perubahan
                 </DropdownMenuItem>
                 {pkgStatus === 'draft' && (
                   <DropdownMenuItem onClick={handlePublish}>
@@ -304,6 +309,13 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
       <AnimatePresence>
         {showQuotaDetail && (
           <PackageQuotaDetail package={pkg} onClose={() => setShowQuotaDetail(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Audit History Modal */}
+      <AnimatePresence>
+        {showAuditHistory && (
+          <PackageAuditHistory package={pkg} onClose={() => setShowAuditHistory(false)} />
         )}
       </AnimatePresence>
 
