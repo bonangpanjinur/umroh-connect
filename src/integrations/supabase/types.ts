@@ -590,6 +590,71 @@ export type Database = {
           },
         ]
       }
+      departure_audit_log: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          departure_id: string
+          id: string
+          new_available_seats: number | null
+          new_price: number | null
+          new_status: string | null
+          new_total_seats: number | null
+          note: string | null
+          old_available_seats: number | null
+          old_price: number | null
+          old_status: string | null
+          old_total_seats: number | null
+          package_id: string
+          travel_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          departure_id: string
+          id?: string
+          new_available_seats?: number | null
+          new_price?: number | null
+          new_status?: string | null
+          new_total_seats?: number | null
+          note?: string | null
+          old_available_seats?: number | null
+          old_price?: number | null
+          old_status?: string | null
+          old_total_seats?: number | null
+          package_id: string
+          travel_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          departure_id?: string
+          id?: string
+          new_available_seats?: number | null
+          new_price?: number | null
+          new_status?: string | null
+          new_total_seats?: number | null
+          note?: string | null
+          old_available_seats?: number | null
+          old_price?: number | null
+          old_status?: string | null
+          old_total_seats?: number | null
+          package_id?: string
+          travel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departure_audit_log_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departure_notification_logs: {
         Row: {
           body: string
