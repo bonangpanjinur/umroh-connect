@@ -4,7 +4,23 @@ import { RefreshCw, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
+// Skip Service Worker entirely in dev / Lovable preview / iframes.
+const isInIframe = (() => {
+  try { return window.self !== window.top; } catch { return true; }
+})();
+const isPreviewHost =
+  typeof window !== 'undefined' &&
+  (window.location.hostname.includes('lovableproject.com') ||
+    window.location.hostname.includes('lovable.app') ||
+    window.location.hostname.includes('id-preview--'));
+const SW_ENABLED = import.meta.env.PROD && !isInIframe && !isPreviewHost;
+
 export const UpdatePrompt = () => {
+  if (!SW_ENABLED) return null;
+  return <UpdatePromptInner />;
+};
+
+const UpdatePromptInner = () => {
   const [showPrompt, setShowPrompt] = useState(false);
 
   const {
@@ -13,7 +29,6 @@ export const UpdatePrompt = () => {
   } = useRegisterSW({
     onRegisteredSW(swUrl, registration) {
       console.log('SW Registered:', swUrl);
-      // Check for updates every 30 minutes
       if (registration) {
         setInterval(() => {
           registration.update();
