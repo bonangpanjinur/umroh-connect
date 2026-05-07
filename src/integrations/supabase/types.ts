@@ -705,6 +705,7 @@ export type Database = {
           created_at: string
           departure_date: string
           id: string
+          last_low_seats_threshold: string | null
           original_price: number | null
           package_id: string
           price: number
@@ -718,6 +719,7 @@ export type Database = {
           created_at?: string
           departure_date: string
           id?: string
+          last_low_seats_threshold?: string | null
           original_price?: number | null
           package_id: string
           price: number
@@ -731,6 +733,7 @@ export type Database = {
           created_at?: string
           departure_date?: string
           id?: string
+          last_low_seats_threshold?: string | null
           original_price?: number | null
           package_id?: string
           price?: number
