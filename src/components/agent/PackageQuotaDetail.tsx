@@ -57,6 +57,7 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     departure: Departure;
     target: DepartureLifecycleStatus;
   } | null>(null);
+  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
 
   const list = departures || [];
   const totalSeats = list.reduce((s, d) => s + d.total_seats, 0);
@@ -128,7 +129,7 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
       return;
     }
     try {
-      await updateDeparture.mutateAsync({ id: departure.id, status: target } as any);
+      await updateDeparture.mutateAsync({ id: departure.id, status: target });
       toast({ title: 'Status jadwal diperbarui' });
     } finally {
       setPendingAction(null);
@@ -137,6 +138,9 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
 
   // -------- Export handlers --------
   const handleExportExcel = async () => {
+    if (exporting) return;
+    setExporting('excel');
+    try {
     const XLSX = await import('xlsx');
     const summarySheet = [
       ['Paket', pkg.name],
@@ -181,9 +185,17 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailSheet), 'Rincian Jadwal');
     XLSX.writeFile(wb, `Kuota_${pkg.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`);
     toast({ title: 'Export Excel berhasil' });
+    } catch (e) {
+      toast({ title: 'Export Excel gagal', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
   };
 
   const handleExportPDF = async () => {
+    if (exporting) return;
+    setExporting('pdf');
+    try {
     const { default: jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
@@ -238,6 +250,11 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
 
     doc.save(`Kuota_${pkg.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`);
     toast({ title: 'Export PDF berhasil' });
+    } catch (e) {
+      toast({ title: 'Export PDF gagal', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setExporting(null);
+    }
   };
 
   return (
@@ -265,21 +282,23 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
             <div className="flex items-center gap-1">
               {list.length > 0 && (
                 <>
-                  <Button variant="outline" size="sm" onClick={handleExportExcel} className="hidden sm:flex">
-                    <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Excel
+                  <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!!exporting} className="hidden sm:flex">
+                    {exporting === 'excel' ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1" />} Excel
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportPDF} className="hidden sm:flex">
-                    <FileText className="w-3.5 h-3.5 mr-1" /> PDF
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!!exporting} className="hidden sm:flex">
+                    {exporting === 'pdf' ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <FileText className="w-3.5 h-3.5 mr-1" />} PDF
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="sm:hidden">Export</Button>
+                      <Button variant="outline" size="sm" className="sm:hidden" disabled={!!exporting}>
+                        {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Export'}
+                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleExportExcel}>
+                      <DropdownMenuItem onClick={handleExportExcel} disabled={!!exporting}>
                         <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel (.xlsx)
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleExportPDF}>
+                      <DropdownMenuItem onClick={handleExportPDF} disabled={!!exporting}>
                         <FileText className="w-4 h-4 mr-2" /> PDF
                       </DropdownMenuItem>
                     </DropdownMenuContent>
