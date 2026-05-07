@@ -33,6 +33,7 @@ import { AgentCreditsManager } from '@/components/agent/AgentCreditsManager';
 import { AgentMembershipCard } from '@/components/agent/AgentMembershipCard';
 import { AgentWebsiteManager } from '@/components/agent/AgentWebsiteManager';
 import { AgentDashboardSidebar } from '@/components/agent/AgentDashboardSidebar';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { AgentDashboardHeader } from '@/components/agent/AgentDashboardHeader';
 import { Package as PackageType } from '@/types/database';
 import { cn } from '@/lib/utils';
@@ -322,6 +323,7 @@ const AgentDashboard = () => {
           transition={{ duration: 0.2 }}
           className="w-full"
         >
+          <ErrorBoundary inline label={activeTab}>
           {(() => {
             switch (activeTab) {
               case 'overview':
@@ -452,6 +454,7 @@ const AgentDashboard = () => {
                 return null;
             }
           })()}
+          </ErrorBoundary>
         </motion.div>
       </AnimatePresence>
     );
