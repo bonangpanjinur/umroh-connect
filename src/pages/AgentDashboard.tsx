@@ -454,6 +454,7 @@ const AgentDashboard = () => {
                 return null;
             }
           })()}
+          </ErrorBoundary>
         </motion.div>
       </AnimatePresence>
     );
