@@ -10,6 +10,7 @@ import { Rocket } from 'lucide-react';
 import DepartureForm from './DepartureForm';
 import PackageQuotaDetail from './PackageQuotaDetail';
 import PackageAuditHistory from './PackageAuditHistory';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -308,14 +309,46 @@ const PackageCardAgent = ({ package: pkg, onEdit }: PackageCardAgentProps) => {
       {/* Quota Detail Modal */}
       <AnimatePresence>
         {showQuotaDetail && (
-          <PackageQuotaDetail package={pkg} onClose={() => setShowQuotaDetail(false)} />
+          <ErrorBoundary
+            label="Detail Kuota"
+            fallback={(err, reset) => (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowQuotaDetail(false)}>
+                <div className="bg-card max-w-md w-full rounded-2xl p-6 text-center space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="font-bold">Gagal memuat Detail Kuota</h3>
+                  <p className="text-xs text-muted-foreground break-words">{err.message}</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={reset}>Coba lagi</Button>
+                    <Button size="sm" onClick={() => setShowQuotaDetail(false)}>Tutup</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          >
+            <PackageQuotaDetail package={pkg} onClose={() => setShowQuotaDetail(false)} />
+          </ErrorBoundary>
         )}
       </AnimatePresence>
 
       {/* Audit History Modal */}
       <AnimatePresence>
         {showAuditHistory && (
-          <PackageAuditHistory package={pkg} onClose={() => setShowAuditHistory(false)} />
+          <ErrorBoundary
+            label="Riwayat Perubahan"
+            fallback={(err, reset) => (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/60 backdrop-blur-sm" onClick={() => setShowAuditHistory(false)}>
+                <div className="bg-card max-w-md w-full rounded-2xl p-6 text-center space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="font-bold">Gagal memuat Riwayat</h3>
+                  <p className="text-xs text-muted-foreground break-words">{err.message}</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" size="sm" onClick={reset}>Coba lagi</Button>
+                    <Button size="sm" onClick={() => setShowAuditHistory(false)}>Tutup</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          >
+            <PackageAuditHistory package={pkg} onClose={() => setShowAuditHistory(false)} />
+          </ErrorBoundary>
         )}
       </AnimatePresence>
 

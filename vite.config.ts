@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      injectRegister: false,
       includeAssets: ["favicon.ico", "robots.txt", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
         id: "/",
@@ -115,7 +115,7 @@ export default defineConfig(({ mode }) => {
         prefer_related_applications: false,
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: "module",
       },
     }),
