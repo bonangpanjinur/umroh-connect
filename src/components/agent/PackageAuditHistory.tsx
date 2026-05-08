@@ -294,6 +294,14 @@ const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
               ))}
             </div>
           )}
+
+          {!isLoading && totalCount != null && (log?.length ?? 0) < totalCount && (
+            <div className="flex justify-center pt-4">
+              <Button variant="outline" size="sm" onClick={() => setLimit((n) => n + 100)}>
+                Muat 100 entri lagi
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
