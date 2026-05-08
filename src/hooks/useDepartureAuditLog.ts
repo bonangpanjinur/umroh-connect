@@ -37,3 +37,19 @@ export const usePackageAuditLog = (packageId: string | undefined, limit = 100) =
     enabled: !!packageId,
   });
 };
+
+export const useAuditLogCount = (packageId: string | undefined) => {
+  return useQuery({
+    queryKey: ['departure-audit-count', packageId],
+    queryFn: async (): Promise<number> => {
+      if (!packageId) return 0;
+      const { count, error } = await supabase
+        .from('departure_audit_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('package_id', packageId);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!packageId,
+  });
+};

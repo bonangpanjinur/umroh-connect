@@ -6,7 +6,7 @@ import { X, History, Filter, Calendar, ArrowRight, Users, Tag, DollarSign, PlusC
 import { Package, Departure } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { usePackageAuditLog, DepartureAuditEntry } from '@/hooks/useDepartureAuditLog';
+import { usePackageAuditLog, useAuditLogCount, DepartureAuditEntry } from '@/hooks/useDepartureAuditLog';
 import { usePackageDepartures } from '@/hooks/useAgentData';
 import { useDeparturesRealtime } from '@/hooks/useDeparturesRealtime';
 import {
@@ -53,7 +53,9 @@ const formatIDR = (n: number | null | undefined) =>
     : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
 const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
-  const { data: log, isLoading } = usePackageAuditLog(pkg.id);
+  const [limit, setLimit] = useState(100);
+  const { data: log, isLoading } = usePackageAuditLog(pkg.id, limit);
+  const { data: totalCount } = useAuditLogCount(pkg.id);
   const { data: departures } = usePackageDepartures(pkg.id);
   useDeparturesRealtime(pkg.id);
 
@@ -104,7 +106,8 @@ const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
             </div>
             <h2 className="font-bold text-lg mt-0.5">{pkg.name}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Audit log kuota dan status setiap jadwal · {filtered.length} entri
+              Audit log kuota dan status setiap jadwal · {filtered.length} dari {totalCount ?? log?.length ?? 0} entri
+              {totalCount && (log?.length ?? 0) < totalCount ? ` (menampilkan ${log?.length ?? 0})` : ''}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">
@@ -289,6 +292,14 @@ const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {!isLoading && totalCount != null && (log?.length ?? 0) < totalCount && (
+            <div className="flex justify-center pt-4">
+              <Button variant="outline" size="sm" onClick={() => setLimit((n) => n + 100)}>
+                Muat 100 entri lagi
+              </Button>
             </div>
           )}
         </div>
