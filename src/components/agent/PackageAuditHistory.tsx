@@ -106,7 +106,8 @@ const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
             </div>
             <h2 className="font-bold text-lg mt-0.5">{pkg.name}</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Audit log kuota dan status setiap jadwal · {filtered.length} entri
+              Audit log kuota dan status setiap jadwal · {filtered.length} dari {totalCount ?? log?.length ?? 0} entri
+              {totalCount && (log?.length ?? 0) < totalCount ? ` (menampilkan ${log?.length ?? 0})` : ''}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">
