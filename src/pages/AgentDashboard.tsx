@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Building2, Plus, Package, AlertCircle, Edit2, 
@@ -43,14 +43,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const AgentDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile, loading: authLoading, isAgent, isAdmin } = useAuthContext();
-  
+
+  const initialTab = searchParams.get('tab') || 'overview';
+  const initialStatus = (searchParams.get('status') as 'all' | 'draft' | 'active' | 'closed') || 'all';
+
   const [showTravelForm, setShowTravelForm] = useState(false);
   const [showPackageForm, setShowPackageForm] = useState(false);
   const [editingPackage, setEditingPackage] = useState<PackageType | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [packageStatusFilter, setPackageStatusFilter] = useState<'all' | 'draft' | 'active' | 'closed'>('all');
+  const [packageStatusFilter, setPackageStatusFilter] = useState<'all' | 'draft' | 'active' | 'closed'>(initialStatus);
+
+  // Persist tab + filter to URL so refresh keeps state.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (activeTab && activeTab !== 'overview') next.set('tab', activeTab); else next.delete('tab');
+    if (packageStatusFilter && packageStatusFilter !== 'all') next.set('status', packageStatusFilter); else next.delete('status');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, packageStatusFilter]);
 
   const { data: travel, isLoading: travelLoading } = useAgentTravel();
   const { data: packages, isLoading: packagesLoading } = useAgentPackages(travel?.id);
