@@ -308,6 +308,19 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
               </p>
             </div>
             <div className="flex items-center gap-1">
+              {cancelledFutureCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRestore}
+                  disabled={restoring}
+                  className="hidden sm:flex"
+                  title={`Pulihkan ${cancelledFutureCount} jadwal yang dibatalkan`}
+                >
+                  {restoring ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
+                  Pulihkan ({cancelledFutureCount})
+                </Button>
+              )}
               {list.length > 0 && (
                 <>
                   <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!!exporting} className="hidden sm:flex">
