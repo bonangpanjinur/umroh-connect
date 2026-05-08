@@ -53,7 +53,9 @@ const formatIDR = (n: number | null | undefined) =>
     : new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
 const PackageAuditHistory = ({ package: pkg, onClose }: Props) => {
-  const { data: log, isLoading } = usePackageAuditLog(pkg.id);
+  const [limit, setLimit] = useState(100);
+  const { data: log, isLoading } = usePackageAuditLog(pkg.id, limit);
+  const { data: totalCount } = useAuditLogCount(pkg.id);
   const { data: departures } = usePackageDepartures(pkg.id);
   useDeparturesRealtime(pkg.id);
 
