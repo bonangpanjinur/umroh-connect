@@ -3,12 +3,14 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
   X, Users, TrendingUp, AlertCircle, FileSpreadsheet, FileText,
-  CheckCircle2, XCircle, Ban, Loader2, DollarSign,
+  CheckCircle2, XCircle, Ban, Loader2, DollarSign, RotateCcw,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Package, Departure } from '@/types/database';
 import { usePackageDepartures, useUpdateDeparture } from '@/hooks/useAgentData';
 import { useDeparturesRealtime } from '@/hooks/useDeparturesRealtime';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +53,7 @@ const formatIDR = (n: number) =>
 const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) => {
   const { data: departures, isLoading } = usePackageDepartures(pkg.id);
   const updateDeparture = useUpdateDeparture();
+  const queryClient = useQueryClient();
   useDeparturesRealtime(pkg.id);
 
   const [pendingAction, setPendingAction] = useState<{
@@ -58,6 +61,7 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     target: DepartureLifecycleStatus;
   } | null>(null);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
   const list = departures || [];
   const totalSeats = list.reduce((s, d) => s + d.total_seats, 0);
@@ -133,6 +137,30 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
       toast({ title: 'Status jadwal diperbarui' });
     } finally {
       setPendingAction(null);
+    }
+  };
+
+  // -------- Restore cancelled departures --------
+  const cancelledFutureCount = list.filter(
+    (d) => d.status === 'cancelled' && new Date(d.departure_date) >= new Date(new Date().toDateString())
+  ).length;
+
+  const handleRestore = async () => {
+    if (restoring || cancelledFutureCount === 0) return;
+    setRestoring(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)('restore_package_departures', { _package_id: pkg.id });
+      if (error) throw error;
+      const n = typeof data === 'number' ? data : 0;
+      toast({
+        title: n > 0 ? `${n} jadwal dipulihkan` : 'Tidak ada jadwal yang perlu dipulihkan',
+        description: n > 0 ? 'Status disesuaikan otomatis berdasarkan ketersediaan kursi.' : undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['departures', pkg.id] });
+    } catch (e) {
+      toast({ title: 'Gagal memulihkan jadwal', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -280,6 +308,19 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
               </p>
             </div>
             <div className="flex items-center gap-1">
+              {cancelledFutureCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRestore}
+                  disabled={restoring}
+                  className="hidden sm:flex"
+                  title={`Pulihkan ${cancelledFutureCount} jadwal yang dibatalkan`}
+                >
+                  {restoring ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5 mr-1" />}
+                  Pulihkan ({cancelledFutureCount})
+                </Button>
+              )}
               {list.length > 0 && (
                 <>
                   <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!!exporting} className="hidden sm:flex">
