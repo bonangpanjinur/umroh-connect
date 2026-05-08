@@ -3,12 +3,14 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
   X, Users, TrendingUp, AlertCircle, FileSpreadsheet, FileText,
-  CheckCircle2, XCircle, Ban, Loader2, DollarSign,
+  CheckCircle2, XCircle, Ban, Loader2, DollarSign, RotateCcw,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Package, Departure } from '@/types/database';
 import { usePackageDepartures, useUpdateDeparture } from '@/hooks/useAgentData';
 import { useDeparturesRealtime } from '@/hooks/useDeparturesRealtime';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
