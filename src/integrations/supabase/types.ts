@@ -4476,6 +4476,10 @@ export type Database = {
         Args: { _travel_id: string; _user_id: string }
         Returns: boolean
       }
+      restore_package_departures: {
+        Args: { _package_id: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "jamaah" | "agent" | "admin" | "shop_admin" | "seller"
