@@ -140,6 +140,30 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     }
   };
 
+  // -------- Restore cancelled departures --------
+  const cancelledFutureCount = list.filter(
+    (d) => d.status === 'cancelled' && new Date(d.departure_date) >= new Date(new Date().toDateString())
+  ).length;
+
+  const handleRestore = async () => {
+    if (restoring || cancelledFutureCount === 0) return;
+    setRestoring(true);
+    try {
+      const { data, error } = await (supabase.rpc as any)('restore_package_departures', { _package_id: pkg.id });
+      if (error) throw error;
+      const n = typeof data === 'number' ? data : 0;
+      toast({
+        title: n > 0 ? `${n} jadwal dipulihkan` : 'Tidak ada jadwal yang perlu dipulihkan',
+        description: n > 0 ? 'Status disesuaikan otomatis berdasarkan ketersediaan kursi.' : undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['departures', pkg.id] });
+    } catch (e) {
+      toast({ title: 'Gagal memulihkan jadwal', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   // -------- Export handlers --------
   const handleExportExcel = async () => {
     if (exporting) return;
