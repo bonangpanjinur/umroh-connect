@@ -6,7 +6,7 @@ import { X, History, Filter, Calendar, ArrowRight, Users, Tag, DollarSign, PlusC
 import { Package, Departure } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { usePackageAuditLog, DepartureAuditEntry } from '@/hooks/useDepartureAuditLog';
+import { usePackageAuditLog, useAuditLogCount, DepartureAuditEntry } from '@/hooks/useDepartureAuditLog';
 import { usePackageDepartures } from '@/hooks/useAgentData';
 import { useDeparturesRealtime } from '@/hooks/useDeparturesRealtime';
 import {
