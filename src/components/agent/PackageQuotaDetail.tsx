@@ -53,6 +53,7 @@ const formatIDR = (n: number) =>
 const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) => {
   const { data: departures, isLoading } = usePackageDepartures(pkg.id);
   const updateDeparture = useUpdateDeparture();
+  const queryClient = useQueryClient();
   useDeparturesRealtime(pkg.id);
 
   const [pendingAction, setPendingAction] = useState<{
@@ -60,6 +61,7 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     target: DepartureLifecycleStatus;
   } | null>(null);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  const [restoring, setRestoring] = useState(false);
 
   const list = departures || [];
   const totalSeats = list.reduce((s, d) => s + d.total_seats, 0);
