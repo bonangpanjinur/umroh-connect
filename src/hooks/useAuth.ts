@@ -122,7 +122,7 @@ export const useAuth = () => {
   };
 
   const isAgent = (): boolean => hasRole('agent');
-  const isAdmin = (): boolean => hasRole('admin') || hasRole('super_admin');
+  const isAdmin = (): boolean => hasRole('admin');
   const isJamaah = (): boolean => roles.length === 0 || (roles.length === 1 && hasRole('jamaah'));
   const isShopAdmin = (): boolean => hasRole('shop_admin');
   const isSeller = (): boolean => hasRole('seller');

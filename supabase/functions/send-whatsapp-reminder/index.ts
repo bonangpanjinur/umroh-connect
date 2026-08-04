@@ -1,9 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders, isInternalCaller, getUserId } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface WhatsAppReminderRequest {
   phone: string;
@@ -106,12 +103,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Only signed-in users or internal/scheduled callers may generate reminders.
+    if (!isInternalCaller(req) && !(await getUserId(req))) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
 
     const body = await req.json();
     const { phone, message, type, templateData } = body;
