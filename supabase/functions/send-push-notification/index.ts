@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "https://esm.sh/web-push";
+import { corsHeaders, isInternalCaller, getUserId } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 interface PushPayload {
   userId?: string;
@@ -23,16 +20,25 @@ serve(async (req) => {
   }
 
   try {
-    // Validate caller has authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Only signed-in users or internal/scheduled callers may send pushes.
+    const callerUserId = isInternalCaller(req) ? null : await getUserId(req);
+    if (!isInternalCaller(req) && !callerUserId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+
     const payload = await req.json() as PushPayload;
     const { userId, title, body, data, icon, badge, tag } = payload;
+
+    // A signed-in user may only send pushes to themselves.
+    if (callerUserId && userId && userId !== callerUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

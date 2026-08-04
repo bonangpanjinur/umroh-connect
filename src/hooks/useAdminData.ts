@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
 import { 
+  AppRole,
   AdminStats, 
   Membership, 
   Banner, 
@@ -382,7 +383,7 @@ export const useUpdateUserRole = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ user_id, role }: { user_id: string; role: 'jamaah' | 'agent' | 'admin' | 'shop_admin' | 'seller' | 'super_admin' }) => {
+    mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
       // Update profile role
       await supabase
         .from('profiles')

@@ -1,9 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders, isInternalCaller } from '../_shared/auth.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface PaymentSchedule {
   id: string;
@@ -47,12 +44,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    // Scheduled job only: require the shared cron secret (or service role key).
+    if (!isInternalCaller(req)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
