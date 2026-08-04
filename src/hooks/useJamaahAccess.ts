@@ -31,12 +31,13 @@ export const useJamaahAccess = (): JamaahAccess => {
       }
 
       try {
-        // Check for any bookings (pending, confirmed, paid)
+        // Check for any bookings that are still live (not cancelled)
         const { data: bookings, error } = await supabase
           .from('bookings')
           .select(`
             id,
             status,
+            paid_amount,
             departure_id,
             departures (
               departure_date,
@@ -49,7 +50,7 @@ export const useJamaahAccess = (): JamaahAccess => {
             )
           `)
           .eq('user_id', user.id)
-          .in('status', ['pending', 'confirmed', 'paid', 'dp_paid'])
+          .in('status', ['pending', 'confirmed', 'paid'])
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -59,9 +60,14 @@ export const useJamaahAccess = (): JamaahAccess => {
         }
 
         const hasAny = bookings && bookings.length > 0;
-        const hasConfirmed = bookings?.some(b => 
-          b.status === 'confirmed' || b.status === 'paid' || b.status === 'dp_paid'
+        // A booking counts as confirmed once the agent confirms it, it is fully
+        // paid, or the jamaah has paid at least the down payment.
+        const hasConfirmed = bookings?.some(b =>
+          b.status === 'confirmed' ||
+          b.status === 'paid' ||
+          Number(b.paid_amount ?? 0) > 0
         ) || false;
+
 
         setHasActiveBooking(hasAny);
         setHasConfirmedBooking(hasConfirmed);

@@ -249,7 +249,6 @@ const AkunView = () => {
   const getRoleLabels = () => {
     const labelMap: Record<string, string> = {
       admin: 'Admin',
-      super_admin: 'Super Admin',
       agent: 'Travel Agent',
       shop_admin: 'Admin Toko',
       seller: 'Seller',
