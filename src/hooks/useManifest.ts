@@ -4,6 +4,13 @@ import { toast } from '@/hooks/use-toast';
 
 export type Gender = 'L' | 'P';
 export type RoomType = 'double' | 'triple' | 'quad';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
+  pending: 'Menunggu Verifikasi',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+};
 
 export const ROOM_CAPACITY: Record<RoomType, number> = {
   double: 2,
@@ -28,6 +35,10 @@ export interface ManifestPilgrim {
   room_number: string | null;
   bus_number: string | null;
   notes: string | null;
+  approval_status: ApprovalStatus;
+  approved_at: string | null;
+  approved_by: string | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
   booking?: {
@@ -191,6 +202,45 @@ export const useBulkUpdateRooming = () => {
     onError: (e: any) => toast({ title: 'Gagal menyusun rooming list', description: e.message, variant: 'destructive' }),
   });
 };
+
+// Approval flow: only approved pilgrims may enter rooming list / exports
+export const useSetManifestApproval = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      status,
+      reason,
+    }: { ids: string[]; status: ApprovalStatus; reason?: string | null }) => {
+      if (ids.length === 0) return { count: 0, status };
+      const { error } = await (supabase as any)
+        .from('manifest_pilgrims')
+        .update({
+          approval_status: status,
+          rejection_reason: status === 'rejected' ? (reason || null) : null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      return { count: ids.length, status };
+    },
+    onSuccess: ({ count, status }) => {
+      invalidate(qc);
+      toast({
+        title:
+          status === 'approved'
+            ? `${count} jemaah disetujui masuk manifest final`
+            : status === 'rejected'
+            ? `${count} jemaah ditolak`
+            : `${count} jemaah dikembalikan ke status menunggu`,
+      });
+    },
+    onError: (e: any) => toast({ title: 'Gagal memperbarui persetujuan', description: e.message, variant: 'destructive' }),
+  });
+};
+
+export const isApproved = (p: ManifestPilgrim) => p.approval_status === 'approved';
+
+
 
 // Group pilgrims into rooms by gender, respecting room capacity.
 export const buildRoomingAssignments = (
