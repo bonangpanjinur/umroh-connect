@@ -73,6 +73,12 @@ export const AgentDashboardSidebar = ({
       category: 'bisnis',
     },
     {
+      id: 'manifest',
+      label: 'Manifest & Rooming',
+      icon: <BedDouble className="w-5 h-5" />,
+      category: 'bisnis',
+    },
+    {
       id: 'haji',
       label: 'Haji',
       icon: <Briefcase className="w-5 h-5" />,
