@@ -39,6 +39,7 @@ export interface ManifestPilgrim {
   approved_at: string | null;
   approved_by: string | null;
   rejection_reason: string | null;
+  created_at: string;
   updated_at: string;
   booking?: {
     booking_code: string;
