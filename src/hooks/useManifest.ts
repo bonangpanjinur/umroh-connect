@@ -4,6 +4,13 @@ import { toast } from '@/hooks/use-toast';
 
 export type Gender = 'L' | 'P';
 export type RoomType = 'double' | 'triple' | 'quad';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export const APPROVAL_LABEL: Record<ApprovalStatus, string> = {
+  pending: 'Menunggu Verifikasi',
+  approved: 'Disetujui',
+  rejected: 'Ditolak',
+};
 
 export const ROOM_CAPACITY: Record<RoomType, number> = {
   double: 2,
