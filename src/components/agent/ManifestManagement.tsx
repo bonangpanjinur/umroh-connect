@@ -3,8 +3,10 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
   Users, Plus, Download, FileSpreadsheet, FileText, BedDouble,
-  Wand2, Pencil, Trash2, Bus, Loader2, Import,
+  Wand2, Pencil, Trash2, Bus, Loader2, Import, ShieldCheck,
+  CheckCircle2, XCircle, RotateCcw,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,8 +29,9 @@ import {
 import {
   useAgentDepartures, useManifestPilgrims, useDepartureBookings,
   useSaveManifestPilgrim, useDeleteManifestPilgrim, useBulkInsertManifest,
-  useBulkUpdateRooming, buildRoomingAssignments, ROOM_CAPACITY,
-  ManifestPilgrim, RoomType, Gender,
+  useBulkUpdateRooming, useSetManifestApproval, buildRoomingAssignments,
+  ROOM_CAPACITY, APPROVAL_LABEL, isApproved,
+  ManifestPilgrim, RoomType, Gender, ApprovalStatus,
 } from '@/hooks/useManifest';
 
 interface Props {
@@ -67,26 +70,36 @@ export const ManifestManagement = ({ travelId }: Props) => {
   const deletePilgrim = useDeleteManifestPilgrim();
   const bulkInsert = useBulkInsertManifest();
   const bulkRooming = useBulkUpdateRooming();
+  const setApproval = useSetManifestApproval();
 
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [roomType, setRoomType] = useState<RoomType>('quad');
   const [exporting, setExporting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ApprovalStatus>('all');
+  const [rejectTarget, setRejectTarget] = useState<ManifestPilgrim | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const list = pilgrims || [];
+  // Only approved pilgrims flow into rooming list & exported documents
+  const approvedList = useMemo(() => list.filter(isApproved), [list]);
+  const pendingList = list.filter((p) => p.approval_status === 'pending');
+  const rejectedCount = list.filter((p) => p.approval_status === 'rejected').length;
+  const visibleList = statusFilter === 'all' ? list : list.filter((p) => p.approval_status === statusFilter);
+
   const totalSeatsBooked = (bookings || []).reduce((s: number, b: any) => s + (b.number_of_pilgrims || 0), 0);
-  const maleCount = list.filter((p) => p.gender === 'L').length;
-  const femaleCount = list.filter((p) => p.gender === 'P').length;
+  const maleCount = approvedList.filter((p) => p.gender === 'L').length;
+  const femaleCount = approvedList.filter((p) => p.gender === 'P').length;
   const missingPassport = list.filter((p) => !p.passport_number).length;
 
   const rooms = useMemo(() => {
     const map = new Map<string, ManifestPilgrim[]>();
-    list.forEach((p) => {
+    approvedList.forEach((p) => {
       const key = p.room_number || 'Belum ditentukan';
       map.set(key, [...(map.get(key) || []), p]);
     });
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [list]);
+  }, [approvedList]);
 
   const openCreate = () => {
     setForm({ ...emptyForm, booking_id: (bookings || [])[0]?.id || '', room_type: roomType });
@@ -161,12 +174,24 @@ export const ManifestManagement = ({ travelId }: Props) => {
   };
 
   const handleAutoRooming = async () => {
-    const updates = buildRoomingAssignments(list, roomType);
+    // Rooming list is built strictly from approved manifest entries
+    const updates = buildRoomingAssignments(approvedList, roomType);
     await bulkRooming.mutateAsync(updates);
   };
 
+  const handleApproveAllPending = async () => {
+    await setApproval.mutateAsync({ ids: pendingList.map((p) => p.id), status: 'approved' });
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    await setApproval.mutateAsync({ ids: [rejectTarget.id], status: 'rejected', reason: rejectReason.trim() || null });
+    setRejectTarget(null);
+    setRejectReason('');
+  };
+
   const exportRows = () =>
-    list.map((p, i) => [
+    approvedList.map((p, i) => [
       i + 1,
       p.full_name,
       p.gender === 'L' ? 'Laki-laki' : 'Perempuan',
@@ -218,7 +243,7 @@ export const ManifestManagement = ({ travelId }: Props) => {
       doc.text(
         `${selectedDeparture?.package_name || '-'} · Berangkat ${
           selectedDeparture ? format(new Date(selectedDeparture.departure_date), 'dd MMM yyyy', { locale: idLocale }) : '-'
-        } · ${list.length} jemaah`,
+        } · ${approvedList.length} jemaah disetujui`,
         14,
         22
       );
@@ -250,7 +275,7 @@ export const ManifestManagement = ({ travelId }: Props) => {
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-xl gap-2" disabled={!departureId || list.length === 0 || exporting}>
+              <Button variant="outline" className="rounded-xl gap-2" disabled={!departureId || approvedList.length === 0 || exporting}>
                 {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Ekspor
               </Button>
             </DropdownMenuTrigger>
@@ -312,9 +337,9 @@ export const ManifestManagement = ({ travelId }: Props) => {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Jemaah di manifest', value: `${list.length}${totalSeatsBooked ? ` / ${totalSeatsBooked}` : ''}` },
-              { label: 'Laki-laki', value: maleCount },
-              { label: 'Perempuan', value: femaleCount },
+              { label: 'Total data manifest', value: `${list.length}${totalSeatsBooked ? ` / ${totalSeatsBooked}` : ''}` },
+              { label: 'Disetujui (final)', value: approvedList.length },
+              { label: 'Menunggu verifikasi', value: pendingList.length },
               { label: 'Paspor belum lengkap', value: missingPassport },
             ].map((s) => (
               <Card key={s.label} className="rounded-2xl">
@@ -326,14 +351,56 @@ export const ManifestManagement = ({ travelId }: Props) => {
             ))}
           </div>
 
+          {pendingList.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">{pendingList.length} jemaah menunggu persetujuan travel</p>
+                  <p className="text-xs text-muted-foreground">
+                    Data belum disetujui tidak masuk rooming list maupun dokumen ekspor.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="rounded-xl gap-2" onClick={handleApproveAllPending} disabled={setApproval.isPending}>
+                {setApproval.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Setujui semua
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" className="rounded-xl gap-2" onClick={handleImportFromBookings} disabled={bulkInsert.isPending || (bookings || []).length === 0}>
               {bulkInsert.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Import className="w-4 h-4" />} Import dari booking
             </Button>
-            <Button variant="outline" className="rounded-xl gap-2" onClick={handleAutoRooming} disabled={bulkRooming.isPending || list.length === 0}>
+            <Button variant="outline" className="rounded-xl gap-2" onClick={handleAutoRooming} disabled={bulkRooming.isPending || approvedList.length === 0}>
               {bulkRooming.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} Susun rooming otomatis
             </Button>
           </div>
+
+          {/* Approval status filter */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { v: 'all', l: 'Semua', c: list.length },
+              { v: 'pending', l: '⏳ Menunggu', c: pendingList.length },
+              { v: 'approved', l: '✅ Disetujui', c: approvedList.length },
+              { v: 'rejected', l: '⛔ Ditolak', c: rejectedCount },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                onClick={() => setStatusFilter(opt.v as any)}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-sm font-medium border transition-colors',
+                  statusFilter === opt.v
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:bg-secondary'
+                )}
+              >
+                {opt.l} <span className="ml-1 text-xs opacity-70">({opt.c})</span>
+              </button>
+            ))}
+          </div>
+
 
           <Tabs defaultValue="manifest">
             <TabsList>
@@ -363,12 +430,13 @@ export const ManifestManagement = ({ travelId }: Props) => {
                           <TableHead>Telepon</TableHead>
                           <TableHead>Kamar</TableHead>
                           <TableHead>Bus</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Booking</TableHead>
                           <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {list.map((p) => (
+                        {visibleList.map((p) => (
                           <TableRow key={p.id}>
                             <TableCell className="font-medium">{p.full_name}</TableCell>
                             <TableCell>
@@ -382,9 +450,57 @@ export const ManifestManagement = ({ travelId }: Props) => {
                               {p.room_number ? `${p.room_number} (${p.room_type})` : '-'}
                             </TableCell>
                             <TableCell className="text-sm">{p.bus_number || '-'}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  p.approval_status === 'approved'
+                                    ? 'default'
+                                    : p.approval_status === 'rejected'
+                                    ? 'destructive'
+                                    : 'secondary'
+                                }
+                                className="text-[10px]"
+                              >
+                                {APPROVAL_LABEL[p.approval_status]}
+                              </Badge>
+                              {p.approval_status === 'rejected' && p.rejection_reason && (
+                                <p className="text-[10px] text-muted-foreground mt-1 max-w-[160px]">{p.rejection_reason}</p>
+                              )}
+                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{p.booking?.booking_code || '-'}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
+                                {p.approval_status !== 'approved' ? (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Setujui"
+                                    disabled={setApproval.isPending}
+                                    onClick={() => setApproval.mutate({ ids: [p.id], status: 'approved' })}
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Batalkan persetujuan"
+                                    disabled={setApproval.isPending}
+                                    onClick={() => setApproval.mutate({ ids: [p.id], status: 'pending' })}
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {p.approval_status !== 'rejected' && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Tolak"
+                                    onClick={() => { setRejectTarget(p); setRejectReason(''); }}
+                                  >
+                                    <XCircle className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                )}
                                 <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
                                   <Pencil className="w-4 h-4" />
                                 </Button>
@@ -403,13 +519,20 @@ export const ManifestManagement = ({ travelId }: Props) => {
             </TabsContent>
 
             <TabsContent value="rooming" className="mt-4">
-              {list.length === 0 ? (
+              {approvedList.length === 0 ? (
                 <div className="text-center py-16 bg-secondary/20 rounded-3xl border-2 border-dashed border-border">
                   <BedDouble className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
-                  <p className="font-semibold">Belum ada jemaah untuk dibagi kamar</p>
+                  <p className="font-semibold">Belum ada jemaah yang disetujui</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Setujui data manifest terlebih dahulu agar bisa dibagi ke kamar
+                  </p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="sm:col-span-2 lg:col-span-3 text-xs text-muted-foreground">
+                    Menampilkan {approvedList.length} jemaah yang telah disetujui ({maleCount} laki-laki · {femaleCount} perempuan).
+                  </div>
+
                   {rooms.map(([room, members]) => {
                     const capacity = ROOM_CAPACITY[(members[0]?.room_type || roomType) as RoomType];
                     const over = room !== 'Belum ditentukan' && members.length > capacity;
@@ -447,6 +570,33 @@ export const ManifestManagement = ({ travelId }: Props) => {
           </Tabs>
         </>
       )}
+
+      {/* Reject dialog */}
+      <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tolak Data Manifest</DialogTitle>
+            <DialogDescription>
+              {rejectTarget?.full_name} tidak akan masuk rooming list maupun dokumen ekspor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Alasan penolakan (opsional)</Label>
+            <Textarea
+              rows={3}
+              placeholder="Contoh: paspor kedaluwarsa, nama tidak sesuai paspor"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>Batal</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={setApproval.isPending}>
+              {setApproval.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Tolak
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Form dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
