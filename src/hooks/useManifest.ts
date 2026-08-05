@@ -203,6 +203,45 @@ export const useBulkUpdateRooming = () => {
   });
 };
 
+// Approval flow: only approved pilgrims may enter rooming list / exports
+export const useSetManifestApproval = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ids,
+      status,
+      reason,
+    }: { ids: string[]; status: ApprovalStatus; reason?: string | null }) => {
+      if (ids.length === 0) return { count: 0, status };
+      const { error } = await (supabase as any)
+        .from('manifest_pilgrims')
+        .update({
+          approval_status: status,
+          rejection_reason: status === 'rejected' ? (reason || null) : null,
+        })
+        .in('id', ids);
+      if (error) throw error;
+      return { count: ids.length, status };
+    },
+    onSuccess: ({ count, status }) => {
+      invalidate(qc);
+      toast({
+        title:
+          status === 'approved'
+            ? `${count} jemaah disetujui masuk manifest final`
+            : status === 'rejected'
+            ? `${count} jemaah ditolak`
+            : `${count} jemaah dikembalikan ke status menunggu`,
+      });
+    },
+    onError: (e: any) => toast({ title: 'Gagal memperbarui persetujuan', description: e.message, variant: 'destructive' }),
+  });
+};
+
+export const isApproved = (p: ManifestPilgrim) => p.approval_status === 'approved';
+
+
+
 // Group pilgrims into rooms by gender, respecting room capacity.
 export const buildRoomingAssignments = (
   pilgrims: ManifestPilgrim[],
