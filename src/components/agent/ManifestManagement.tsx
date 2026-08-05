@@ -430,12 +430,13 @@ export const ManifestManagement = ({ travelId }: Props) => {
                           <TableHead>Telepon</TableHead>
                           <TableHead>Kamar</TableHead>
                           <TableHead>Bus</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Booking</TableHead>
                           <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {list.map((p) => (
+                        {visibleList.map((p) => (
                           <TableRow key={p.id}>
                             <TableCell className="font-medium">{p.full_name}</TableCell>
                             <TableCell>
@@ -449,9 +450,57 @@ export const ManifestManagement = ({ travelId }: Props) => {
                               {p.room_number ? `${p.room_number} (${p.room_type})` : '-'}
                             </TableCell>
                             <TableCell className="text-sm">{p.bus_number || '-'}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  p.approval_status === 'approved'
+                                    ? 'default'
+                                    : p.approval_status === 'rejected'
+                                    ? 'destructive'
+                                    : 'secondary'
+                                }
+                                className="text-[10px]"
+                              >
+                                {APPROVAL_LABEL[p.approval_status]}
+                              </Badge>
+                              {p.approval_status === 'rejected' && p.rejection_reason && (
+                                <p className="text-[10px] text-muted-foreground mt-1 max-w-[160px]">{p.rejection_reason}</p>
+                              )}
+                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground">{p.booking?.booking_code || '-'}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
+                                {p.approval_status !== 'approved' ? (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Setujui"
+                                    disabled={setApproval.isPending}
+                                    onClick={() => setApproval.mutate({ ids: [p.id], status: 'approved' })}
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Batalkan persetujuan"
+                                    disabled={setApproval.isPending}
+                                    onClick={() => setApproval.mutate({ ids: [p.id], status: 'pending' })}
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {p.approval_status !== 'rejected' && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    title="Tolak"
+                                    onClick={() => { setRejectTarget(p); setRejectReason(''); }}
+                                  >
+                                    <XCircle className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                )}
                                 <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
                                   <Pencil className="w-4 h-4" />
                                 </Button>
