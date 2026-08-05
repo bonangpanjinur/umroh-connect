@@ -437,6 +437,8 @@ const AgentDashboard = () => {
                 }
               case 'bookings':
                 return <BookingsManagement travelId={travel?.id} />;
+              case 'manifest':
+                return <ManifestManagement travelId={travel?.id} />;
               case 'chat':
                 return <ChatManagement />;
               case 'haji':
