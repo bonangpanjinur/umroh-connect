@@ -27,8 +27,9 @@ import {
 import {
   useAgentDepartures, useManifestPilgrims, useDepartureBookings,
   useSaveManifestPilgrim, useDeleteManifestPilgrim, useBulkInsertManifest,
-  useBulkUpdateRooming, buildRoomingAssignments, ROOM_CAPACITY,
-  ManifestPilgrim, RoomType, Gender,
+  useBulkUpdateRooming, useSetManifestApproval, buildRoomingAssignments,
+  ROOM_CAPACITY, APPROVAL_LABEL, isApproved,
+  ManifestPilgrim, RoomType, Gender, ApprovalStatus,
 } from '@/hooks/useManifest';
 
 interface Props {
