@@ -3,7 +3,7 @@ import {
   Menu, X, BarChart3, Package, MessageSquare, Users, Sparkles, 
   ClipboardList, TrendingUp, Zap, Crown, Globe, Settings, 
   ChevronDown, AlertCircle, DollarSign, Wallet, Briefcase, 
-  LayoutDashboard, ChevronLeft, ChevronRight, PlusCircle
+  LayoutDashboard, ChevronLeft, ChevronRight, PlusCircle, BedDouble
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -70,6 +70,12 @@ export const AgentDashboardSidebar = ({
       label: 'Booking',
       icon: <ClipboardList className="w-5 h-5" />,
       badge: bookingOverdueCount,
+      category: 'bisnis',
+    },
+    {
+      id: 'manifest',
+      label: 'Manifest & Rooming',
+      icon: <BedDouble className="w-5 h-5" />,
       category: 'bisnis',
     },
     {

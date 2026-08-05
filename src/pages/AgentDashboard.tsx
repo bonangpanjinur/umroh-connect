@@ -26,6 +26,7 @@ import { InquiriesManagement } from '@/components/agent/InquiriesManagement';
 import { HajiManagement } from '@/components/agent/HajiManagement';
 import { FeaturedPackageManager } from '@/components/agent/FeaturedPackageManager';
 import { BookingsManagement } from '@/components/agent/BookingsManagement';
+import { ManifestManagement } from '@/components/agent/ManifestManagement';
 import { ChatManagement } from '@/components/agent/ChatManagement';
 import AnalyticsDashboard from '@/components/agent/AnalyticsDashboard';
 import { AgentNotificationCenter } from '@/components/agent/AgentNotificationCenter';
@@ -437,6 +438,8 @@ const AgentDashboard = () => {
                 }
               case 'bookings':
                 return <BookingsManagement travelId={travel?.id} />;
+              case 'manifest':
+                return <ManifestManagement travelId={travel?.id} />;
               case 'chat':
                 return <ChatManagement />;
               case 'haji':
