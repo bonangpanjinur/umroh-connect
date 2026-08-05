@@ -67,26 +67,36 @@ export const ManifestManagement = ({ travelId }: Props) => {
   const deletePilgrim = useDeleteManifestPilgrim();
   const bulkInsert = useBulkInsertManifest();
   const bulkRooming = useBulkUpdateRooming();
+  const setApproval = useSetManifestApproval();
 
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [roomType, setRoomType] = useState<RoomType>('quad');
   const [exporting, setExporting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ApprovalStatus>('all');
+  const [rejectTarget, setRejectTarget] = useState<ManifestPilgrim | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const list = pilgrims || [];
+  // Only approved pilgrims flow into rooming list & exported documents
+  const approvedList = useMemo(() => list.filter(isApproved), [list]);
+  const pendingList = list.filter((p) => p.approval_status === 'pending');
+  const rejectedCount = list.filter((p) => p.approval_status === 'rejected').length;
+  const visibleList = statusFilter === 'all' ? list : list.filter((p) => p.approval_status === statusFilter);
+
   const totalSeatsBooked = (bookings || []).reduce((s: number, b: any) => s + (b.number_of_pilgrims || 0), 0);
-  const maleCount = list.filter((p) => p.gender === 'L').length;
-  const femaleCount = list.filter((p) => p.gender === 'P').length;
+  const maleCount = approvedList.filter((p) => p.gender === 'L').length;
+  const femaleCount = approvedList.filter((p) => p.gender === 'P').length;
   const missingPassport = list.filter((p) => !p.passport_number).length;
 
   const rooms = useMemo(() => {
     const map = new Map<string, ManifestPilgrim[]>();
-    list.forEach((p) => {
+    approvedList.forEach((p) => {
       const key = p.room_number || 'Belum ditentukan';
       map.set(key, [...(map.get(key) || []), p]);
     });
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [list]);
+  }, [approvedList]);
 
   const openCreate = () => {
     setForm({ ...emptyForm, booking_id: (bookings || [])[0]?.id || '', room_type: roomType });
