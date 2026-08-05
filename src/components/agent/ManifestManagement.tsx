@@ -172,12 +172,24 @@ export const ManifestManagement = ({ travelId }: Props) => {
   };
 
   const handleAutoRooming = async () => {
-    const updates = buildRoomingAssignments(list, roomType);
+    // Rooming list is built strictly from approved manifest entries
+    const updates = buildRoomingAssignments(approvedList, roomType);
     await bulkRooming.mutateAsync(updates);
   };
 
+  const handleApproveAllPending = async () => {
+    await setApproval.mutateAsync({ ids: pendingList.map((p) => p.id), status: 'approved' });
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    await setApproval.mutateAsync({ ids: [rejectTarget.id], status: 'rejected', reason: rejectReason.trim() || null });
+    setRejectTarget(null);
+    setRejectReason('');
+  };
+
   const exportRows = () =>
-    list.map((p, i) => [
+    approvedList.map((p, i) => [
       i + 1,
       p.full_name,
       p.gender === 'L' ? 'Laki-laki' : 'Perempuan',
