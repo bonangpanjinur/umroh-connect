@@ -241,7 +241,7 @@ export const ManifestManagement = ({ travelId }: Props) => {
       doc.text(
         `${selectedDeparture?.package_name || '-'} · Berangkat ${
           selectedDeparture ? format(new Date(selectedDeparture.departure_date), 'dd MMM yyyy', { locale: idLocale }) : '-'
-        } · ${list.length} jemaah`,
+        } · ${approvedList.length} jemaah disetujui`,
         14,
         22
       );
