@@ -1535,6 +1535,98 @@ export type Database = {
         }
         Relationships: []
       }
+      manifest_pilgrims: {
+        Row: {
+          birth_date: string | null
+          booking_id: string
+          bus_number: string | null
+          created_at: string
+          departure_id: string | null
+          full_name: string
+          gender: string
+          id: string
+          mahram_name: string | null
+          nik: string | null
+          notes: string | null
+          passport_expiry: string | null
+          passport_number: string | null
+          phone: string | null
+          room_number: string | null
+          room_type: string
+          travel_id: string
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          booking_id: string
+          bus_number?: string | null
+          created_at?: string
+          departure_id?: string | null
+          full_name: string
+          gender?: string
+          id?: string
+          mahram_name?: string | null
+          nik?: string | null
+          notes?: string | null
+          passport_expiry?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          room_number?: string | null
+          room_type?: string
+          travel_id: string
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          booking_id?: string
+          bus_number?: string | null
+          created_at?: string
+          departure_id?: string | null
+          full_name?: string
+          gender?: string
+          id?: string
+          mahram_name?: string | null
+          nik?: string | null
+          notes?: string | null
+          passport_expiry?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          room_number?: string | null
+          room_type?: string
+          travel_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manifest_pilgrims_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifest_pilgrims_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifest_pilgrims_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manifest_pilgrims_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           amount: number
