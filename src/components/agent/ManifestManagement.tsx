@@ -273,7 +273,7 @@ export const ManifestManagement = ({ travelId }: Props) => {
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-xl gap-2" disabled={!departureId || list.length === 0 || exporting}>
+              <Button variant="outline" className="rounded-xl gap-2" disabled={!departureId || approvedList.length === 0 || exporting}>
                 {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Ekspor
               </Button>
             </DropdownMenuTrigger>
