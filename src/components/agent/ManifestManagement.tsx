@@ -335,9 +335,9 @@ export const ManifestManagement = ({ travelId }: Props) => {
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Jemaah di manifest', value: `${list.length}${totalSeatsBooked ? ` / ${totalSeatsBooked}` : ''}` },
-              { label: 'Laki-laki', value: maleCount },
-              { label: 'Perempuan', value: femaleCount },
+              { label: 'Total data manifest', value: `${list.length}${totalSeatsBooked ? ` / ${totalSeatsBooked}` : ''}` },
+              { label: 'Disetujui (final)', value: approvedList.length },
+              { label: 'Menunggu verifikasi', value: pendingList.length },
               { label: 'Paspor belum lengkap', value: missingPassport },
             ].map((s) => (
               <Card key={s.label} className="rounded-2xl">
@@ -349,14 +349,56 @@ export const ManifestManagement = ({ travelId }: Props) => {
             ))}
           </div>
 
+          {pendingList.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">{pendingList.length} jemaah menunggu persetujuan travel</p>
+                  <p className="text-xs text-muted-foreground">
+                    Data belum disetujui tidak masuk rooming list maupun dokumen ekspor.
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" className="rounded-xl gap-2" onClick={handleApproveAllPending} disabled={setApproval.isPending}>
+                {setApproval.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Setujui semua
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" className="rounded-xl gap-2" onClick={handleImportFromBookings} disabled={bulkInsert.isPending || (bookings || []).length === 0}>
               {bulkInsert.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Import className="w-4 h-4" />} Import dari booking
             </Button>
-            <Button variant="outline" className="rounded-xl gap-2" onClick={handleAutoRooming} disabled={bulkRooming.isPending || list.length === 0}>
+            <Button variant="outline" className="rounded-xl gap-2" onClick={handleAutoRooming} disabled={bulkRooming.isPending || approvedList.length === 0}>
               {bulkRooming.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} Susun rooming otomatis
             </Button>
           </div>
+
+          {/* Approval status filter */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { v: 'all', l: 'Semua', c: list.length },
+              { v: 'pending', l: '⏳ Menunggu', c: pendingList.length },
+              { v: 'approved', l: '✅ Disetujui', c: approvedList.length },
+              { v: 'rejected', l: '⛔ Ditolak', c: rejectedCount },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                onClick={() => setStatusFilter(opt.v as any)}
+                className={cn(
+                  'px-4 py-2 rounded-xl text-sm font-medium border transition-colors',
+                  statusFilter === opt.v
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:bg-secondary'
+                )}
+              >
+                {opt.l} <span className="ml-1 text-xs opacity-70">({opt.c})</span>
+              </button>
+            ))}
+          </div>
+
 
           <Tabs defaultValue="manifest">
             <TabsList>
