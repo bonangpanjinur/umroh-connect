@@ -1537,6 +1537,9 @@ export type Database = {
       }
       manifest_pilgrims: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           birth_date: string | null
           booking_id: string
           bus_number: string | null
@@ -1551,12 +1554,16 @@ export type Database = {
           passport_expiry: string | null
           passport_number: string | null
           phone: string | null
+          rejection_reason: string | null
           room_number: string | null
           room_type: string
           travel_id: string
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           birth_date?: string | null
           booking_id: string
           bus_number?: string | null
@@ -1571,12 +1578,16 @@ export type Database = {
           passport_expiry?: string | null
           passport_number?: string | null
           phone?: string | null
+          rejection_reason?: string | null
           room_number?: string | null
           room_type?: string
           travel_id: string
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           birth_date?: string | null
           booking_id?: string
           bus_number?: string | null
@@ -1591,6 +1602,7 @@ export type Database = {
           passport_expiry?: string | null
           passport_number?: string | null
           phone?: string | null
+          rejection_reason?: string | null
           room_number?: string | null
           room_type?: string
           travel_id?: string
