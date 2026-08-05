@@ -571,6 +571,33 @@ export const ManifestManagement = ({ travelId }: Props) => {
         </>
       )}
 
+      {/* Reject dialog */}
+      <Dialog open={!!rejectTarget} onOpenChange={(o) => !o && setRejectTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tolak Data Manifest</DialogTitle>
+            <DialogDescription>
+              {rejectTarget?.full_name} tidak akan masuk rooming list maupun dokumen ekspor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Alasan penolakan (opsional)</Label>
+            <Textarea
+              rows={3}
+              placeholder="Contoh: paspor kedaluwarsa, nama tidak sesuai paspor"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectTarget(null)}>Batal</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={setApproval.isPending}>
+              {setApproval.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Tolak
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Form dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
