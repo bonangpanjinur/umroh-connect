@@ -519,13 +519,20 @@ export const ManifestManagement = ({ travelId }: Props) => {
             </TabsContent>
 
             <TabsContent value="rooming" className="mt-4">
-              {list.length === 0 ? (
+              {approvedList.length === 0 ? (
                 <div className="text-center py-16 bg-secondary/20 rounded-3xl border-2 border-dashed border-border">
                   <BedDouble className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
-                  <p className="font-semibold">Belum ada jemaah untuk dibagi kamar</p>
+                  <p className="font-semibold">Belum ada jemaah yang disetujui</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Setujui data manifest terlebih dahulu agar bisa dibagi ke kamar
+                  </p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="sm:col-span-2 lg:col-span-3 text-xs text-muted-foreground">
+                    Menampilkan {approvedList.length} jemaah yang telah disetujui ({maleCount} laki-laki · {femaleCount} perempuan).
+                  </div>
+
                   {rooms.map(([room, members]) => {
                     const capacity = ROOM_CAPACITY[(members[0]?.room_type || roomType) as RoomType];
                     const over = room !== 'Belum ditentukan' && members.length > capacity;
