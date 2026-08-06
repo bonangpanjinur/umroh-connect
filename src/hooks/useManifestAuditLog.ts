@@ -21,6 +21,8 @@ export interface ManifestAuditEntry {
   new_approval_status: string | null;
   rejection_reason: string | null;
   changed_fields: string[] | null;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
   changed_by: string | null;
   created_at: string;
 }
