@@ -4,8 +4,10 @@ import { id as idLocale } from 'date-fns/locale';
 import {
   Users, Plus, Download, FileSpreadsheet, FileText, BedDouble,
   Wand2, Pencil, Trash2, Bus, Loader2, Import, ShieldCheck,
-  CheckCircle2, XCircle, RotateCcw,
+  CheckCircle2, XCircle, RotateCcw, History,
 } from 'lucide-react';
+import { ManifestAuditLog } from '@/components/agent/ManifestAuditLog';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -406,7 +408,9 @@ export const ManifestManagement = ({ travelId }: Props) => {
             <TabsList>
               <TabsTrigger value="manifest" className="gap-2"><Users className="w-4 h-4" /> Manifest</TabsTrigger>
               <TabsTrigger value="rooming" className="gap-2"><BedDouble className="w-4 h-4" /> Rooming List</TabsTrigger>
+              <TabsTrigger value="audit" className="gap-2"><History className="w-4 h-4" /> Riwayat Audit</TabsTrigger>
             </TabsList>
+
 
             <TabsContent value="manifest" className="mt-4">
               <Card className="rounded-2xl overflow-hidden">
@@ -567,7 +571,12 @@ export const ManifestManagement = ({ travelId }: Props) => {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="audit" className="mt-4">
+              <ManifestAuditLog departureId={departureId} />
+            </TabsContent>
           </Tabs>
+
         </>
       )}
 
