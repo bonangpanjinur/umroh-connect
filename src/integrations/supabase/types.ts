@@ -1535,6 +1535,54 @@ export type Database = {
         }
         Relationships: []
       }
+      manifest_audit_log: {
+        Row: {
+          action: string
+          booking_id: string | null
+          changed_by: string | null
+          changed_fields: string[] | null
+          created_at: string
+          departure_id: string | null
+          id: string
+          new_approval_status: string | null
+          old_approval_status: string | null
+          pilgrim_id: string | null
+          pilgrim_name: string | null
+          rejection_reason: string | null
+          travel_id: string
+        }
+        Insert: {
+          action: string
+          booking_id?: string | null
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          new_approval_status?: string | null
+          old_approval_status?: string | null
+          pilgrim_id?: string | null
+          pilgrim_name?: string | null
+          rejection_reason?: string | null
+          travel_id: string
+        }
+        Update: {
+          action?: string
+          booking_id?: string | null
+          changed_by?: string | null
+          changed_fields?: string[] | null
+          created_at?: string
+          departure_id?: string | null
+          id?: string
+          new_approval_status?: string | null
+          old_approval_status?: string | null
+          pilgrim_id?: string | null
+          pilgrim_name?: string | null
+          rejection_reason?: string | null
+          travel_id?: string
+        }
+        Relationships: []
+      }
       manifest_pilgrims: {
         Row: {
           approval_status: string
