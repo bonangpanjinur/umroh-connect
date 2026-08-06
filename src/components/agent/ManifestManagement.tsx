@@ -406,7 +406,9 @@ export const ManifestManagement = ({ travelId }: Props) => {
             <TabsList>
               <TabsTrigger value="manifest" className="gap-2"><Users className="w-4 h-4" /> Manifest</TabsTrigger>
               <TabsTrigger value="rooming" className="gap-2"><BedDouble className="w-4 h-4" /> Rooming List</TabsTrigger>
+              <TabsTrigger value="audit" className="gap-2"><History className="w-4 h-4" /> Riwayat Audit</TabsTrigger>
             </TabsList>
+
 
             <TabsContent value="manifest" className="mt-4">
               <Card className="rounded-2xl overflow-hidden">
