@@ -567,7 +567,12 @@ export const ManifestManagement = ({ travelId }: Props) => {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="audit" className="mt-4">
+              <ManifestAuditLog departureId={departureId} />
+            </TabsContent>
           </Tabs>
+
         </>
       )}
 
