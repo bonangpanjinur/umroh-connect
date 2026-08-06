@@ -4,8 +4,10 @@ import { id as idLocale } from 'date-fns/locale';
 import {
   Users, Plus, Download, FileSpreadsheet, FileText, BedDouble,
   Wand2, Pencil, Trash2, Bus, Loader2, Import, ShieldCheck,
-  CheckCircle2, XCircle, RotateCcw,
+  CheckCircle2, XCircle, RotateCcw, History,
 } from 'lucide-react';
+import { ManifestAuditLog } from '@/components/agent/ManifestAuditLog';
+
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
