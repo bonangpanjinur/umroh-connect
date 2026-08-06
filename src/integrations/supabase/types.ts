@@ -1545,7 +1545,9 @@ export type Database = {
           departure_id: string | null
           id: string
           new_approval_status: string | null
+          new_values: Json | null
           old_approval_status: string | null
+          old_values: Json | null
           pilgrim_id: string | null
           pilgrim_name: string | null
           rejection_reason: string | null
@@ -1560,7 +1562,9 @@ export type Database = {
           departure_id?: string | null
           id?: string
           new_approval_status?: string | null
+          new_values?: Json | null
           old_approval_status?: string | null
+          old_values?: Json | null
           pilgrim_id?: string | null
           pilgrim_name?: string | null
           rejection_reason?: string | null
@@ -1575,7 +1579,9 @@ export type Database = {
           departure_id?: string | null
           id?: string
           new_approval_status?: string | null
+          new_values?: Json | null
           old_approval_status?: string | null
+          old_values?: Json | null
           pilgrim_id?: string | null
           pilgrim_name?: string | null
           rejection_reason?: string | null
