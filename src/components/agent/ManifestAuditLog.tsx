@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/select';
 import {
   useManifestAuditLog, useManifestAuditCount, useAuditActorNames,
-  MANIFEST_AUDIT_LABEL, MANIFEST_FIELD_LABEL, ManifestAuditAction,
+  MANIFEST_AUDIT_LABEL, MANIFEST_FIELD_LABEL, ManifestAuditAction, ManifestAuditEntry,
 } from '@/hooks/useManifestAuditLog';
+import { ManifestAuditDetailModal } from './ManifestAuditDetailModal';
 
 const ACTION_META: Record<ManifestAuditAction, { icon: typeof CheckCircle2; className: string }> = {
   created: { icon: Plus, className: 'bg-primary/10 text-primary' },
@@ -33,6 +34,7 @@ export const ManifestAuditLog = ({ departureId }: Props) => {
   const [limit, setLimit] = useState(100);
   const [actionFilter, setActionFilter] = useState<'all' | ManifestAuditAction>('all');
   const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<ManifestAuditEntry | null>(null);
 
   const { data: entries, isLoading } = useManifestAuditLog(departureId, limit);
   const { data: total } = useManifestAuditCount(departureId);
@@ -108,7 +110,14 @@ export const ManifestAuditLog = ({ departureId }: Props) => {
                   const meta = ACTION_META[e.action] || ACTION_META.updated;
                   const Icon = meta.icon;
                   return (
-                    <div key={e.id} className="flex gap-3 rounded-xl border border-border bg-card p-3">
+                    <div
+                      key={e.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelected(e)}
+                      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSelected(e); } }}
+                      className="flex gap-3 rounded-xl border border-border bg-card p-3 text-left w-full transition-colors hover:bg-accent/50 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', meta.className)}>
                         <Icon className="w-4 h-4" />
                       </div>
@@ -136,7 +145,7 @@ export const ManifestAuditLog = ({ departureId }: Props) => {
                         ) : null}
 
                         {e.rejection_reason ? (
-                          <p className="text-xs text-destructive">Alasan: {e.rejection_reason}</p>
+                          <p className="text-xs text-destructive line-clamp-2">Alasan: {e.rejection_reason}</p>
                         ) : null}
 
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -160,6 +169,13 @@ export const ManifestAuditLog = ({ departureId }: Props) => {
           </Button>
         </div>
       )}
+
+      <ManifestAuditDetailModal
+        entry={selected}
+        actorName={selected?.changed_by ? actors?.[selected.changed_by] : undefined}
+        open={!!selected}
+        onOpenChange={(o) => { if (!o) setSelected(null); }}
+      />
     </div>
   );
 };
