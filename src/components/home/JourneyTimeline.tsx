@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useUserBookings } from '@/hooks/useBookings';
+import { useJourneyProgress } from '@/hooks/useJourneyProgress';
 import { Check, ChevronRight, Play, Calendar, MapPin, Plane, Home, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
