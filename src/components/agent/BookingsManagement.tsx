@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { useAgentBookings, usePaymentStats, Booking, BookingStatus } from '@/hooks/useBookings';
 import BookingDetailModal from './BookingDetailModal';
+import CancellationRequestsPanel from './CancellationRequestsPanel';
 
 interface BookingsManagementProps {
   travelId?: string;
@@ -124,6 +125,8 @@ export const BookingsManagement = ({ travelId }: BookingsManagementProps) => {
 
   return (
     <div className="space-y-4">
+      <CancellationRequestsPanel travelId={travelId} />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card rounded-xl border border-border p-3">
