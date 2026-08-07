@@ -16,6 +16,10 @@ import { ChatView } from '@/components/chat/ChatView';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import PaymentProofUpload from './PaymentProofUpload';
+import MyManifestPanel from './MyManifestPanel';
+import BookingVoucher from './BookingVoucher';
+import ItineraryTimeline from './ItineraryTimeline';
+import CancellationRequestCard from './CancellationRequestCard';
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -400,6 +404,30 @@ const UserBookingsView = () => {
                   </Card>
                 )}
                 
+                <BookingVoucher
+                  bookingCode={selectedBookingDetails.booking_code}
+                  packageName={selectedBookingDetails.package?.name || 'Paket Umroh'}
+                  travelName={selectedBookingDetails.travel?.name || 'Travel'}
+                  contactName={selectedBookingDetails.contact_name}
+                  numberOfPilgrims={selectedBookingDetails.number_of_pilgrims}
+                  departureDate={selectedBookingDetails.departure?.departure_date}
+                  returnDate={selectedBookingDetails.departure?.return_date}
+                  status={selectedBookingDetails.status}
+                />
+
+                <MyManifestPanel bookingId={selectedBookingDetails.id} />
+
+                <ItineraryTimeline departureId={selectedBookingDetails.departure_id} />
+
+                <CancellationRequestCard
+                  bookingId={selectedBookingDetails.id}
+                  travelId={selectedBookingDetails.travel_id}
+                  bookingStatus={selectedBookingDetails.status}
+                  totalPrice={selectedBookingDetails.total_price}
+                  paidAmount={selectedBookingDetails.paid_amount}
+                  departureDate={selectedBookingDetails.departure?.departure_date}
+                />
+
                 {/* Action Buttons */}
                 <div className="space-y-2">
                   {/* In-App Chat Button */}

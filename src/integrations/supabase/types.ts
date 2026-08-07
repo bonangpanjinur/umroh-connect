@@ -254,6 +254,76 @@ export type Database = {
           },
         ]
       }
+      booking_cancellation_requests: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          penalty_percent: number
+          reason: string
+          refund_estimate: number
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          travel_id: string
+          travel_note: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          penalty_percent?: number
+          reason: string
+          refund_estimate?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          travel_id: string
+          travel_note?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          penalty_percent?: number
+          reason?: string
+          refund_estimate?: number
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          travel_id?: string
+          travel_note?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_cancellation_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_cancellation_requests_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "public_travels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_cancellation_requests_travel_id_fkey"
+            columns: ["travel_id"]
+            isOneToOne: false
+            referencedRelation: "travels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           agent_notes: string | null
@@ -648,6 +718,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "departure_audit_log_departure_id_fkey"
+            columns: ["departure_id"]
+            isOneToOne: false
+            referencedRelation: "departures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departure_itineraries: {
+        Row: {
+          activities: string[] | null
+          city: string | null
+          created_at: string
+          day_number: number
+          departure_id: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activities?: string[] | null
+          city?: string | null
+          created_at?: string
+          day_number: number
+          departure_id: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activities?: string[] | null
+          city?: string | null
+          created_at?: string
+          day_number?: number
+          departure_id?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departure_itineraries_departure_id_fkey"
             columns: ["departure_id"]
             isOneToOne: false
             referencedRelation: "departures"
@@ -4221,6 +4335,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_journey_progress: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_meal_logs: {
         Row: {
