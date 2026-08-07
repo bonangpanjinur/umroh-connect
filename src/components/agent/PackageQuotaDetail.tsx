@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ItineraryEditor from './ItineraryEditor';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import {
@@ -460,6 +461,10 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
                             <Badge variant="outline" className={`${meta.bg} ${meta.color} border shrink-0`}>
                               {meta.label}
                             </Badge>
+                            <ItineraryEditor
+                              departureId={d.id}
+                              departureLabel={`${format(new Date(d.departure_date), 'd MMM yyyy', { locale: idLocale })} → ${format(new Date(d.return_date), 'd MMM yyyy', { locale: idLocale })}`}
+                            />
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" disabled={updateDeparture.isPending}>

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useUserBookings } from '@/hooks/useBookings';
+import { useJourneyProgress } from '@/hooks/useJourneyProgress';
 import { Check, ChevronRight, Play, Calendar, MapPin, Plane, Home, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -174,21 +176,22 @@ const TaskItem = ({ task, isCompleted, onToggle, index }: TaskItemProps) => {
 
 const JourneyTimeline = () => {
   const { isElderlyMode, fontSize, iconSize } = useElderlyMode();
-  const currentPhase = getCurrentPhase();
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(currentPhase?.id || 'h-7');
-  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set(['h30-1', 'h30-2']));
+  const { data: bookings } = useUserBookings();
+  const { completedTasks, toggleTask } = useJourneyProgress();
 
-  const toggleTask = (taskId: string) => {
-    setCompletedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
-  };
+  // Tanggal keberangkatan terdekat dari booking aktif
+  const nextDepartureDate = useMemo(() => {
+    const dates = (bookings || [])
+      .filter((b) => ['pending', 'confirmed', 'paid'].includes(b.status))
+      .map((b) => b.departure?.departure_date)
+      .filter(Boolean)
+      .map((d) => new Date(d as string))
+      .sort((a, b) => a.getTime() - b.getTime());
+    return dates[0];
+  }, [bookings]);
+
+  const currentPhase = getCurrentPhase(nextDepartureDate);
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(currentPhase?.id || 'h-7');
 
   // Calculate overall progress
   const totalTasks = timelinePhases.reduce((sum, p) => sum + p.tasks.length, 0);
