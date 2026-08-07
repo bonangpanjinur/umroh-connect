@@ -4611,6 +4611,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_geofence: {
+        Args: { _geofence_id: string; _user_id: string }
+        Returns: boolean
+      }
       generate_booking_code: { Args: never; Returns: string }
       generate_group_code: { Args: never; Returns: string }
       generate_shop_order_code: { Args: never; Returns: string }
@@ -4620,6 +4624,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_geofence_group_member: {
+        Args: { _geofence_id: string; _user_id: string }
         Returns: boolean
       }
       owns_departure: {
