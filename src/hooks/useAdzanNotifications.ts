@@ -155,6 +155,20 @@ export const useAdzanNotifications = () => {
         }
       }
 
+      // Pengingat lanjutan: tanya apakah sudah salat, hanya bila belum check-in
+      if (!isReminder && preferences.followUpEnabled && preferences.followUpMinutes > 0) {
+        const followUpId = window.setTimeout(async () => {
+          const done = await isPrayerCheckedIn(prayerId, userIdRef.current);
+          if (done) return;
+          showNotification(`Sudah sholat ${prayerInfo.name}? ${prayerInfo.emoji}`, {
+            body: `Tandai check-in ${prayerInfo.name} kamu di aplikasi.`,
+            tag: `adzan-followup-${prayerId}`,
+            data: { type: 'prayer-followup', prayerId },
+          });
+        }, preferences.followUpMinutes * 60 * 1000);
+        scheduledTimeoutsRef.current.set(`${prayerId}-followup`, followUpId);
+      }
+
       // Remove from scheduled list
       scheduledTimeoutsRef.current.delete(key);
       setScheduledAdzans(prev => prev.filter(s => !(s.prayerId === prayerId && s.isReminder === isReminder)));
@@ -176,6 +190,7 @@ export const useAdzanNotifications = () => {
       isReminder,
     };
   }, [isSupported, permission, preferences, showNotification]);
+
 
   // Schedule all adzan notifications
   const scheduleAllAdzans = useCallback((prayerTimes: PrayerTimes) => {
