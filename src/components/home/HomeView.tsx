@@ -55,7 +55,12 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
     >
       <PrayerTimeCard />
 
+      <PrayerCheckInCard />
+
+      <TodayIbadahCard onMenuClick={onMenuClick} />
+
       {/* Ramadan Banner */}
+
       {isRamadhanMode && (
         <div className="px-4">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
