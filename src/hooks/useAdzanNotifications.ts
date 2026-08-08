@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNotifications } from './useNotifications';
 import { usePrayerTimes } from './usePrayerTimes';
+import { isPrayerCheckedIn } from './usePrayerCheckIn';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { PrayerTimes } from '@/types';
 
 export type PrayerId = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
@@ -11,6 +13,8 @@ interface AdzanPreferences {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   reminderMinutes: number; // Minutes before adzan to remind
+  followUpEnabled: boolean; // Pengingat lanjutan "sudah salat?"
+  followUpMinutes: number; // Menit setelah adzan
 }
 
 interface ScheduledAdzan {
@@ -35,7 +39,10 @@ const DEFAULT_PREFERENCES: AdzanPreferences = {
   soundEnabled: true,
   vibrationEnabled: true,
   reminderMinutes: 5,
+  followUpEnabled: true,
+  followUpMinutes: 25,
 };
+
 
 const PRAYER_NAMES: Record<PrayerId, { name: string; arabic: string; emoji: string }> = {
   fajr: { name: 'Subuh', arabic: 'الفجر', emoji: '🌅' },
@@ -54,6 +61,13 @@ export const useAdzanNotifications = () => {
     registerBackgroundSync 
   } = useNotifications();
   const { times, location, loading: timesLoading } = usePrayerTimes();
+  const { user } = useAuthContext();
+  const userIdRef = useRef<string | undefined>(user?.id);
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
+
+
   
   const [preferences, setPreferences] = useState<AdzanPreferences>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -148,6 +162,20 @@ export const useAdzanNotifications = () => {
         }
       }
 
+      // Pengingat lanjutan: tanya apakah sudah salat, hanya bila belum check-in
+      if (!isReminder && preferences.followUpEnabled && preferences.followUpMinutes > 0) {
+        const followUpId = window.setTimeout(async () => {
+          const done = await isPrayerCheckedIn(prayerId, userIdRef.current);
+          if (done) return;
+          showNotification(`Sudah sholat ${prayerInfo.name}? ${prayerInfo.emoji}`, {
+            body: `Tandai check-in ${prayerInfo.name} kamu di aplikasi.`,
+            tag: `adzan-followup-${prayerId}`,
+            data: { type: 'prayer-followup', prayerId },
+          });
+        }, preferences.followUpMinutes * 60 * 1000);
+        scheduledTimeoutsRef.current.set(`${prayerId}-followup`, followUpId);
+      }
+
       // Remove from scheduled list
       scheduledTimeoutsRef.current.delete(key);
       setScheduledAdzans(prev => prev.filter(s => !(s.prayerId === prayerId && s.isReminder === isReminder)));
@@ -169,6 +197,7 @@ export const useAdzanNotifications = () => {
       isReminder,
     };
   }, [isSupported, permission, preferences, showNotification]);
+
 
   // Schedule all adzan notifications
   const scheduleAllAdzans = useCallback((prayerTimes: PrayerTimes) => {

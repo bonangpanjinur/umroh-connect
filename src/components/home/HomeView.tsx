@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { useLearningReminder } from '@/hooks/useLearningReminder';
 import PrayerTimeCard from './PrayerTimeCard';
+import PrayerCheckInCard from './PrayerCheckInCard';
+import TodayIbadahCard from './TodayIbadahCard';
+import DailyRoutineCard from './DailyRoutineCard';
 import DailyDoaCard from './DailyDoaCard';
+
+
 import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
 import JourneyTimeline from './JourneyTimeline';
@@ -52,7 +57,15 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
     >
       <PrayerTimeCard />
 
+      <PrayerCheckInCard />
+
+      <TodayIbadahCard onMenuClick={onMenuClick} />
+
+      <DailyRoutineCard onMenuClick={onMenuClick} />
+
+
       {/* Ramadan Banner */}
+
       {isRamadhanMode && (
         <div className="px-4">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
