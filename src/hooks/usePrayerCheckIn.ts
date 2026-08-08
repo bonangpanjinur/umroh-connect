@@ -40,9 +40,28 @@ const writeLocal = (date: string, entries: PrayerCheckInEntry[]) => {
 };
 
 /**
+ * Cek apakah satu salat sudah ditandai hari ini.
+ * Dipakai pengingat lanjutan agar tidak menegur pengguna yang sudah salat.
+ */
+export const isPrayerCheckedIn = async (prayerId: PrayerId, userId?: string): Promise<boolean> => {
+  const date = format(new Date(), 'yyyy-MM-dd');
+  if (readLocal(date).some((e) => e.prayerId === prayerId)) return true;
+  if (!userId) return false;
+  const { data } = await (supabase as any)
+    .from('user_prayer_logs')
+    .select('prayer_id')
+    .eq('user_id', userId)
+    .eq('log_date', date)
+    .eq('prayer_id', prayerId)
+    .maybeSingle();
+  return !!data;
+};
+
+/**
  * Check-in salat 5 waktu harian.
  * Tersimpan di database untuk pengguna login, localStorage untuk tamu.
  */
+
 export const usePrayerCheckIn = (date: string = format(new Date(), 'yyyy-MM-dd')) => {
   const { user } = useAuthContext();
   const [entries, setEntries] = useState<PrayerCheckInEntry[]>(() => readLocal(date));
