@@ -4411,6 +4411,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_prayer_logs: {
+        Row: {
+          completed_at: string
+          created_at: string
+          id: string
+          is_qadha: boolean
+          log_date: string
+          prayer_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          is_qadha?: boolean
+          log_date?: string
+          prayer_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          id?: string
+          is_qadha?: boolean
+          log_date?: string
+          prayer_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_quran_logs: {
         Row: {
           created_at: string
