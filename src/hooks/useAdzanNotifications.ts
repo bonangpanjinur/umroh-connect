@@ -61,6 +61,13 @@ export const useAdzanNotifications = () => {
     registerBackgroundSync 
   } = useNotifications();
   const { times, location, loading: timesLoading } = usePrayerTimes();
+  const { user } = useAuthContext();
+  const userIdRef = useRef<string | undefined>(user?.id);
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
+
+
   
   const [preferences, setPreferences] = useState<AdzanPreferences>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
