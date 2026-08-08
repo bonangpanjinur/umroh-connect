@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNotifications } from './useNotifications';
 import { usePrayerTimes } from './usePrayerTimes';
+import { isPrayerCheckedIn } from './usePrayerCheckIn';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { PrayerTimes } from '@/types';
 
 export type PrayerId = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
@@ -11,6 +13,8 @@ interface AdzanPreferences {
   soundEnabled: boolean;
   vibrationEnabled: boolean;
   reminderMinutes: number; // Minutes before adzan to remind
+  followUpEnabled: boolean; // Pengingat lanjutan "sudah salat?"
+  followUpMinutes: number; // Menit setelah adzan
 }
 
 interface ScheduledAdzan {
@@ -35,7 +39,10 @@ const DEFAULT_PREFERENCES: AdzanPreferences = {
   soundEnabled: true,
   vibrationEnabled: true,
   reminderMinutes: 5,
+  followUpEnabled: true,
+  followUpMinutes: 25,
 };
+
 
 const PRAYER_NAMES: Record<PrayerId, { name: string; arabic: string; emoji: string }> = {
   fajr: { name: 'Subuh', arabic: 'الفجر', emoji: '🌅' },
