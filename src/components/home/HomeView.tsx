@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useLearningReminder } from '@/hooks/useLearningReminder';
 import PrayerTimeCard from './PrayerTimeCard';
+import PrayerCheckInCard from './PrayerCheckInCard';
+import TodayIbadahCard from './TodayIbadahCard';
 import DailyDoaCard from './DailyDoaCard';
+
 import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
 import JourneyTimeline from './JourneyTimeline';
