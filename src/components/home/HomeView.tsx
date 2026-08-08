@@ -3,7 +3,9 @@ import { useLearningReminder } from '@/hooks/useLearningReminder';
 import PrayerTimeCard from './PrayerTimeCard';
 import PrayerCheckInCard from './PrayerCheckInCard';
 import TodayIbadahCard from './TodayIbadahCard';
+import DailyRoutineCard from './DailyRoutineCard';
 import DailyDoaCard from './DailyDoaCard';
+
 
 import PromoBanner from './PromoBanner';
 import QuickMenu from './QuickMenu';
