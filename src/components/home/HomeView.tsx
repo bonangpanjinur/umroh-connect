@@ -61,6 +61,9 @@ const HomeView = ({ onMenuClick, onPackageClick, onNavigateBelajar }: HomeViewPr
 
       <TodayIbadahCard onMenuClick={onMenuClick} />
 
+      <DailyRoutineCard onMenuClick={onMenuClick} />
+
+
       {/* Ramadan Banner */}
 
       {isRamadhanMode && (
