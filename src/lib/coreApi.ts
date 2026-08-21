@@ -55,6 +55,25 @@ async function request<T>(path: string, init?: RequestInit, authenticated = fals
   }
 }
 
+interface PaymentScheduleDto {
+  id: string;
+  booking_id: string;
+  sequence_no: number;
+  payment_type: 'dp' | 'installment' | 'final';
+  title: string;
+  amount: number;
+  due_date: string;
+  paid_amount: number;
+  is_paid?: boolean;
+  status: 'pending' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
+  paid_at: string | null;
+  proof_document_id?: string | null;
+  payment_proof_url?: string | null;
+  notes: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface CoreListing {
   id: string;
   travel: { id: string | null; name: string | null; slug: string | null; verified: boolean };
@@ -216,12 +235,28 @@ export const coreApi = {
     }, true);
   },
 
-  async allocatePayment(bookingId: string, input: { amount: number; paymentMethod?: string; paymentDate?: string; proofDocumentId?: string; notes?: string | null }, idempotencyKey: string) {
+  async allocatePayment(bookingId: string, input: { amount: number; paymentMethod?: string; paymentDate?: string; paymentScheduleId?: string; proofDocumentId?: string; notes?: string | null }, idempotencyKey: string) {
     return request<{ payment: unknown; booking: unknown }>(`/management/bookings/${encodeURIComponent(bookingId)}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify(input),
     }, true);
+  },
+
+  async listManagementPaymentSchedules(bookingId: string) {
+    return request<PaymentScheduleDto[]>(`/management/bookings/${encodeURIComponent(bookingId)}/payment-schedules`, undefined, true);
+  },
+
+  async replaceManagementPaymentSchedules(bookingId: string, schedules: Array<{ paymentType: 'dp' | 'installment' | 'final'; title?: string; amount: number; dueDate: string; notes?: string | null }>) {
+    return request<PaymentScheduleDto[]>(`/management/bookings/${encodeURIComponent(bookingId)}/payment-schedules`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedules }),
+    }, true);
+  },
+
+  async listMyPaymentSchedules(bookingId: string) {
+    return request<PaymentScheduleDto[]>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/payment-schedules`, undefined, true);
   },
 
   async uploadPaymentProof(bookingId: string, input: { data: string; contentType: string; filename?: string; amount?: number; notes?: string | null }) {

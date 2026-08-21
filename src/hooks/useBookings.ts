@@ -119,6 +119,37 @@ export const useBookingDetails = (bookingId?: string) => {
   });
 };
 
+export const usePaymentSchedules = (bookingId?: string, management = false) => {
+  return useQuery({
+    queryKey: ['payment-schedules', bookingId, management],
+    queryFn: async (): Promise<PaymentSchedule[]> => {
+      if (!bookingId) return [];
+      const data = management
+        ? await coreApi.listManagementPaymentSchedules(bookingId)
+        : await coreApi.listMyPaymentSchedules(bookingId);
+      return (data || []).map((schedule) => ({
+        id: schedule.id,
+        booking_id: schedule.booking_id,
+        payment_type: schedule.payment_type,
+        amount: Number(schedule.amount),
+        due_date: schedule.due_date,
+        is_paid: schedule.is_paid ?? schedule.status === 'paid',
+        paid_at: schedule.paid_at,
+        paid_amount: Number(schedule.paid_amount),
+        payment_proof_url: schedule.payment_proof_url || schedule.proof_document_id || null,
+        reminder_sent_h7: false,
+        reminder_sent_h3: false,
+        reminder_sent_h1: false,
+        reminder_sent_overdue: false,
+        notes: schedule.notes,
+        created_at: schedule.created_at || new Date().toISOString(),
+        updated_at: schedule.updated_at || new Date().toISOString(),
+      } as PaymentSchedule));
+    },
+    enabled: !!bookingId,
+  });
+};
+
 // Create booking
 export const useCreateBooking = () => {
   const queryClient = useQueryClient();
@@ -249,8 +280,9 @@ export const useRecordPayment = () => {
     }) => {
       return coreApi.allocatePayment(bookingId, {
         amount: paidAmount,
+        paymentScheduleId: scheduleId,
         proofDocumentId,
-        notes: scheduleId ? `${notes || ''}${notes ? ' ' : ''}Legacy schedule: ${scheduleId}` : notes,
+        notes,
       }, crypto.randomUUID());
     },
     onSuccess: () => {
