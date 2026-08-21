@@ -98,18 +98,7 @@ export const useAgentBookings = (travelId?: string) => {
     queryFn: async (): Promise<Booking[]> => {
       if (!travelId) return [];
       
-      const { data, error } = await (supabase as any)
-        .from('bookings')
-        .select(`
-          *,
-          package:packages(name, package_type),
-          departure:departures(departure_date, return_date),
-          payment_schedules(*)
-        `)
-        .eq('travel_id', travelId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
+      const data = await coreApi.listManagementBookings({ branchId: travelId });
       return (data || []) as unknown as Booking[];
     },
     enabled: !!travelId,
@@ -220,15 +209,7 @@ export const useUpdateBookingStatus = () => {
       status: BookingStatus;
       agentNotes?: string;
     }) => {
-      const { error } = await (supabase as any)
-        .from('bookings')
-        .update({ 
-          status,
-          agent_notes: agentNotes,
-        })
-        .eq('id', bookingId);
-      
-      if (error) throw error;
+      await coreApi.updateManagementBookingStatus(bookingId, status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });

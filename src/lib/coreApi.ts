@@ -191,6 +191,31 @@ export const coreApi = {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
 
+  async listManagementBookings(params?: { status?: string; q?: string; branchId?: string; page?: number; limit?: number }) {
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') search.set(key, String(value));
+    });
+    const suffix = search.toString() ? `?${search.toString()}` : '';
+    return request<unknown[]>(`/management/bookings${suffix}`, undefined, true);
+  },
+
+  async createManagementBooking(input: { departureId: string; customerId: string; branchId?: string; pax: number; totalPrice?: number; roomType?: string; notes?: string | null }, idempotencyKey: string) {
+    return request<unknown>('/management/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(input),
+    }, true);
+  },
+
+  async updateManagementBookingStatus(bookingId: string, status: string) {
+    return request<{ id: string; status: string }>(`/management/bookings/${encodeURIComponent(bookingId)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }, true);
+  },
+
   async getTravelProfile(travelId: string) {
     return request<{
       id: string;
