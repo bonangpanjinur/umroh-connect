@@ -171,6 +171,14 @@ export const coreApi = {
     return toLegacyPackage(listing);
   },
 
+  async createPaymentOrder(sessionId: string) {
+    return request<{ id: string; external_id: string; provider: string; amount: number; status: string; payment_url: string | null; expires_at: string }>(`/marketplace/checkout-sessions/${encodeURIComponent(sessionId)}/payment-order`, { method: 'POST' }, true);
+  },
+
+  async getPaymentOrder(sessionId: string) {
+    return request<{ id: string; external_id: string; provider: string; amount: number; status: string; payment_url: string | null; expires_at: string }>(`/marketplace/checkout-sessions/${encodeURIComponent(sessionId)}/payment-order`, undefined, true);
+  },
+
   async getMyBookings() {
     return request<unknown[]>('/marketplace/bookings', undefined, true);
   },
