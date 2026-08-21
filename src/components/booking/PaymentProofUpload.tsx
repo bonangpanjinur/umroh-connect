@@ -7,7 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from 'sonner';
 import { PaymentSchedule } from '@/hooks/useBookings';
 import { format } from 'date-fns';
@@ -33,6 +33,7 @@ const PaymentProofUpload = ({ schedule, bookingCode, onSuccess, onCancel }: Paym
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadedPath, setUploadedPath] = useState<string | null>(null);
+  const [proofPayload, setProofPayload] = useState<{ data: string; contentType: string; filename: string } | null>(null);
   const [notes, setNotes] = useState('');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,34 +55,19 @@ const PaymentProofUpload = ({ schedule, bookingCode, onSuccess, onCancel }: Paym
     setIsUploading(true);
 
     try {
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result as string);
+        const data = String(reader.result || '');
+        setPreview(data);
+        setProofPayload({ data, contentType: file.type, filename: file.name });
       };
       reader.readAsDataURL(file);
-
-      // Upload to private bucket using {user_id}/ folder for RLS
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${bookingCode}-${schedule.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/payment-proofs/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('private-uploads')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Store storage path (not public URL) — readers must createSignedUrl
-      setUploadedPath(filePath);
-      toast.success('Bukti pembayaran berhasil diupload');
+      toast.success('Bukti siap dikirim');
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Gagal mengupload bukti pembayaran');
+      console.error('Proof preparation error:', error);
+      toast.error('Gagal menyiapkan bukti pembayaran');
       setPreview(null);
+      setProofPayload(null);
     } finally {
       setIsUploading(false);
     }
@@ -90,29 +76,24 @@ const PaymentProofUpload = ({ schedule, bookingCode, onSuccess, onCancel }: Paym
   const handleRemoveImage = () => {
     setPreview(null);
     setUploadedPath(null);
+    setProofPayload(null);
   };
 
   const handleSubmit = async () => {
-    if (!uploadedPath) {
-      toast.error('Silakan upload bukti pembayaran terlebih dahulu');
+    if (!proofPayload) {
+      toast.error('Silakan pilih bukti pembayaran terlebih dahulu');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Update payment schedule with proof
-      const { error } = await supabase
-        .from('payment_schedules')
-        .update({
-          payment_proof_url: uploadedPath,
-          notes: notes || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', schedule.id);
-
-      if (error) throw error;
-
+      const proof = await coreApi.uploadPaymentProof(schedule.booking_id, {
+        ...proofPayload,
+        amount: schedule.amount,
+        notes: notes || null,
+      });
+      setUploadedPath(proof.id);
       toast.success('Bukti pembayaran berhasil dikirim! Menunggu verifikasi admin.');
       onSuccess();
     } catch (error) {

@@ -216,6 +216,27 @@ export const coreApi = {
     }, true);
   },
 
+  async allocatePayment(bookingId: string, input: { amount: number; paymentMethod?: string; paymentDate?: string; proofDocumentId?: string; notes?: string | null }, idempotencyKey: string) {
+    return request<{ payment: unknown; booking: unknown }>(`/management/bookings/${encodeURIComponent(bookingId)}/payments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(input),
+    }, true);
+  },
+
+  async uploadPaymentProof(bookingId: string, input: { data: string; contentType: string; filename?: string; amount?: number; notes?: string | null }) {
+    return request<{ id: string; booking_id: string; status: string; content_type: string; size_bytes: number }>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/payment-proofs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }, true);
+  },
+
+  async getPaymentProofUrl(bookingId: string, proofId: string, management = false) {
+    const base = management ? '/management' : '/marketplace';
+    return `${CORE_API_URL}${base}/bookings/${encodeURIComponent(bookingId)}/payment-proofs/${encodeURIComponent(proofId)}`;
+  },
+
   async getTravelProfile(travelId: string) {
     return request<{
       id: string;
