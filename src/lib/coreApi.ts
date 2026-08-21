@@ -1,0 +1,149 @@
+import type { Departure, PackageWithDetails, Travel } from '@/types/database';
+
+const CORE_API_URL = (import.meta.env.VITE_CORE_API_URL || '/api/v1').replace(/\/$/, '');
+const REQUEST_TIMEOUT_MS = 10_000;
+
+export class CoreApiError extends Error {
+  status: number;
+  code?: string;
+  requestId?: string;
+
+  constructor(message: string, options: { status: number; code?: string; requestId?: string }) {
+    super(message);
+    this.name = 'CoreApiError';
+    this.status = options.status;
+    this.code = options.code;
+    this.requestId = options.requestId;
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const requestId = crypto.randomUUID();
+
+  try {
+    const response = await fetch(`${CORE_API_URL}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+        'X-Request-Id': requestId,
+        ...(init?.headers || {}),
+      },
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = body?.error;
+      throw new CoreApiError(error?.message || `Core API request failed (${response.status})`, {
+        status: response.status,
+        code: error?.code,
+        requestId: error?.request_id || response.headers.get('x-request-id') || requestId,
+      });
+    }
+    return body?.data as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new CoreApiError('Core API timeout', { status: 408, requestId });
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+interface CoreListing {
+  id: string;
+  travel: { id: string | null; name: string | null; slug: string | null; verified: boolean };
+  package: {
+    id: string;
+    name: string;
+    type: string;
+    description: string | null;
+    durationDays: number;
+    photoUrl: string | null;
+    departureCity: string | null;
+    airline: string | null;
+    facilities: unknown;
+  };
+  departure: {
+    id: string;
+    departureDate: string;
+    returnDate: string | null;
+    priceFrom: number;
+    currency: string;
+    availabilitySnapshot: number;
+    status: string;
+  };
+  sponsored: boolean;
+  publishedAt: string | null;
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function toLegacyPackage(listing: CoreListing): PackageWithDetails {
+  const pkg = listing.package;
+  const departure: Departure = {
+    id: listing.departure.id,
+    package_id: pkg.id,
+    departure_date: listing.departure.departureDate,
+    return_date: listing.departure.returnDate || listing.departure.departureDate,
+    price: listing.departure.priceFrom,
+    original_price: null,
+    available_seats: listing.departure.availabilitySnapshot,
+    total_seats: listing.departure.availabilitySnapshot,
+    status: listing.departure.status === 'published' ? 'available' : 'cancelled',
+    created_at: listing.publishedAt || new Date().toISOString(),
+    updated_at: listing.publishedAt || new Date().toISOString(),
+  };
+
+  const travel = {
+    id: listing.travel.id || 'unknown',
+    name: listing.travel.name || 'Travel Umroh',
+    slug: listing.travel.slug || listing.travel.id || 'travel-umroh',
+    verified: listing.travel.verified,
+  } as Travel;
+
+  return {
+    id: pkg.id,
+    travel_id: listing.travel.id || 'unknown',
+    name: pkg.name,
+    description: pkg.description,
+    duration_days: pkg.durationDays,
+    hotel_makkah: null,
+    hotel_madinah: null,
+    hotel_star: 0,
+    airline: pkg.airline,
+    flight_type: 'direct',
+    meal_type: 'fullboard',
+    facilities: asStringArray(pkg.facilities),
+    images: pkg.photoUrl ? [pkg.photoUrl] : [],
+    is_active: true,
+    status: 'active',
+    package_type: (pkg.type || 'umroh') as PackageWithDetails['package_type'],
+    base_price: pkg ? listing.departure.priceFrom : null,
+    created_at: listing.publishedAt || new Date().toISOString(),
+    updated_at: listing.publishedAt || new Date().toISOString(),
+    travel,
+    departures: [departure],
+  };
+}
+
+export const coreApi = {
+  async listMarketplaceListings(params?: { q?: string; type?: string; page?: number; limit?: number }) {
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') search.set(key, String(value));
+    });
+    const suffix = search.toString() ? `?${search.toString()}` : '';
+    const listings = await request<CoreListing[]>(`/marketplace/listings${suffix}`);
+    return listings.map(toLegacyPackage);
+  },
+
+  async getMarketplaceListing(departureId: string) {
+    const listing = await request<CoreListing>(`/marketplace/listings/${encodeURIComponent(departureId)}`);
+    return toLegacyPackage(listing);
+  },
+};
