@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
 
@@ -83,19 +84,7 @@ export const useUserBookings = () => {
     queryFn: async (): Promise<Booking[]> => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
-        .from('bookings')
-        .select(`
-          *,
-          package:packages(name, package_type),
-          travel:travels(name, whatsapp),
-          departure:departures(departure_date, return_date),
-          payment_schedules(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
+      const data = await coreApi.getMyBookings();
       return (data || []) as unknown as Booking[];
     },
     enabled: !!user?.id,
@@ -134,20 +123,8 @@ export const useBookingDetails = (bookingId?: string) => {
     queryFn: async (): Promise<Booking | null> => {
       if (!bookingId) return null;
       
-      const { data, error } = await (supabase as any)
-        .from('bookings')
-        .select(`
-          *,
-          package:packages(name, package_type),
-          travel:travels(name, whatsapp),
-          departure:departures(departure_date, return_date),
-          payment_schedules(*)
-        `)
-        .eq('id', bookingId)
-        .single();
-      
-      if (error) throw error;
-      return data as unknown as Booking;
+      const data = await coreApi.getMyBooking(bookingId);
+      return data as Booking;
     },
     enabled: !!bookingId,
   });
@@ -175,46 +152,41 @@ export const useCreateBooking = () => {
         dueDate: string;
       }[];
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
-      // Create booking
-      const { data: booking, error: bookingError } = await (supabase as any)
-        .from('bookings')
-        .insert({
-          user_id: user.id,
-          package_id: data.packageId,
-          departure_id: data.departureId || null,
-          travel_id: data.travelId,
-          number_of_pilgrims: data.numberOfPilgrims,
-          total_price: data.totalPrice,
-          contact_name: data.contactName,
-          contact_phone: data.contactPhone,
-          contact_email: data.contactEmail || null,
+      if (!data.departureId) throw new Error('Departure wajib dipilih.');
+
+      const checkout = await coreApi.createCheckoutSession({
+        packageId: data.packageId,
+        departureId: data.departureId,
+        pax: data.numberOfPilgrims,
+        contact: {
+          name: data.contactName,
+          phone: data.contactPhone,
+          email: data.contactEmail || null,
           notes: data.notes || null,
-        })
-        .select()
-        .single();
-      
-      if (bookingError) throw bookingError;
-      
-      // Create payment schedules if provided
-      if (data.paymentSchedules && data.paymentSchedules.length > 0) {
-        const schedulesToInsert = data.paymentSchedules.map(schedule => ({
-          booking_id: booking.id,
-          payment_type: schedule.paymentType,
-          amount: schedule.amount,
-          due_date: schedule.dueDate,
-        }));
-        
-        const { error: scheduleError } = await (supabase as any)
-          .from('payment_schedules')
-          .insert(schedulesToInsert);
-        
-        if (scheduleError) throw scheduleError;
-      }
-      
-      return booking;
+          requestedPaymentSchedules: data.paymentSchedules || [],
+        },
+      }, crypto.randomUUID());
+
+      return {
+        id: checkout.id,
+        user_id: '',
+        package_id: checkout.package_id || data.packageId,
+        departure_id: checkout.departure_id,
+        travel_id: data.travelId,
+        booking_code: checkout.id,
+        status: 'pending' as BookingStatus,
+        number_of_pilgrims: checkout.pax,
+        total_price: data.totalPrice,
+        paid_amount: 0,
+        remaining_amount: data.totalPrice,
+        contact_name: data.contactName,
+        contact_phone: data.contactPhone,
+        contact_email: data.contactEmail || null,
+        notes: data.notes || null,
+        agent_notes: null,
+        created_at: checkout.created_at,
+        updated_at: checkout.created_at,
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });

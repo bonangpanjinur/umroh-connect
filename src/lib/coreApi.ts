@@ -1,4 +1,5 @@
 import type { Departure, PackageWithDetails, Travel } from '@/types/database';
+import { supabase } from '@/integrations/supabase/client';
 
 const CORE_API_URL = (import.meta.env.VITE_CORE_API_URL || '/api/v1').replace(/\/$/, '');
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -17,18 +18,20 @@ export class CoreApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, authenticated = false): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const requestId = crypto.randomUUID();
 
   try {
+    const session = authenticated ? (await supabase.auth.getSession()).data.session : null;
     const response = await fetch(`${CORE_API_URL}${path}`, {
       ...init,
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
         'X-Request-Id': requestId,
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         ...(init?.headers || {}),
       },
     });
@@ -145,5 +148,55 @@ export const coreApi = {
   async getMarketplaceListing(departureId: string) {
     const listing = await request<CoreListing>(`/marketplace/listings/${encodeURIComponent(departureId)}`);
     return toLegacyPackage(listing);
+  },
+
+  async createCheckoutSession(input: { packageId?: string; departureId: string; pax: number; contact?: Record<string, unknown> }, idempotencyKey: string) {
+    return request<{
+      id: string;
+      package_id: string | null;
+      departure_id: string;
+      pax: number;
+      status: string;
+      expires_at: string;
+      created_at: string;
+    }>('/marketplace/checkout-sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(input),
+    }, true);
+  },
+
+  async getMarketplacePackage(packageId: string) {
+    const listing = await request<CoreListing>(`/marketplace/packages/${encodeURIComponent(packageId)}`);
+    return toLegacyPackage(listing);
+  },
+
+  async getMyBookings() {
+    return request<unknown[]>('/marketplace/bookings', undefined, true);
+  },
+
+  async getMyBooking(bookingId: string) {
+    return request<unknown>(`/marketplace/bookings/${encodeURIComponent(bookingId)}`, undefined, true);
+  },
+
+  async getMyMarketplaceProfile() {
+    return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
+  },
+
+  async getTravelProfile(travelId: string) {
+    return request<{
+      id: string;
+      name: string;
+      code: string | null;
+      slug: string | null;
+      address: string | null;
+      city: string | null;
+      province: string | null;
+      phone: string | null;
+      email: string | null;
+      logo_url: string | null;
+      description: string | null;
+      verified: boolean;
+    }>(`/marketplace/travels/${encodeURIComponent(travelId)}`);
   },
 };
