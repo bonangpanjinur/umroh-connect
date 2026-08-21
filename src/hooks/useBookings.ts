@@ -234,29 +234,24 @@ export const useRecordPayment = () => {
   const { toast } = useToast();
   
   return useMutation({
-    mutationFn: async ({ 
-      scheduleId, 
+    mutationFn: async ({
+      bookingId,
+      scheduleId,
       paidAmount,
-      paymentProofUrl,
-      notes
-    }: { 
-      scheduleId: string; 
+      proofDocumentId,
+      notes,
+    }: {
+      bookingId: string;
+      scheduleId?: string;
       paidAmount: number;
-      paymentProofUrl?: string;
+      proofDocumentId?: string;
       notes?: string;
     }) => {
-      const { error } = await (supabase as any)
-        .from('payment_schedules')
-        .update({ 
-          is_paid: true,
-          paid_at: new Date().toISOString(),
-          paid_amount: paidAmount,
-          payment_proof_url: paymentProofUrl || null,
-          notes: notes || null,
-        })
-        .eq('id', scheduleId);
-      
-      if (error) throw error;
+      return coreApi.allocatePayment(bookingId, {
+        amount: paidAmount,
+        proofDocumentId,
+        notes: scheduleId ? `${notes || ''}${notes ? ' ' : ''}Legacy schedule: ${scheduleId}` : notes,
+      }, crypto.randomUUID());
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });

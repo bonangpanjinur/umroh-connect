@@ -134,6 +134,7 @@ const BookingDetailModal = ({ bookingId, onClose }: BookingDetailModalProps) => 
     if (!paymentToRecord || !paymentAmount) return;
     
     await recordPayment.mutateAsync({
+      bookingId,
       scheduleId: paymentToRecord.id,
       paidAmount: parseInt(paymentAmount),
     });
