@@ -16,7 +16,7 @@ export const usePackageById = (packageId: string | null) => {
     queryKey: ['package', 'core-marketplace', packageId],
     queryFn: async (): Promise<PackageWithDetails | null> => {
       if (!packageId) return null;
-      return coreApi.getMarketplaceListing(packageId);
+      return coreApi.getMarketplacePackage(packageId);
     },
     enabled: !!packageId,
   });
