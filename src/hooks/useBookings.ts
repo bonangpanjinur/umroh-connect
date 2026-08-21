@@ -395,3 +395,23 @@ export const usePaymentStats = (travelId?: string) => {
   
   return stats;
 };
+
+
+// Create provider payment order through the core API.
+export const useCreatePaymentOrder = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (checkoutSessionId: string) => {
+      if (!checkoutSessionId) throw new Error('Checkout session wajib diisi.');
+      return coreApi.createPaymentOrder(checkoutSessionId);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Gagal Membuat Payment Order',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+};
