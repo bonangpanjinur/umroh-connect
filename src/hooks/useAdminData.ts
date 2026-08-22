@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 import { 
   AppRole,
   AdminStats, 
@@ -16,82 +17,25 @@ import {
 // Fetch admin statistics
 export const useAdminStats = () => {
   return useQuery({
-    queryKey: ['admin-stats'],
-    queryFn: async (): Promise<AdminStats> => {
-      // Fetch all counts in parallel
-      const [
-        usersResult,
-        agentsResult,
-        travelsResult,
-        packagesResult,
-        activeMembersResult,
-        pendingMembersResult,
-        revenueResult
-      ] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('user_roles').select('id', { count: 'exact', head: true }).eq('role', 'agent'),
-        supabase.from('travels').select('id', { count: 'exact', head: true }),
-        supabase.from('packages').select('id', { count: 'exact', head: true }),
-        supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('memberships').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('memberships').select('amount').eq('status', 'active')
-      ]);
-
-      const totalRevenue = (revenueResult.data || []).reduce((sum, m) => sum + (m.amount || 0), 0);
-
-      return {
-        totalUsers: usersResult.count || 0,
-        totalAgents: agentsResult.count || 0,
-        totalTravels: travelsResult.count || 0,
-        totalPackages: packagesResult.count || 0,
-        activeMembers: activeMembersResult.count || 0,
-        pendingMembers: pendingMembersResult.count || 0,
-        totalRevenue
-      };
-    }
+    queryKey: ['admin-stats', 'platform'],
+    queryFn: () => coreApi.getPlatformAdminOverview(),
   });
 };
 
 // Fetch all users with profiles
 export const useAllUsers = () => {
   return useQuery({
-    queryKey: ['admin-users'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Profile[];
-    }
+    queryKey: ['admin-users', 'platform'],
+    queryFn: async () => (await coreApi.listPlatformAdminUsers()).data,
   });
 };
 
 // Suspend/unsuspend user
 export const useSuspendUser = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ user_id, is_suspended, suspension_reason }: { 
-      user_id: string; 
-      is_suspended: boolean; 
-      suspension_reason?: string | null;
-    }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_suspended,
-          suspension_reason: is_suspended ? suspension_reason : null,
-          suspended_at: is_suspended ? new Date().toISOString() : null
-        })
-        .eq('user_id', user_id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    }
+    mutationFn: ({ user_id, is_suspended, suspension_reason }: { user_id: string; is_suspended: boolean; suspension_reason?: string | null }) => coreApi.setPlatformAdminUserSuspension(user_id, is_suspended, suspension_reason),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users', 'platform'] }); },
   });
 };
 

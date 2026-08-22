@@ -218,6 +218,20 @@ export const coreApi = {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
 
+  async getPlatformAdminOverview() {
+    return request<{ totalUsers: number; totalAgents: number; totalTravels: number; totalPackages: number; activeMembers: number; pendingMembers: number; totalRevenue: number }>('/platform/admin/overview', undefined, true);
+  },
+  async listPlatformAdminUsers(params?: { q?: string; page?: number; limit?: number }) {
+    const search = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== '') search.set(key, String(value)); });
+    return request<unknown[]>(`/platform/admin/users${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
+  async setPlatformAdminUserSuspension(userId: string, isSuspended: boolean, reason?: string) {
+    return request<unknown>(`/platform/admin/users/${encodeURIComponent(userId)}/suspension`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ is_suspended: isSuspended, suspension_reason: reason }) }, true);
+  },
+  async getManagementReviewAnalytics(params?: { days?: number; branchId?: string }) {
+    const search = new URLSearchParams(); if (params?.days) search.set('days', String(params.days)); if (params?.branchId) search.set('branchId', params.branchId);
+    return request<{ totalReviews: number; publishedReviews: number; pendingReviews: number; averageRating: number; ratingDistribution: Record<string, number>; reviewsThisMonth: number; reviewsLastMonth: number; topRatedTravels: Array<{ travel_id: string; travel_name: string; average_rating: number; total_reviews: number }>; trend: Array<{ date: string; reviews: number; averageRating: number }> }>(`/management/analytics/reviews${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
   async getManagementBookingAnalytics(params?: { days?: number; branchId?: string }) {
     const search = new URLSearchParams();
     if (params?.days) search.set('days', String(params.days));
