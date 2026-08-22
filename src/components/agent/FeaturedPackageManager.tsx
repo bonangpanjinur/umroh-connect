@@ -33,7 +33,7 @@ import {
 import { useAgentPackages } from '@/hooks/useAgentData';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useQuery } from '@tanstack/react-query';
 
 interface FeaturedPackageManagerProps {
@@ -70,14 +70,8 @@ export const FeaturedPackageManager = ({ travelId }: FeaturedPackageManagerProps
     queryKey: ['agent-credits', travelId],
     queryFn: async () => {
       if (!travelId) return null;
-      const { data, error } = await supabase
-        .from('package_credits')
-        .select('credits_remaining')
-        .eq('travel_id', travelId)
-        .single();
-      
-      if (error) return { credits_remaining: 0 };
-      return data;
+      try { return await coreApi.getAgentCredits(travelId); }
+      catch { return { credits_remaining: 0 }; }
     },
     enabled: !!travelId,
   });
