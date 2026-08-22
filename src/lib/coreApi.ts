@@ -365,6 +365,12 @@ export const coreApi = {
   async archiveManagementPackage(id: string) {
     return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(id)}/archive`, { method: 'POST' }, true);
   },
+  async publishManagementPackage(id: string, idempotencyKey = crypto.randomUUID()) {
+    return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(id)}/publish`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } }, true);
+  },
+  async unpublishManagementPackage(id: string, idempotencyKey = crypto.randomUUID()) {
+    return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(id)}/unpublish`, { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey } }, true);
+  },
   async listManagementPackageDepartures(packageId: string) {
     return request<unknown[]>(`/management/packages/${encodeURIComponent(packageId)}/departures`, undefined, true);
   },
