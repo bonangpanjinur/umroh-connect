@@ -214,6 +214,17 @@ export const coreApi = {
     return request<unknown>(`/marketplace/bookings/${encodeURIComponent(bookingId)}`, undefined, true);
   },
 
+  async listMyPaymentNotifications(params?: { unreadOnly?: boolean; limit?: number; page?: number }) {
+    const search = new URLSearchParams(); if (params?.unreadOnly) search.set('unread_only', 'true'); if (params?.limit) search.set('limit', String(params.limit)); if (params?.page) search.set('page', String(params.page));
+    return request<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>(`/notifications${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
+  async markMyNotificationRead(notificationId: string) { return request<{ ok: boolean }>(`/notifications/${encodeURIComponent(notificationId)}/read`, { method: 'PATCH' }, true); },
+  async listManagementReviews(params?: { q?: string; branchId?: string; page?: number; limit?: number }) {
+    const search = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== '') search.set(key, String(value)); });
+    return request<{ data: Array<Record<string, unknown>>; meta: Record<string, unknown> }>(`/management/reviews${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
+  async setManagementReviewPublication(reviewId: string, isPublished: boolean) { return request<Record<string, unknown>>(`/management/reviews/${encodeURIComponent(reviewId)}/publication`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ is_published: isPublished }) }, true); },
+
   async getMyMarketplaceProfile() {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
