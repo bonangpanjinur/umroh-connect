@@ -134,7 +134,7 @@ function toLegacyPackage(listing: CoreListing): PackageWithDetails {
     name: listing.travel.name || 'Travel Umroh',
     slug: listing.travel.slug || listing.travel.id || 'travel-umroh',
     verified: listing.travel.verified,
-  } as Travel;
+  } as unknown as Travel;
 
   return {
     id: pkg.id,
