@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft } from "lucide-react";
 import AppHeader from "@/components/layout/AppHeader";
@@ -25,12 +26,8 @@ export default function PageDetail() {
   useEffect(() => {
     const checkIsAgent = async () => {
       if (!slug) return;
-      const { data } = await supabase
-        .from('agent_website_settings')
-        .select('user_id')
-        .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
-        .maybeSingle();
-      
+      let data: unknown = null;
+      try { data = await coreApi.getMarketplaceAgentProfile(slug); } catch { data = null; }
       setIsAgent(!!data);
     };
     checkIsAgent();

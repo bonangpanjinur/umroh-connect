@@ -162,9 +162,14 @@ function toLegacyPackage(listing: CoreListing): PackageWithDetails {
 }
 
 export const coreApi = {
+  async getMarketplaceAgentProfile(slug: string) { return request<{ settings: Record<string, unknown>; travel: Record<string, unknown>; packages: Record<string, unknown>[] }>(`/marketplace/agents/${encodeURIComponent(slug)}`); },
   async listMarketplaceReviews(limit = 50) { return request<Record<string, unknown>[]>(`/marketplace/reviews?limit=${Math.min(100, Math.max(1, limit))}`); },
   async getMarketplaceReviewStats() { return request<{ totalReviews: number; averageRating: number; ratingDistribution: { [key: number]: number } }>('/marketplace/reviews/stats'); },
   async listMarketplaceReviewsByTravel(travelId: string) { return request<Record<string, unknown>[]>(`/marketplace/reviews/travel/${encodeURIComponent(travelId)}`); },
+  async getBookingReview(bookingId: string) { return request<Record<string, unknown> | null>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/review`, undefined, true); },
+  async createBookingReview(bookingId: string, input: { rating: number; content?: string | null }, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
+  async updateBookingReview(bookingId: string, input: { rating: number; content?: string | null }) { return request<Record<string, unknown>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/review`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true); },
+  async deleteBookingReview(bookingId: string) { return request<void>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/review`, { method: 'DELETE' }, true); },
 
   async listMarketplaceListings(params?: { q?: string; type?: string; page?: number; limit?: number }) {
     const search = new URLSearchParams();

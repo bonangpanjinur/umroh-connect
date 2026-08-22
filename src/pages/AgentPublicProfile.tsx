@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 import { Button } from '@/components/ui/button';
 import { 
   AlertCircle, Loader2
@@ -30,67 +30,32 @@ const AgentPublicProfile = () => {
     try {
       setLoading(true);
       
-      // 1. Fetch settings by slug OR custom_slug (if approved)
-      // Join with website_templates to get the slug
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('agent_website_settings')
-        .select('*')
-        .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
-        .maybeSingle();
-
-      if (settingsError) throw settingsError;
-      
-      if (!settingsData) {
-        setError('Halaman tidak ditemukan');
-        return;
-      }
-
+      const profile = await coreApi.getMarketplaceAgentProfile(slug);
+      if (!profile) { setError('Halaman tidak ditemukan'); return; }
+      const settingsData = profile.settings as AgentWebsiteSettings;
+      const travelData = profile.travel;
       setSettings(settingsData);
-      
-      // Fetch template slug separately if active_template_id exists
-      // For now default to 'default'
-      setTemplateSlug('default');
-
-      // 2. Fetch travel profile
-      const { data: travelData, error: travelError } = await supabase
-        .from('travels')
-        .select('*')
-        .eq('owner_id', settingsData.user_id)
-        .maybeSingle();
-
-      if (travelError) throw travelError;
+      setTemplateSlug(String((settingsData as any).template_slug || 'default'));
       setTravel(travelData);
+      setPackages(profile.packages as unknown as PackageWithDetails[]);
 
-      // 3. Fetch packages
-      if (travelData) {
-        const { data: packagesData, error: packagesError } = await supabase
-          .from('packages')
-          .select('*, travel:travels(*), departures(*)')
-          .eq('travel_id', travelData.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
-
-        if (packagesError) throw packagesError;
-        setPackages(packagesData as PackageWithDetails[]);
-      }
-
-      // 4. Inject SEO & Meta Tags
-      const title = settingsData.meta_title || (travelData ? `${travelData.name} | Umroh Connect` : 'Agent Profile');
+      // Inject SEO & Meta Tags
+      const title = String((settingsData as any).meta_title || (travelData ? `${travelData.name} | Umroh Connect` : 'Agent Profile'));
       document.title = title;
       
-      if (settingsData.meta_description) {
+      if ((settingsData as any).meta_description) {
         let metaDesc = document.querySelector('meta[name="description"]');
         if (!metaDesc) {
           metaDesc = document.createElement('meta');
           metaDesc.setAttribute('name', 'description');
           document.head.appendChild(metaDesc);
         }
-        metaDesc.setAttribute('content', settingsData.meta_description);
+        metaDesc.setAttribute('content', String((settingsData as any).meta_description));
       }
 
       // 5. Inject Pixel if PRO
-      if (settingsData.is_pro_active && settingsData.fb_pixel_id) {
-        injectFbPixel(settingsData.fb_pixel_id);
+      if ((settingsData as any).is_pro_active && (settingsData as any).fb_pixel_id) {
+        injectFbPixel(String((settingsData as any).fb_pixel_id));
       }
 
     } catch (err: any) {
