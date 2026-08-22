@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Copy, CheckCircle2, Upload, CreditCard, Building2, Truck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +27,7 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const { createOrder } = useShopOrders();
   const { data: paymentConfig } = usePublicPaymentConfig();
   const { profile } = useAuthContext();
-  const { pay: midtransPay, isSnapLoaded } = useMidtrans();
+  const { isSnapLoaded } = useMidtrans();
 
   // Get unique seller IDs from cart items
   const sellerIds = useMemo(() => {
@@ -49,7 +48,6 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [notes, setNotes] = useState('');
-  const [stockChecking, setStockChecking] = useState(false);
 
   // Auto-fill from profile shipping address
   useEffect(() => {
@@ -78,34 +76,6 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
       return;
     }
 
-    setStockChecking(true);
-    try {
-      const productIds = items.map(i => i.product.id);
-      const { data: currentProducts, error } = await supabase
-        .from('shop_products')
-        .select('id, name, stock')
-        .in('id', productIds);
-      if (error) throw error;
-
-      const outOfStock: string[] = [];
-      for (const item of items) {
-        const current = currentProducts?.find(p => p.id === item.product.id);
-        if (!current || current.stock < item.quantity) {
-          outOfStock.push(`${item.product.name} (stok: ${current?.stock ?? 0}, diminta: ${item.quantity})`);
-        }
-      }
-      if (outOfStock.length > 0) {
-        toast({ title: 'Stok tidak mencukupi', description: outOfStock.join(', '), variant: 'destructive' });
-        setStockChecking(false);
-        return;
-      }
-    } catch {
-      toast({ title: 'Gagal mengecek stok', variant: 'destructive' });
-      setStockChecking(false);
-      return;
-    }
-    setStockChecking(false);
-
     createOrder.mutate({
       items: items.map((item) => ({
         productId: item.product.id,
@@ -120,6 +90,7 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
       shippingCity: city,
       shippingPostalCode: postalCode,
       notes,
+      sellerId: sellerIds.length === 1 ? sellerIds[0] : null,
     }, {
       onSuccess: (order) => {
         clearCart.mutate();
@@ -231,24 +202,7 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
               className="w-full"
               variant="secondary"
               onClick={() => {
-                // Call edge function to create Midtrans token
-                supabase.functions.invoke('create-midtrans-token', {
-                  body: {
-                    amount: createdOrder.total_amount,
-                    transactionType: 'shop_order',
-                    itemDetails: [{ id: createdOrder.id, name: `Order ${createdOrder.order_code}`, price: createdOrder.total_amount, quantity: 1 }],
-                  },
-                }).then(({ data, error }) => {
-                  if (error || !data?.token) {
-                    toast({ title: 'Gagal memuat pembayaran', variant: 'destructive' });
-                    return;
-                  }
-                  midtransPay(data.token, {
-                    onSuccess: () => { toast({ title: 'Pembayaran berhasil!' }); onSuccess(); },
-                    onPending: () => { toast({ title: 'Menunggu pembayaran...' }); },
-                    onError: () => { toast({ title: 'Pembayaran gagal', variant: 'destructive' }); },
-                  });
-                });
+                toast({ title: 'Pembayaran online shop sedang disiapkan', description: 'Gunakan upload bukti pembayaran atau tunggu endpoint payment intent Commerce tersedia.' });
               }}
             >
               <CreditCard className="h-4 w-4 mr-2" />
@@ -331,8 +285,8 @@ const CheckoutView = ({ onBack, onSuccess }: CheckoutViewProps) => {
           </CardContent>
         </Card>
 
-        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={createOrder.isPending || stockChecking}>
-          {stockChecking ? 'Mengecek stok...' : createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(grandTotal)}`}
+        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={createOrder.isPending}>
+          {createOrder.isPending ? 'Memproses...' : `Buat Pesanan - ${formatRupiah(grandTotal)}`}
         </Button>
       </div>
     </div>

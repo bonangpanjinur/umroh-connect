@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from '@/hooks/use-toast';
 import { Upload, Loader2, CheckCircle, Image as ImageIcon } from 'lucide-react';
 
@@ -34,25 +34,9 @@ const PaymentUploadDialog = ({ orderId, orderCode, open, onOpenChange, onSuccess
 
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const fileName = `payment-proof/${orderId}-${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('shop-images')
-        .upload(fileName, file);
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('shop-images')
-        .getPublicUrl(fileName);
-
-      // Update order with payment proof URL
-      const { error: updateError } = await supabase
-        .from('shop_orders')
-        .update({ payment_proof_url: publicUrl })
-        .eq('id', orderId);
-      if (updateError) throw updateError;
-
-      setPreviewUrl(publicUrl);
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('Gagal membaca file')); reader.readAsDataURL(file); });
+      const result = await coreApi.uploadCommercePaymentProof(orderId, { data, contentType: file.type as 'image/jpeg' | 'image/png' | 'application/pdf', filename: file.name });
+      setPreviewUrl(String(result.payment_proof_url || result.signed_url || ''));
       toast({ title: 'Bukti pembayaran berhasil diupload' });
       onSuccess();
     } catch (err: any) {
