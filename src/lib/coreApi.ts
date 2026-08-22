@@ -218,6 +218,12 @@ export const coreApi = {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
 
+  async getManagementBookingAnalytics(params?: { days?: number; branchId?: string }) {
+    const search = new URLSearchParams();
+    if (params?.days) search.set('days', String(params.days));
+    if (params?.branchId) search.set('branchId', params.branchId);
+    return request<{ totalBookings: number; pendingBookings: number; confirmedBookings: number; paidBookings: number; cancelledBookings: number; completedBookings: number; totalRevenue: number; paidRevenue: number; remainingRevenue: number; bookingsThisMonth: number; bookingsLastMonth: number; revenueThisMonth: number; revenueLastMonth: number; topTravels: Array<{ travel_id: string; travel_name: string; total_bookings: number; total_revenue: number }>; trend: Array<{ date: string; bookings: number; revenue: number }> }>(`/management/bookings/analytics${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
   async listManagementBookings(params?: { status?: string; q?: string; branchId?: string; page?: number; limit?: number }) {
     const search = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { coreApi } from '@/lib/coreApi';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfMonth, subMonths, format, startOfDay, subDays } from 'date-fns';
 
@@ -137,161 +138,21 @@ export const useAdminReviewStats = () => {
   });
 };
 
-// Fetch admin booking statistics
+// Fetch tenant-scoped booking statistics from Core
 export const useAdminBookingStats = () => {
   return useQuery({
     queryKey: ['admin-booking-stats'],
-    queryFn: async (): Promise<AdminBookingStats> => {
-      const now = new Date();
-      const thisMonthStart = startOfMonth(now);
-      const lastMonthStart = startOfMonth(subMonths(now, 1));
-      const lastMonthEnd = startOfMonth(now);
-
-      // Fetch all bookings
-      const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select(`
-          id,
-          status,
-          total_price,
-          paid_amount,
-          remaining_amount,
-          created_at,
-          travel_id,
-          travels(name)
-        `);
-
-      if (error) throw error;
-
-      const allBookings = bookings || [];
-
-      // Status counts
-      const statusCounts = {
-        pending: 0,
-        confirmed: 0,
-        paid: 0,
-        cancelled: 0,
-        completed: 0,
-      };
-
-      allBookings.forEach(b => {
-        if (statusCounts.hasOwnProperty(b.status)) {
-          statusCounts[b.status as keyof typeof statusCounts]++;
-        }
-      });
-
-      // Revenue calculations
-      const activeBookings = allBookings.filter(b => b.status !== 'cancelled');
-      const totalRevenue = activeBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
-      const paidRevenue = activeBookings.reduce((sum, b) => sum + (b.paid_amount || 0), 0);
-      const remainingRevenue = activeBookings.reduce((sum, b) => sum + (b.remaining_amount || 0), 0);
-
-      // Monthly booking counts
-      const bookingsThisMonth = allBookings.filter(b => 
-        new Date(b.created_at) >= thisMonthStart
-      ).length;
-
-      const bookingsLastMonth = allBookings.filter(b => {
-        const date = new Date(b.created_at);
-        return date >= lastMonthStart && date < lastMonthEnd;
-      }).length;
-
-      // Monthly revenue
-      const revenueThisMonth = activeBookings
-        .filter(b => new Date(b.created_at) >= thisMonthStart)
-        .reduce((sum, b) => sum + (b.total_price || 0), 0);
-
-      const revenueLastMonth = activeBookings
-        .filter(b => {
-          const date = new Date(b.created_at);
-          return date >= lastMonthStart && date < lastMonthEnd;
-        })
-        .reduce((sum, b) => sum + (b.total_price || 0), 0);
-
-      // Top travels by bookings
-      const travelStats: { [key: string]: { name: string; bookings: number; revenue: number; } } = {};
-      activeBookings.forEach(b => {
-        if (!travelStats[b.travel_id]) {
-          travelStats[b.travel_id] = { 
-            name: (b.travels as any)?.name || 'Unknown',
-            bookings: 0,
-            revenue: 0 
-          };
-        }
-        travelStats[b.travel_id].bookings++;
-        travelStats[b.travel_id].revenue += b.total_price || 0;
-      });
-
-      const topTravels = Object.entries(travelStats)
-        .map(([travel_id, data]) => ({
-          travel_id,
-          travel_name: data.name,
-          total_bookings: data.bookings,
-          total_revenue: data.revenue,
-        }))
-        .sort((a, b) => b.total_bookings - a.total_bookings)
-        .slice(0, 5);
-
-      return {
-        totalBookings: allBookings.length,
-        pendingBookings: statusCounts.pending,
-        confirmedBookings: statusCounts.confirmed,
-        paidBookings: statusCounts.paid,
-        cancelledBookings: statusCounts.cancelled,
-        completedBookings: statusCounts.completed,
-        totalRevenue,
-        paidRevenue,
-        remainingRevenue,
-        bookingsThisMonth,
-        bookingsLastMonth,
-        revenueThisMonth,
-        revenueLastMonth,
-        topTravels,
-      };
-    },
+    queryFn: async (): Promise<AdminBookingStats> => coreApi.getManagementBookingAnalytics(),
   });
 };
 
-// Fetch booking trend data for charts
+// Fetch tenant-scoped booking trend data from Core
 export const useBookingTrend = (days: number = 30) => {
   return useQuery({
     queryKey: ['admin-booking-trend', days],
     queryFn: async (): Promise<BookingTrendData[]> => {
-      const endDate = new Date();
-      const startDate = subDays(endDate, days);
-
-      const { data: bookings, error } = await supabase
-        .from('bookings')
-        .select('created_at, total_price, status')
-        .gte('created_at', startDate.toISOString())
-        .neq('status', 'cancelled')
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      // Group by date
-      const dailyData: { [key: string]: { bookings: number; revenue: number } } = {};
-      
-      // Initialize all days
-      for (let i = 0; i <= days; i++) {
-        const date = format(subDays(endDate, days - i), 'yyyy-MM-dd');
-        dailyData[date] = { bookings: 0, revenue: 0 };
-      }
-
-      // Fill in actual data
-      (bookings || []).forEach(b => {
-        const date = format(new Date(b.created_at), 'yyyy-MM-dd');
-        if (dailyData[date]) {
-          dailyData[date].bookings++;
-          dailyData[date].revenue += b.total_price || 0;
-        }
-      });
-
-      return Object.entries(dailyData).map(([date, data]) => ({
-        date,
-        bookings: data.bookings,
-        revenue: data.revenue,
-      }));
+      const result = await coreApi.getManagementBookingAnalytics({ days });
+      return result.trend;
     },
   });
 };
