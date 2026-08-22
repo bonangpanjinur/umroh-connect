@@ -49,13 +49,13 @@ const GlobalSearch = ({ onSelect, onClose }: GlobalSearchProps) => {
       try {
         const [pkgRes, prodRes, doaRes] = await Promise.all([
           coreApi.listMarketplaceListings({ q: query, limit: 5 }),
-          supabase.from('shop_products').select('id, name, price').ilike('name', `%${query}%`).eq('is_active', true).limit(5),
+          coreApi.listCommerceProducts({ q: query, limit: 5 }),
           supabase.from('prayers').select('id, title, category').ilike('title', `%${query}%`).limit(5),
         ]);
 
         const mapped: SearchResult[] = [
           ...(pkgRes || []).map((p: any) => ({ id: p.id, title: p.name, type: 'package' as const })),
-          ...(prodRes.data || []).map((p: any) => ({ id: p.id, title: p.name, subtitle: `Rp ${p.price?.toLocaleString('id-ID')}`, type: 'product' as const })),
+          ...(prodRes || []).map((p: any) => ({ id: p.id, title: p.name, subtitle: `Rp ${Number(p.price || 0).toLocaleString('id-ID')}`, type: 'product' as const })),
           ...(doaRes.data || []).map((d: any) => ({ id: d.id, title: d.title, subtitle: d.category, type: 'doa' as const })),
         ];
         setResults(mapped);
