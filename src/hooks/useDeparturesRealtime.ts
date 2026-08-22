@@ -1,36 +1,33 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 
 /**
- * Subscribe to realtime departure changes for a given package and
- * invalidate react-query caches so the UI updates instantly.
+ * Core is the source of truth for departures. Supabase postgres_changes is not
+ * used here because it bypasses Core tenant/branch authorization. The hook
+ * performs a lightweight Core-backed cache refresh while the screen is open.
  */
 export const useDeparturesRealtime = (packageId: string | undefined) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!packageId) return;
-
-    const channel = supabase
-      .channel(`departures-${packageId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'departures',
-          filter: `package_id=eq.${packageId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['package-departures', packageId] });
-          queryClient.invalidateQueries({ queryKey: ['packages'] });
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        await coreApi.listManagementPackageDepartures(packageId);
+        if (!disposed) {
+          await queryClient.invalidateQueries({ queryKey: ['package-departures', packageId] });
+          await queryClient.invalidateQueries({ queryKey: ['packages'] });
         }
-      )
-      .subscribe();
-
+      } catch {
+        // The owning query remains responsible for presenting the API error.
+      }
+    };
+    const interval = window.setInterval(() => void refresh(), 30_000);
     return () => {
-      supabase.removeChannel(channel);
+      disposed = true;
+      window.clearInterval(interval);
     };
   }, [packageId, queryClient]);
 };
