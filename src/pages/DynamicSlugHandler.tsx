@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 import AgentPublicProfile from './AgentPublicProfile';
 import PageDetail from './PageDetail';
 import NotFound from './NotFound';
@@ -21,12 +22,9 @@ const DynamicSlugHandler = () => {
     try {
       setLoading(true);
       
-      // 1. Check if it's an agent slug (either default or approved custom)
-      const { data: agentData, error: agentError } = await supabase
-        .from('agent_website_settings')
-        .select('user_id')
-        .or(`slug.eq.${slug},and(custom_slug.eq.${slug},slug_status.eq.approved)`)
-        .maybeSingle();
+      // 1. Check if it is a published agent slug through Core.
+      let agentData: unknown = null;
+      try { agentData = await coreApi.getMarketplaceAgentProfile(slug); } catch { agentData = null; }
 
       if (agentData) {
         setType('agent');

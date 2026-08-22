@@ -10,13 +10,14 @@ import { Loader2, Edit2 } from 'lucide-react';
 
 interface ReviewFormProps {
   travelId: string;
+  bookingId?: string;
   travelName: string;
   onSuccess?: () => void;
 }
 
-export const ReviewForm = ({ travelId, travelName, onSuccess }: ReviewFormProps) => {
+export const ReviewForm = ({ travelId, bookingId, travelName, onSuccess }: ReviewFormProps) => {
   const { user } = useAuthContext();
-  const { data: existingReview, isLoading: loadingReview } = useUserReview(travelId);
+  const { data: existingReview, isLoading: loadingReview } = useUserReview(bookingId);
   const submitReview = useSubmitReview();
   
   const [rating, setRating] = useState(existingReview?.rating || 0);
@@ -40,7 +41,7 @@ export const ReviewForm = ({ travelId, travelName, onSuccess }: ReviewFormProps)
 
     try {
       await submitReview.mutateAsync({
-        travelId,
+        bookingId: bookingId!,
         rating,
         reviewText: reviewText.trim() || undefined,
       });
@@ -60,6 +61,16 @@ export const ReviewForm = ({ travelId, travelName, onSuccess }: ReviewFormProps)
           <p className="text-sm text-muted-foreground">
             Login untuk memberikan review
           </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!bookingId) {
+    return (
+      <Card className="bg-muted/50">
+        <CardContent className="p-4 text-center">
+          <p className="text-sm text-muted-foreground">Review dapat diberikan setelah memilih booking yang telah dikonfirmasi.</p>
         </CardContent>
       </Card>
     );
