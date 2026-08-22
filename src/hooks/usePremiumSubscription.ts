@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { coreApi } from '@/lib/coreApi';
 
 interface SubscriptionPlan {
   id: string;
@@ -34,14 +35,11 @@ export const useSubscriptionPlans = () => {
   return useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async (): Promise<SubscriptionPlan[]> => {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('price_yearly', { ascending: true });
-
-      if (error) throw error;
-      return (data || []) as SubscriptionPlan[];
+      const plans = await coreApi.listSubscriptionPlans();
+      return plans.map((plan) => ({
+        id: String(plan.id), name: String(plan.name), description: plan.description ? String(plan.description) : null,
+        price_yearly: Number(plan.price_minor ?? 0), features: Array.isArray(plan.features) ? plan.features.map(String) : [], is_active: true,
+      }));
     },
   });
 };
@@ -49,24 +47,19 @@ export const useSubscriptionPlans = () => {
 // Fetch user's subscription status
 export const useUserSubscription = () => {
   const { user } = useAuthContext();
-
   return useQuery({
     queryKey: ['user-subscription', user?.id],
     queryFn: async (): Promise<UserSubscription | null> => {
       if (!user?.id) return null;
-
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as UserSubscription | null;
+      const data = await coreApi.getMySubscription();
+      if (!data) return null;
+      return { ...data, user_id: user.id, plan_id: data.plan_id ? String(data.plan_id) : null, payment_proof_url: null, payment_amount: null, payment_date: null, verified_by: null, verified_at: null, start_date: data.current_period_start ? String(data.current_period_start) : null, end_date: data.current_period_end ? String(data.current_period_end) : null, admin_notes: null } as UserSubscription;
     },
     enabled: !!user?.id,
   });
 };
+
+export const usePremiumPaymentEvents = (page = 1, limit = 25) => useQuery({ queryKey: ['premium-payment-events', page, limit], queryFn: () => coreApi.listMyPremiumPaymentEvents({ page, limit }) });
 
 // Check if user has active premium
 export const useIsPremium = () => {
