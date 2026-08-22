@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-
-const db = supabase as any;
+import { coreApi } from '@/lib/coreApi';
 import { WebsiteTemplate } from '@/types/database';
 import { 
   Plus, Edit, Trash2, Check, Layout, 
@@ -60,12 +58,8 @@ const WebsiteTemplatesManagement = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const { data, error } = await db
-        .from('website_templates')
-        .select('*')
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      setTemplates(data || []);
+      const data = await coreApi.listPlatformWebsiteTemplates();
+      setTemplates(data as unknown as WebsiteTemplate[]);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Gagal memuat daftar template');
@@ -82,25 +76,19 @@ const WebsiteTemplatesManagement = () => {
     }
     try {
       setSaving(true);
+      const payload = {
+        name: editingTemplate.name,
+        slug: editingTemplate.slug,
+        description: editingTemplate.description || null,
+        thumbnail_url: editingTemplate.thumbnail_url || null,
+        is_premium: Boolean(editingTemplate.is_premium),
+        is_active: editingTemplate.is_active === undefined ? true : Boolean(editingTemplate.is_active),
+      };
       if (editingTemplate.id) {
-        const { error } = await db
-          .from('website_templates')
-          .update({
-            name: editingTemplate.name,
-            slug: editingTemplate.slug,
-            description: editingTemplate.description,
-            thumbnail_url: editingTemplate.thumbnail_url,
-            is_premium: editingTemplate.is_premium,
-            is_active: editingTemplate.is_active,
-          })
-          .eq('id', editingTemplate.id);
-        if (error) throw error;
+        await coreApi.updatePlatformWebsiteTemplate(editingTemplate.id, payload);
         toast.success('Template berhasil diperbarui');
       } else {
-        const { error } = await db
-          .from('website_templates')
-          .insert([editingTemplate]);
-        if (error) throw error;
+        await coreApi.createPlatformWebsiteTemplate(payload);
         toast.success('Template baru berhasil ditambahkan');
       }
       setIsModalOpen(false);
@@ -117,8 +105,7 @@ const WebsiteTemplatesManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Apakah Anda yakin ingin menghapus template ini?')) return;
     try {
-      const { error } = await db.from('website_templates').delete().eq('id', id);
-      if (error) throw error;
+      await coreApi.deletePlatformWebsiteTemplate(id);
       toast.success('Template berhasil dihapus');
       fetchTemplates();
     } catch (error: any) {
@@ -128,11 +115,7 @@ const WebsiteTemplatesManagement = () => {
 
   const toggleActive = async (template: WebsiteTemplate) => {
     try {
-      const { error } = await db
-        .from('website_templates')
-        .update({ is_active: !template.is_active })
-        .eq('id', template.id);
-      if (error) throw error;
+      await coreApi.updatePlatformWebsiteTemplate(template.id, { is_active: !template.is_active });
       setTemplates(templates.map(t => t.id === template.id ? { ...t, is_active: !t.is_active } : t));
       toast.success(`Template ${!template.is_active ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (error: any) {

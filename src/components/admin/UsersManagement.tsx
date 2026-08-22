@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 
 export const UsersManagement = () => {
   const { data: users, isLoading } = useAllUsers();
@@ -89,13 +89,8 @@ export const UsersManagement = () => {
   const fetchWebsiteSettings = async (userId: string) => {
     try {
       setLoadingSettings(true);
-      const { data, error } = await supabase
-        .from('agent_website_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
+      const settingsList = await coreApi.listPlatformAgentWebsiteSettings();
+      const data = (settingsList as any[]).find((item) => item.user_id === userId) || null;
 
       if (data) {
         setWebsiteSettings(data);
@@ -132,9 +127,10 @@ export const UsersManagement = () => {
     
     try {
       setSavingSettings(true);
+      const { user_id: _ignoredUserId, id: _ignoredId, created_at: _ignoredCreatedAt, updated_at: _ignoredUpdatedAt, ...updates } = websiteSettings || {};
       await updateWebsiteSettings.mutateAsync({
         user_id: websiteDialog.user.user_id,
-        ...websiteSettings
+        ...updates
       });
       toast.success('Pengaturan website berhasil disimpan');
       setWebsiteDialog({ open: false, user: null });
