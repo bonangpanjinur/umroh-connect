@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, X, Package, ShoppingBag } from 'lucide-react';
+import { Search, X, Package, ShoppingBag, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { coreApi } from '@/lib/coreApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ interface SearchResult {
   id: string;
   title: string;
   subtitle?: string;
-  type: 'package' | 'product';
+  type: 'package' | 'product' | 'doa';
 }
 
 interface GlobalSearchProps {
@@ -19,11 +19,13 @@ interface GlobalSearchProps {
 const typeIcons = {
   package: Package,
   product: ShoppingBag,
+  doa: BookOpen,
 };
 
 const typeLabels = {
   package: 'Paket',
   product: 'Produk',
+  doa: 'Doa',
 };
 
 const GlobalSearch = ({ onSelect, onClose }: GlobalSearchProps) => {
@@ -44,15 +46,8 @@ const GlobalSearch = ({ onSelect, onClose }: GlobalSearchProps) => {
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const [pkgRes, prodRes] = await Promise.all([
-          coreApi.listMarketplaceListings({ q: query, limit: 5 }),
-          coreApi.listCommerceProducts({ q: query, limit: 5 }),
-        ]);
-
-        const mapped: SearchResult[] = [
-          ...(pkgRes || []).map((p: any) => ({ id: p.id, title: p.name, type: 'package' as const })),
-          ...(prodRes || []).map((p: any) => ({ id: p.id, title: p.name, subtitle: `Rp ${Number(p.price || 0).toLocaleString('id-ID')}`, type: 'product' as const })),
-        ];
+        const response = await coreApi.searchMarketplace({ q: query, types: ['package', 'product', 'doa'], limit: 15 });
+        const mapped: SearchResult[] = (response || []).map((item) => ({ id: item.id, title: item.title, subtitle: item.subtitle, type: item.type }));
         setResults(mapped);
       } catch {
         setResults([]);
@@ -83,7 +78,7 @@ const GlobalSearch = ({ onSelect, onClose }: GlobalSearchProps) => {
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               ref={inputRef}
-              placeholder="Cari paket atau produk..."
+              placeholder="Cari paket, produk, atau doa..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="border-0 focus-visible:ring-0 p-0 h-auto text-sm"
