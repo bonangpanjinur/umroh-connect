@@ -346,6 +346,38 @@ export const coreApi = {
     }>(`/management/analytics/package-interests${query.toString() ? `?${query.toString()}` : ''}`, undefined, true);
   },
 
+  async getManagementTravel() {
+    return request<Record<string, unknown>>('/management/travel', undefined, true);
+  },
+  async updateManagementTravel(input: Record<string, unknown>) {
+    return request<Record<string, unknown>>('/management/travel', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+  async listManagementPackages(params?: { branchId?: string; q?: string; page?: number; limit?: number }) {
+    const query = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key === 'branchId' ? 'branch_id' : key, String(value)); });
+    return request<unknown[]>(`/management/packages${query.toString() ? `?${query.toString()}` : ''}`, undefined, true);
+  },
+  async createManagementPackage(input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) {
+    return request<Record<string, unknown>>('/management/packages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true);
+  },
+  async updateManagementPackage(id: string, input: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+  async archiveManagementPackage(id: string) {
+    return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(id)}/archive`, { method: 'POST' }, true);
+  },
+  async listManagementPackageDepartures(packageId: string) {
+    return request<unknown[]>(`/management/packages/${encodeURIComponent(packageId)}/departures`, undefined, true);
+  },
+  async createManagementDeparture(packageId: string, input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) {
+    return request<Record<string, unknown>>(`/management/packages/${encodeURIComponent(packageId)}/departures`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true);
+  },
+  async updateManagementDeparture(id: string, input: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/management/departures/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+  async archiveManagementDeparture(id: string) {
+    return request<Record<string, unknown>>(`/management/departures/${encodeURIComponent(id)}/archive`, { method: 'POST' }, true);
+  },
+
   async getMyBookingManifest(bookingId: string) {
     return request<Array<Record<string, unknown>>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/manifest`, undefined, true);
   },
