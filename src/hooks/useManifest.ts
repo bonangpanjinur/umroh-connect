@@ -74,8 +74,8 @@ export const useBulkUpdateRooming = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (updates: Array<{ id: string; room_number: string | null; room_type?: RoomType }>) => {
-      for (const update of updates) await coreApi.updateManagementManifest(update.id, { room_number: update.room_number, room_type: update.room_type });
-      return updates.length;
+      const result = await coreApi.bulkUpdateManifestRooming(updates);
+      return Number((result as { count?: number })?.count ?? updates.length);
     },
     onSuccess: (count) => { invalidate(qc); toast({ title: `Rooming list diperbarui (${count} jemaah)` }); },
     onError: (e: any) => toast({ title: 'Gagal menyusun rooming list', description: e.message, variant: 'destructive' }),
@@ -86,8 +86,8 @@ export const useSetManifestApproval = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ ids, status, reason }: { ids: string[]; status: ApprovalStatus; reason?: string | null }) => {
-      for (const id of ids) await coreApi.updateManagementManifest(id, { approval_status: status, rejection_reason: status === 'rejected' ? reason || null : null });
-      return { count: ids.length, status };
+      const result = await coreApi.bulkUpdateManifestApproval(ids, status, reason);
+      return { count: Number((result as { count?: number })?.count ?? ids.length), status };
     },
     onSuccess: ({ count, status }) => { invalidate(qc); toast({ title: status === 'approved' ? `${count} jemaah disetujui masuk manifest final` : status === 'rejected' ? `${count} jemaah ditolak` : `${count} jemaah dikembalikan ke status menunggu` }); },
     onError: (e: any) => toast({ title: 'Gagal memperbarui persetujuan', description: e.message, variant: 'destructive' }),

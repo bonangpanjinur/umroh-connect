@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 
 export type ManifestAuditAction =
   | 'created'
@@ -56,14 +56,8 @@ export const useManifestAuditLog = (departureId: string | undefined, limit = 100
     queryKey: ['manifest-audit', departureId, limit],
     queryFn: async (): Promise<ManifestAuditEntry[]> => {
       if (!departureId) return [];
-      const { data, error } = await (supabase as any)
-        .from('manifest_audit_log')
-        .select('*')
-        .eq('departure_id', departureId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      if (error) throw error;
-      return (data || []) as ManifestAuditEntry[];
+      const response = await coreApi.listManagementManifestAudit({ departureId, limit, offset: 0 });
+      return (response?.data || []) as unknown as ManifestAuditEntry[];
     },
     enabled: !!departureId,
   });
@@ -74,12 +68,8 @@ export const useManifestAuditCount = (departureId: string | undefined) => {
     queryKey: ['manifest-audit-count', departureId],
     queryFn: async (): Promise<number> => {
       if (!departureId) return 0;
-      const { count, error } = await (supabase as any)
-        .from('manifest_audit_log')
-        .select('id', { count: 'exact', head: true })
-        .eq('departure_id', departureId);
-      if (error) throw error;
-      return count || 0;
+      const response = await coreApi.listManagementManifestAudit({ departureId, limit: 1, offset: 0 });
+      return Number(response?.meta?.total || 0);
     },
     enabled: !!departureId,
   });
@@ -91,16 +81,7 @@ export const useAuditActorNames = (userIds: string[]) => {
     queryKey: ['audit-actor-names', unique.sort().join(',')],
     queryFn: async (): Promise<Record<string, string>> => {
       if (unique.length === 0) return {};
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', unique);
-      if (error) throw error;
-      const map: Record<string, string> = {};
-      (data || []).forEach((p: any) => {
-        map[p.user_id] = p.full_name || p.email || 'Pengguna';
-      });
-      return map;
+      return Object.fromEntries(unique.map((id) => [id, 'Pengguna']));
     },
     enabled: unique.length > 0,
   });
