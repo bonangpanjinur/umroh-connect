@@ -11,10 +11,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { PageHtmlEditor } from '@/components/admin/PageHtmlEditor';
-import { supabase } from '@/lib/supabase';
-
-// Use untyped for website_templates table
-const db = supabase as any;
+import { coreApi } from '@/lib/coreApi';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useAgentTravel } from '@/hooks/useAgentData';
 import { toast } from 'sonner';
@@ -49,13 +46,7 @@ export const AgentWebsiteManager = () => {
   const fetchTemplates = async () => {
     try {
       setLoadingTemplates(true);
-      const { data, error } = await db
-        .from('website_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('is_premium', { ascending: true });
-
-      if (error) throw error;
+      const data = await coreApi.listManagementWebsiteTemplates();
       setTemplates(data || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -67,13 +58,7 @@ export const AgentWebsiteManager = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('agent_website_settings')
-        .select('*')
-        .eq('user_id', user?.id)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await coreApi.getManagementWebsiteSettings();
 
       if (data) {
         setSettings(data);
@@ -143,19 +128,20 @@ ${jsContent}
       const finalHtml = settings.is_builder_active ? bundleContent() : (settings.html_content || null);
       
       const payload = {
-        ...settings,
-        user_id: user.id,
+        custom_slug: requestedSlug || null,
+        is_builder_active: Boolean(settings.is_builder_active),
+        is_custom_url_active: Boolean(settings.is_custom_url_active),
+        is_published: Boolean(settings.is_published),
+        active_template_id: settings.active_template_id || null,
         html_content: finalHtml,
-        custom_slug: requestedSlug,
-        updated_at: new Date().toISOString(),
+        css_content: cssContent || null,
+        js_content: jsContent || null,
+        meta_title: settings.meta_title || null,
+        meta_description: settings.meta_description || null,
+        fb_pixel_id: settings.fb_pixel_id || null,
       };
 
-      // If slug is changed, it will be handled by the database trigger to set status to pending
-      const { error } = await supabase
-        .from('agent_website_settings')
-        .upsert(payload, { onConflict: 'user_id' });
-
-      if (error) throw error;
+      await coreApi.updateManagementWebsiteSettings(payload);
       toast.success('Pengaturan berhasil disimpan');
       fetchSettings();
     } catch (error: any) {

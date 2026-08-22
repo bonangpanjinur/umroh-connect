@@ -163,6 +163,9 @@ function toLegacyPackage(listing: CoreListing): PackageWithDetails {
 
 export const coreApi = {
   async getMarketplaceAgentProfile(slug: string) { return request<{ settings: Record<string, unknown>; travel: Record<string, unknown>; packages: Record<string, unknown>[] }>(`/marketplace/agents/${encodeURIComponent(slug)}`); },
+  async getManagementWebsiteSettings() { return request<Record<string, unknown> | null>('/management/website-settings', undefined, true); },
+  async listManagementWebsiteTemplates() { return request<Record<string, unknown>[]>('/management/website-templates', undefined, true); },
+  async updateManagementWebsiteSettings(input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>('/management/website-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async listMarketplaceReviews(limit = 50) { return request<Record<string, unknown>[]>(`/marketplace/reviews?limit=${Math.min(100, Math.max(1, limit))}`); },
   async getMarketplaceReviewStats() { return request<{ totalReviews: number; averageRating: number; ratingDistribution: { [key: number]: number } }>('/marketplace/reviews/stats'); },
   async listMarketplaceReviewsByTravel(travelId: string) { return request<Record<string, unknown>[]>(`/marketplace/reviews/travel/${encodeURIComponent(travelId)}`); },
