@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { coreApi } from '@/lib/coreApi';
 import { SellerProfile, SellerApplication, SellerMembershipPlan, SellerMembership, SellerCredits } from '@/types/seller';
 
 // Check if current user is a seller
@@ -136,74 +137,10 @@ export const useSellerCredits = (sellerId: string | undefined) => {
 };
 
 // Seller's products
-export const useSellerProducts = (sellerId: string | undefined) => {
-  return useQuery({
-    queryKey: ['seller-products', sellerId],
-    queryFn: async () => {
-      if (!sellerId) return [];
-      const { data, error } = await supabase
-        .from('shop_products')
-        .select('*, category:shop_categories(*)')
-        .eq('seller_id', sellerId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!sellerId,
-  });
-};
+export const useSellerProducts = (sellerId: string | undefined) => useQuery({ queryKey: ['seller-products', sellerId], queryFn: async () => sellerId ? coreApi.listCommerceProducts({ sellerId, limit: 100 }) : [], enabled: !!sellerId });
 
 // Create/update seller product
-export const useUpsertSellerProduct = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async (params: {
-      id?: string;
-      seller_id: string;
-      name: string;
-      slug: string;
-      description?: string;
-      price: number;
-      compare_price?: number | null;
-      stock: number;
-      weight_gram?: number | null;
-      category_id?: string | null;
-      thumbnail_url?: string | null;
-      images?: string[];
-      is_active?: boolean;
-      is_featured?: boolean;
-    }) => {
-      if (params.id) {
-        const { data, error } = await supabase
-          .from('shop_products')
-          .update(params)
-          .eq('id', params.id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase
-          .from('shop_products')
-          .insert(params)
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['seller-products'] });
-      queryClient.invalidateQueries({ queryKey: ['shop-products'] });
-      toast({ title: 'Produk berhasil disimpan! ✅' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Gagal menyimpan produk', description: error.message, variant: 'destructive' });
-    },
-  });
-};
+export const useUpsertSellerProduct = () => { const queryClient = useQueryClient(); const { toast } = useToast(); return useMutation({ mutationFn: async (params: { id?: string; seller_id: string; name: string; slug: string; description?: string; price: number; compare_price?: number | null; stock: number; weight_gram?: number | null; category_id?: string | null; thumbnail_url?: string | null; images?: string[]; is_active?: boolean; is_featured?: boolean }) => { const { id, seller_id, ...input } = params; void seller_id; return id ? coreApi.updateCommerceProduct(id, input) : coreApi.createCommerceProduct(input); }, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['seller-products'] }); queryClient.invalidateQueries({ queryKey: ['shop-products'] }); toast({ title: 'Produk berhasil disimpan! ✅' }); }, onError: (error: Error) => toast({ title: 'Gagal menyimpan produk', description: error.message, variant: 'destructive' }) }); };
 
 // Delete seller product
 export const useDeleteSellerProduct = () => {

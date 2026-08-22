@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ShopProduct, ShopCategory, ShopOrder } from '@/types/shop';
 import { toast } from '@/hooks/use-toast';
+import { coreApi } from '@/lib/coreApi';
 
 // ─── Categories ───
 export const useAdminShopCategories = () => {
@@ -55,57 +56,13 @@ export const useDeleteShopCategory = () => {
 };
 
 // ─── Products ───
-export const useAdminShopProducts = () => {
-  return useQuery({
-    queryKey: ['admin-shop-products'],
-    queryFn: async (): Promise<ShopProduct[]> => {
-      const { data, error } = await supabase
-        .from('shop_products')
-        .select('*, category:shop_categories(*)')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as unknown as ShopProduct[];
-    },
-  });
-};
+export const useAdminShopProducts = () => useQuery({ queryKey: ['admin-shop-products'], queryFn: async (): Promise<ShopProduct[]> => (await coreApi.listCommerceProducts({ limit: 100 })).map((row) => row as unknown as ShopProduct) });
 
-export const useCreateShopProduct = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (product: {
-      name: string; slug: string; category_id?: string; description?: string;
-      price: number; compare_price?: number; stock: number; weight_gram?: number;
-      thumbnail_url?: string; images?: string[]; is_active?: boolean; is_featured?: boolean;
-    }) => {
-      const { error } = await supabase.from('shop_products').insert(product);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk ditambahkan' }); },
-  });
-};
+export const useCreateShopProduct = () => { const qc = useQueryClient(); return useMutation({ mutationFn: (product: { name: string; slug: string; category_id?: string; description?: string; price: number; compare_price?: number; stock: number; weight_gram?: number; thumbnail_url?: string; images?: string[]; is_active?: boolean; is_featured?: boolean }) => coreApi.createCommerceProduct(product), onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk ditambahkan' }); } }); };
 
-export const useUpdateShopProduct = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ShopProduct> & { id: string }) => {
-      const { category, ...rest } = updates as any;
-      const { error } = await supabase.from('shop_products').update(rest).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk diupdate' }); },
-  });
-};
+export const useUpdateShopProduct = () => { const qc = useQueryClient(); return useMutation({ mutationFn: async ({ id, ...updates }: Partial<ShopProduct> & { id: string }) => { const { category, id: ignoredId, seller_id, created_at, updated_at, ...rest } = updates as any; void ignoredId; void seller_id; void created_at; void updated_at; return coreApi.updateCommerceProduct(id, rest); }, onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk diupdate' }); } }); };
 
-export const useDeleteShopProduct = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('shop_products').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk dihapus' }); },
-  });
-};
+export const useDeleteShopProduct = () => { const qc = useQueryClient(); return useMutation({ mutationFn: async (id: string) => { return coreApi.updateCommerceProduct(id, { is_active: false }); }, onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-shop-products'] }); toast({ title: 'Produk dinonaktifkan' }); } }); };
 
 // ─── Orders (Admin) ───
 export const useAdminShopOrders = () => {
