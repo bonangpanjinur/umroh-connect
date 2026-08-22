@@ -218,6 +218,17 @@ export const coreApi = {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
 
+  async listPlatformAdminTravels(params?: { q?: string; page?: number; limit?: number }) {
+    const search = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== '') search.set(key, String(value)); });
+    return request<unknown[]>(`/platform/admin/travels${search.toString() ? `?${search}` : ''}`, undefined, true);
+  },
+  async listPlatformAdminMemberships() { return request<unknown[]>('/platform/admin/memberships', undefined, true); },
+  async listPlatformAdminBanners() { return request<unknown[]>('/platform/admin/banners', undefined, true); },
+  async createPlatformAdminBanner(input: Record<string, unknown>) { return request<unknown>('/platform/admin/banners', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async updatePlatformAdminBanner(id: string, input: Record<string, unknown>) { return request<unknown>(`/platform/admin/banners/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async deletePlatformAdminBanner(id: string) { return request<void>(`/platform/admin/banners/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'Idempotency-Key': crypto.randomUUID() } }, true); },
+  async getPlatformAdminSettings() { return request<unknown[]>('/platform/admin/settings', undefined, true); },
+  async updatePlatformAdminSetting(key: string, value: unknown, description?: string) { return request<unknown>(`/platform/admin/settings/${encodeURIComponent(key)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ value, description }) }, true); },
   async getPlatformAdminOverview() {
     return request<{ totalUsers: number; totalAgents: number; totalTravels: number; totalPackages: number; activeMembers: number; pendingMembers: number; totalRevenue: number }>('/platform/admin/overview', undefined, true);
   },

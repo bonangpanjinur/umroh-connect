@@ -41,40 +41,12 @@ export const useSuspendUser = () => {
 
 // Fetch all travels with owner info
 export const useAllTravels = () => {
-  return useQuery({
-    queryKey: ['admin-travels'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('travels')
-        .select(`
-          *,
-          owner:profiles!travels_owner_id_fkey(id, full_name, phone, user_id)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+  return useQuery({ queryKey: ['admin-travels', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminTravels()).data });
 };
 
 // Fetch all memberships
 export const useMemberships = () => {
-  return useQuery({
-    queryKey: ['admin-memberships'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('memberships')
-        .select(`
-          *,
-          travel:travels(id, name, logo_url, phone, whatsapp)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as (Membership & { travel: Travel })[];
-    }
-  });
+  return useQuery({ queryKey: ['admin-memberships', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminMemberships()).data });
 };
 
 // Update membership
@@ -102,80 +74,25 @@ export const useUpdateMembership = () => {
 
 // Fetch all banners
 export const useBanners = () => {
-  return useQuery({
-    queryKey: ['admin-banners'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('banners')
-        .select('*')
-        .order('priority', { ascending: false });
-      
-      if (error) throw error;
-      return data as Banner[];
-    }
-  });
+  return useQuery({ queryKey: ['admin-banners', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminBanners()).data });
 };
 
 // Create banner
 export const useCreateBanner = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (banner: Omit<Banner, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('banners')
-        .insert(banner)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-banners'] });
-    }
-  });
+  return useMutation({ mutationFn: (banner: Omit<Banner, 'id' | 'created_at' | 'updated_at'>) => coreApi.createPlatformAdminBanner(banner as Record<string, unknown>), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-banners', 'platform'] }) });
 };
 
 // Update banner
 export const useUpdateBanner = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Banner> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('banners')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-banners'] });
-    }
-  });
+  return useMutation({ mutationFn: ({ id, ...updates }: Partial<Banner> & { id: string }) => coreApi.updatePlatformAdminBanner(id, updates as Record<string, unknown>), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-banners', 'platform'] }) });
 };
 
 // Delete banner
 export const useDeleteBanner = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('banners')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-banners'] });
-    }
-  });
+  return useMutation({ mutationFn: (id: string) => coreApi.deletePlatformAdminBanner(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-banners', 'platform'] }) });
 };
 
 // Fetch package credits
@@ -268,58 +185,13 @@ export const useCreditTransactions = () => {
 
 // Fetch platform settings
 export const usePlatformSettings = () => {
-  return useQuery({
-    queryKey: ['platform-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('*');
-      
-      if (error) throw error;
-      return data as PlatformSetting[];
-    }
-  });
+  return useQuery({ queryKey: ['platform-settings', 'platform'], queryFn: async () => (await coreApi.getPlatformAdminSettings()).data });
 };
 
 // Update platform setting (upsert if not exists)
 export const useUpdatePlatformSetting = () => {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: Record<string, any> }) => {
-      // Try update first
-      const { data: existing } = await supabase
-        .from('platform_settings')
-        .select('*')
-        .eq('key', key)
-        .single();
-
-      if (existing) {
-        const { data, error } = await supabase
-          .from('platform_settings')
-          .update({ value })
-          .eq('key', key)
-          .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert new setting
-        const { data, error } = await supabase
-          .from('platform_settings')
-          .insert({ key, value, description: `Setting for ${key}` })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
-    }
-  });
+  return useMutation({ mutationFn: ({ key, value }: { key: string; value: Record<string, any> }) => coreApi.updatePlatformAdminSetting(key, value), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['platform-settings', 'platform'] }) });
 };
 
 // Update user role
