@@ -18,7 +18,7 @@ import {
   useDeleteShopProduct,
 } from '@/hooks/useShopAdmin';
 import { ShopProduct } from '@/types/shop';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from '@/hooks/use-toast';
 
 const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -61,14 +61,17 @@ const ProductForm = ({
       return;
     }
     setUploading(true);
+    if (!initial?.id) {
+      toast({ title: 'Simpan produk terlebih dahulu', description: 'Upload gambar tersedia setelah produk dibuat.', variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
     try {
-      const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('shop-images').upload(fileName, file);
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from('shop-images').getPublicUrl(fileName);
-      setThumbnailUrl(publicUrl);
-      toast({ title: 'Gambar berhasil diupload' });
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('Gagal membaca file')); reader.readAsDataURL(file); });
+      const result = await coreApi.uploadCommerceProductMedia(initial.id, { data, contentType: file.type as 'image/jpeg' | 'image/png' | 'image/webp', filename: file.name, media_type: 'thumbnail' });
+      const uploadedUrl = String(result.url || (result.product as any)?.thumbnail_url || '');
+      setThumbnailUrl(uploadedUrl);
+      toast({ title: 'Gambar berhasil diupload melalui Commerce API' });
     } catch (err: any) {
       toast({ title: 'Gagal upload gambar', description: err.message, variant: 'destructive' });
     } finally {
@@ -117,10 +120,10 @@ const ProductForm = ({
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
               {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
-              {uploading ? 'Uploading...' : 'Upload Gambar'}
+              {uploading ? 'Uploading...' : initial?.id ? 'Upload Gambar' : 'Simpan lalu upload'}
             </Button>
           </div>
-          <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="Atau masukkan URL gambar..." className="text-xs" />
+          <Input value={thumbnailUrl} readOnly placeholder="URL asset dari Commerce API" className="text-xs" />
         </div>
       </div>
       <div className="flex items-center gap-4">
