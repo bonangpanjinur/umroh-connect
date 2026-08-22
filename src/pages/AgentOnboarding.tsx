@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi, CoreApiError } from '@/lib/coreApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -45,6 +45,7 @@ const AgentOnboarding = () => {
   const [documents, setDocuments] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const submissionKeyRef = useRef<string>();
 
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentSchema),
@@ -121,23 +122,29 @@ const AgentOnboarding = () => {
     setSubmitting(true);
     try {
       const data = form.getValues();
-      const { error } = await supabase.from('agent_applications').insert({
-        user_id: user.id,
-        travel_name: data.travel_name,
+      const idempotencyKey = submissionKeyRef.current || crypto.randomUUID();
+      submissionKeyRef.current = idempotencyKey;
+      await coreApi.createTenantApplication({
+        company_name: data.travel_name,
+        contact_name: profile?.full_name || user.user_metadata?.full_name || data.travel_name,
+        email: data.email || user.email || '',
         phone: data.phone,
-        whatsapp: data.whatsapp || null,
-        email: data.email || null,
-        address: data.address || null,
-        description: data.description || null,
-        documents: documents.length > 0 ? documents : null,
-        status: 'pending',
-      });
-
-      if (error) throw error;
+        address: data.address || 'Belum diisi',
+        notes: [data.whatsapp ? `WhatsApp: ${data.whatsapp}` : '', data.description || ''].filter(Boolean).join('\\n') || undefined,
+        documents: documents.length > 0 ? documents : undefined,
+        requested_plan: 'basic',
+      }, idempotencyKey);
       setSubmitted(true);
       toast.success('Pendaftaran berhasil dikirim!');
     } catch (err: any) {
-      toast.error(err.message || 'Gagal mengirim pendaftaran');
+      const message = err instanceof CoreApiError && err.code === 'ACTIVE_APPLICATION_EXISTS'
+        ? 'Anda masih memiliki pengajuan tenant yang sedang diproses.'
+        : err instanceof CoreApiError && err.code === 'TENANT_APPLICATION_RATE_LIMITED'
+          ? 'Batas pengajuan tercapai. Silakan coba kembali nanti.'
+          : err instanceof CoreApiError
+            ? `${err.message}${err.requestId ? ` (Request ID: ${err.requestId})` : ''}`
+            : err?.message || 'Gagal mengirim pendaftaran';
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
