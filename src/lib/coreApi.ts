@@ -300,6 +300,38 @@ export const coreApi = {
     return `${CORE_API_URL}${base}/bookings/${encodeURIComponent(bookingId)}/payment-proofs/${encodeURIComponent(proofId)}`;
   },
 
+  async createTenantApplication(input: {
+    company_name: string;
+    contact_name: string;
+    email: string;
+    phone: string;
+    address: string;
+    license_number?: string;
+    requested_plan?: 'basic' | 'premium' | 'enterprise';
+    notes?: string;
+    documents?: string[];
+  }, idempotencyKey: string) {
+    return request<{
+      id: string;
+      company_name: string;
+      contact_name: string;
+      email: string;
+      phone: string;
+      address: string;
+      license_number: string | null;
+      requested_plan: string;
+      notes: string | null;
+      documents: string[];
+      status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn';
+      created_at: string;
+      updated_at: string;
+    }>('/platform/tenant-applications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(input),
+    }, true);
+  },
+
   async getTravelProfile(travelId: string) {
     return request<{
       id: string;
