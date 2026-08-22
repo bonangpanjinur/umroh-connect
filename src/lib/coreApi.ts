@@ -378,6 +378,18 @@ export const coreApi = {
     return request<Record<string, unknown>>(`/management/departures/${encodeURIComponent(id)}/archive`, { method: 'POST' }, true);
   },
 
+  async listManagementManifestAudit(params?: { departureId?: string; action?: string; actorId?: string; from?: string; to?: string; limit?: number; offset?: number }) {
+    const query = new URLSearchParams();
+    if (params?.departureId) query.set('departure_id', params.departureId);
+    if (params?.action) query.set('action', params.action);
+    if (params?.actorId) query.set('actor_id', params.actorId);
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    if (params?.limit != null) query.set('limit', String(params.limit));
+    if (params?.offset != null) query.set('offset', String(params.offset));
+    return request<{ data: Array<Record<string, unknown>>; meta: { total: number; limit: number; offset: number } }>(`/management/manifest/audit?${query.toString()}`, undefined, true);
+  },
+
   async getMyBookingManifest(bookingId: string) {
     return request<Array<Record<string, unknown>>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/manifest`, undefined, true);
   },
