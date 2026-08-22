@@ -314,8 +314,8 @@ export const HajiRegistrationForm = ({
                       return (
                         <DocumentUpload
                           key={doc.key}
-                          bucket="haji-documents"
-                          folder={user?.id || 'temp'}
+                          purpose="haji_registration"
+                          documentType={(doc.key === 'kk' ? 'family_card' : ['passport', 'mahram_letter', 'ktp', 'photo'].includes(doc.key) ? doc.key : 'other') as any}
                           label={`${doc.label}${isOptional ? '' : ' *'}`}
                           currentUrl={documents[doc.key]}
                           onUpload={(path) => handleDocumentUpload(doc.key, path)}

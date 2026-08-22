@@ -233,9 +233,9 @@ const AgentOnboarding = () => {
               </ul>
             </div>
             <DocumentUpload
+              purpose="tenant_application"
+              documentType="other"
               label="Upload Dokumen"
-              bucket="private-uploads"
-              folder={`${user.id}/agent-docs`}
               onUpload={handleDocumentUpload}
               accept="image/*,.pdf"
               maxSizeMB={5}
