@@ -67,8 +67,7 @@ const ProductForm = ({
       return;
     }
     try {
-      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('Gagal membaca file')); reader.readAsDataURL(file); });
-      const result = await coreApi.uploadCommerceProductMedia(initial.id, { data, contentType: file.type as 'image/jpeg' | 'image/png' | 'image/webp', filename: file.name, media_type: 'thumbnail' });
+      const result = await coreApi.uploadCommerceProductMediaPresigned(initial.id, file, 'thumbnail');
       const uploadedUrl = String(result.url || (result.product as any)?.thumbnail_url || '');
       setThumbnailUrl(uploadedUrl);
       toast({ title: 'Gambar berhasil diupload melalui Commerce API' });
