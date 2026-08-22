@@ -12,6 +12,7 @@ import { usePackageDepartures, useUpdateDeparture } from '@/hooks/useAgentData';
 import { useDeparturesRealtime } from '@/hooks/useDeparturesRealtime';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi, CoreApiError } from '@/lib/coreApi';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -150,16 +151,25 @@ const PackageQuotaDetail = ({ package: pkg, onClose }: PackageQuotaDetailProps) 
     if (restoring || cancelledFutureCount === 0) return;
     setRestoring(true);
     try {
-      const { data, error } = await (supabase.rpc as any)('restore_package_departures', { _package_id: pkg.id });
-      if (error) throw error;
-      const n = typeof data === 'number' ? data : 0;
+      const result = await coreApi.restoreManagementPackageDepartures(
+        pkg.id,
+        `Pemulihan departure dari UI management untuk package ${pkg.name}`,
+      );
+      const n = result.restored_count;
       toast({
         title: n > 0 ? `${n} jadwal dipulihkan` : 'Tidak ada jadwal yang perlu dipulihkan',
         description: n > 0 ? 'Status disesuaikan otomatis berdasarkan ketersediaan kursi.' : undefined,
       });
       await queryClient.invalidateQueries({ queryKey: ['departures', pkg.id] });
     } catch (e) {
-      toast({ title: 'Gagal memulihkan jadwal', description: (e as Error).message, variant: 'destructive' });
+      const description = e instanceof CoreApiError && e.code === 'BRANCH_SCOPE_DENIED'
+        ? 'Departure berada di luar scope branch aktif Anda.'
+        : e instanceof CoreApiError && e.code === 'PACKAGE_INACTIVE'
+          ? 'Package tidak aktif dan tidak dapat dipulihkan.'
+          : e instanceof CoreApiError
+            ? `${e.message}${e.requestId ? ` (Request ID: ${e.requestId})` : ''}`
+            : (e as Error).message;
+      toast({ title: 'Gagal memulihkan jadwal', description, variant: 'destructive' });
     } finally {
       setRestoring(false);
     }

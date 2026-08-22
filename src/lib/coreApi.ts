@@ -25,12 +25,20 @@ async function request<T>(path: string, init?: RequestInit, authenticated = fals
 
   try {
     const session = authenticated ? (await supabase.auth.getSession()).data.session : null;
+    const contextHeaders: Record<string, string> = {};
+    try {
+      const tenantId = localStorage.getItem('arahumroh_active_tenant_id') || localStorage.getItem('core_tenant_id') || localStorage.getItem('tenant_id');
+      const branchId = localStorage.getItem('arahumroh_active_branch_id') || localStorage.getItem('core_branch_id') || localStorage.getItem('branch_id');
+      if (tenantId) contextHeaders['X-Tenant-Id'] = tenantId;
+      if (branchId) contextHeaders['X-Branch-Id'] = branchId;
+    } catch { /* private browsing/SSR: Core resolves context from JWT */ }
     const response = await fetch(`${CORE_API_URL}${path}`, {
       ...init,
       signal: controller.signal,
       headers: {
         Accept: 'application/json',
         'X-Request-Id': requestId,
+        ...contextHeaders,
         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         ...(init?.headers || {}),
       },
@@ -232,6 +240,26 @@ export const coreApi = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
+    }, true);
+  },
+
+  async restoreManagementPackageDepartures(packageId: string, reason?: string) {
+    return request<{
+      package_id: string;
+      restored_count: number;
+      departures: Array<{
+        id: string;
+        package_id: string;
+        branch_id: string | null;
+        departure_date: string;
+        status: string;
+        quota: number | null;
+        available_seats: number;
+      }>;
+    }>(`/management/packages/${encodeURIComponent(packageId)}/departures/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reason ? { reason } : {}),
     }, true);
   },
 
