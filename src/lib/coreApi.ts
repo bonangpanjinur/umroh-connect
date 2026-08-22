@@ -346,6 +346,54 @@ export const coreApi = {
     }>(`/management/analytics/package-interests${query.toString() ? `?${query.toString()}` : ''}`, undefined, true);
   },
 
+  async listManagementManifest(departureId: string, params?: { page?: number; limit?: number }) {
+    const query = new URLSearchParams({ departure_id: departureId, page: String(params?.page || 1), limit: String(params?.limit || 100) });
+    return request<unknown[]>(`/management/manifest?${query.toString()}`, undefined, true);
+  },
+
+  async createManagementManifest(input: Record<string, unknown>) {
+    return request<unknown>('/management/manifest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+
+  async updateManagementManifest(id: string, input: Record<string, unknown>) {
+    return request<unknown>(`/management/manifest/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+
+  async deleteManagementManifest(id: string) {
+    return request<{ id: string }>(`/management/manifest/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
+  },
+
+  async bulkCreateManagementManifest(rows: Array<Record<string, unknown>>) {
+    return request<{ count: number; rows: unknown[] }>('/management/manifest/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rows }) }, true);
+  },
+
+  async listManagementDeparturesForManifest() {
+    return request<Array<{
+      id: string;
+      departure_date: string;
+      return_date: string;
+      total_seats: number;
+      available_seats: number;
+      status: string;
+      package_id: string;
+      package_name: string;
+    }>>('/management/manifest/departures', undefined, true);
+  },
+
+  async listManagementDepartureBookings(departureId: string) {
+    return request<Array<{
+      id: string;
+      booking_code?: string;
+      contact_name?: string;
+      contact_phone?: string;
+      number_of_pilgrims?: number;
+      total_pax?: number;
+      status?: string;
+      booking_status?: string;
+      travel_id?: string;
+    }>>(`/management/bookings?departureId=${encodeURIComponent(departureId)}&limit=100`, undefined, true);
+  },
+
   async createTenantApplication(input: {
     company_name: string;
     contact_name: string;
