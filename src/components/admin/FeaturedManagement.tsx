@@ -36,7 +36,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFeaturedStats, useCancelFeaturedPackage } from '@/hooks/useFeaturedPackages';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { format, formatDistanceToNow } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -86,28 +86,10 @@ export const FeaturedManagement = () => {
   // Fetch all featured packages for admin
   const { data: featuredPackages, isLoading, refetch } = useQuery({
     queryKey: ['admin-featured-packages', statusFilter, positionFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from('featured_packages')
-        .select(`
-          *,
-          package:packages(name, package_type),
-          travel:travels(name, logo_url)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (positionFilter !== 'all') {
-        query = query.eq('position', positionFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as unknown as FeaturedPackageAdmin[];
-    },
+    queryFn: async () => (await coreApi.listAdminFeaturedPackages({
+      status: statusFilter,
+      position: positionFilter,
+    })) as unknown as FeaturedPackageAdmin[],
   });
 
   // Filter by search

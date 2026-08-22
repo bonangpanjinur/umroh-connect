@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 export interface TravelReview {
@@ -214,18 +215,7 @@ export const useDeleteReview = () => {
 export const useAllReviews = () => {
   return useQuery({
     queryKey: ['all-reviews'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('travel_reviews')
-        .select(`
-          *,
-          travel:travels(name)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => (await coreApi.listManagementReviews({ limit: 100 })).data,
   });
 };
 
@@ -243,18 +233,7 @@ export const useUpdateReviewStatus = () => {
       isPublished: boolean; 
       adminNotes?: string;
     }) => {
-      const { data, error } = await supabase
-        .from('travel_reviews')
-        .update({
-          is_published: isPublished,
-          admin_notes: adminNotes,
-        })
-        .eq('id', reviewId)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      return coreApi.setManagementReviewPublication(reviewId, isPublished);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-reviews'] });
