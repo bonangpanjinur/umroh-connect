@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -312,15 +311,15 @@ export const usePaymentNotifications = () => {
     queryFn: async (): Promise<PaymentNotificationLog[]> => {
       if (!user?.id) return [];
       
-      const { data, error } = await (supabase as any)
-        .from('payment_notification_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('sent_at', { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      return (data || []) as PaymentNotificationLog[];
+      const response = await coreApi.listMyPaymentNotifications({ limit: 50 });
+      return (response.data || []).map((item) => ({
+        ...item,
+        user_id: user.id,
+        body: String(item.message || item.body || ''),
+        sent_at: String(item.created_at || item.sent_at || new Date().toISOString()),
+        is_read: Boolean(item.is_read),
+        read_at: item.read_at ? String(item.read_at) : null,
+      })) as PaymentNotificationLog[];
     },
     enabled: !!user?.id,
   });
@@ -332,15 +331,7 @@ export const useMarkNotificationRead = () => {
   
   return useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await (supabase as any)
-        .from('payment_notification_logs')
-        .update({ 
-          is_read: true,
-          read_at: new Date().toISOString(),
-        })
-        .eq('id', notificationId);
-      
-      if (error) throw error;
+      await coreApi.markMyNotificationRead(notificationId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-notifications'] });
