@@ -300,6 +300,52 @@ export const coreApi = {
     return `${CORE_API_URL}${base}/bookings/${encodeURIComponent(bookingId)}/payment-proofs/${encodeURIComponent(proofId)}`;
   },
 
+  async recordMarketplaceAnalyticsEvent(input: {
+    event_id?: string;
+    package_id: string;
+    departure_id?: string;
+    session_id?: string;
+    event_type: 'view' | 'whatsapp_click' | 'inquiry';
+    metadata?: Record<string, string>;
+  }) {
+    return request<{
+      event_id: string;
+      tenant_id: string;
+      branch_id: string | null;
+      package_id: string;
+      departure_id: string | null;
+      event_type: 'view' | 'whatsapp_click' | 'inquiry';
+      created_at: string;
+    }>('/marketplace/analytics/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, event_id: input.event_id || crypto.randomUUID() }),
+    });
+  },
+
+  async getManagementMarketplaceAnalytics(params?: {
+    from?: string;
+    to?: string;
+    days?: number;
+    branchId?: string;
+    packageId?: string;
+    limit?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.from) query.set('from', params.from);
+    if (params?.to) query.set('to', params.to);
+    if (params?.days) query.set('days', String(params.days));
+    if (params?.branchId) query.set('branch_id', params.branchId);
+    if (params?.packageId) query.set('package_id', params.packageId);
+    if (params?.limit) query.set('limit', String(params.limit));
+    return request<{
+      package_stats: Array<{ package_id: string; package_name: string; total_views: number; whatsapp_clicks: number; inquiries: number; unique_visitors: number; last_event_at: string | null }>;
+      trend: Array<{ date: string; views: number; clicks: number; inquiries: number }>;
+      recent: Array<{ event_id: string; package_id: string; package_name: string; departure_id: string | null; event_type: string; created_at: string }>;
+      filters: { from: string; to: string; branch_id: string | null; package_id: string | null };
+    }>(`/management/analytics/package-interests${query.toString() ? `?${query.toString()}` : ''}`, undefined, true);
+  },
+
   async createTenantApplication(input: {
     company_name: string;
     contact_name: string;
