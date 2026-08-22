@@ -218,11 +218,23 @@ export const coreApi = {
     return request<{ userId: string; email: string; role: string; customer: Record<string, unknown> | null }>('/marketplace/me', undefined, true);
   },
 
+  async verifyPlatformTravel(id: string, verified: boolean, approval_notes?: string | null) { return request<unknown>(`/platform/admin/travels/${encodeURIComponent(id)}/verification`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ verified, approval_notes }) }, true); },
+  async setPlatformTravelStatus(id: string, status: string) { return request<unknown>(`/platform/admin/travels/${encodeURIComponent(id)}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ status }) }, true); },
+  async createPlatformTravel(input: Record<string, unknown>) { return request<unknown>('/platform/admin/travels', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async updatePlatformTravel(id: string, input: Record<string, unknown>) { return request<unknown>(`/platform/admin/travels/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async deletePlatformTravel(id: string) { return request<void>(`/platform/admin/travels/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'Idempotency-Key': crypto.randomUUID() } }, true); },
+  async listPlatformAgentWebsiteSettings() { return request<unknown[]>('/platform/admin/agent-website-settings', undefined, true); },
+  async updatePlatformAgentWebsiteSettings(userId: string, input: Record<string, unknown>) { return request<unknown>(`/platform/admin/agent-website-settings/${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async listPlatformAdminCredits() { return request<unknown[]>('/platform/admin/credits', undefined, true); },
+  async addPlatformAdminCredits(input: { travel_id: string; amount: number; notes?: string }) { return request<unknown>('/platform/admin/credits', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
+  async listPlatformCreditTransactions() { return request<unknown[]>('/platform/admin/credit-transactions', undefined, true); },
+  async updatePlatformUserRole(userId: string, role: string) { return request<unknown>(`/platform/admin/users/${encodeURIComponent(userId)}/role`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ role }) }, true); },
   async listPlatformAdminTravels(params?: { q?: string; page?: number; limit?: number }) {
     const search = new URLSearchParams(); Object.entries(params || {}).forEach(([key, value]) => { if (value !== undefined && value !== '') search.set(key, String(value)); });
     return request<unknown[]>(`/platform/admin/travels${search.toString() ? `?${search}` : ''}`, undefined, true);
   },
   async listPlatformAdminMemberships() { return request<unknown[]>('/platform/admin/memberships', undefined, true); },
+  async updatePlatformMembership(id: string, input: Record<string, unknown>) { return request<unknown>(`/platform/admin/memberships/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
   async listPlatformAdminBanners() { return request<unknown[]>('/platform/admin/banners', undefined, true); },
   async createPlatformAdminBanner(input: Record<string, unknown>) { return request<unknown>('/platform/admin/banners', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },
   async updatePlatformAdminBanner(id: string, input: Record<string, unknown>) { return request<unknown>(`/platform/admin/banners/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(input) }, true); },

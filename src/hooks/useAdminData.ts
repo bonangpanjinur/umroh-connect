@@ -52,23 +52,9 @@ export const useMemberships = () => {
 // Update membership
 export const useUpdateMembership = () => {
   const queryClient = useQueryClient();
-  
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Membership> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('memberships')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-memberships'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-    }
+    mutationFn: ({ id, ...updates }: Partial<Membership> & { id: string }) => coreApi.updatePlatformMembership(id, updates as Record<string, unknown>),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-memberships', 'platform'] }); queryClient.invalidateQueries({ queryKey: ['admin-stats', 'platform'] }); }
   });
 };
 
@@ -96,92 +82,13 @@ export const useDeleteBanner = () => {
 };
 
 // Fetch package credits
-export const usePackageCredits = () => {
-  return useQuery({
-    queryKey: ['admin-credits'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('package_credits')
-        .select(`
-          *,
-          travel:travels(id, name, logo_url)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as (PackageCredits & { travel: Travel })[];
-    }
-  });
-};
+export const usePackageCredits = () => useQuery({ queryKey: ['admin-credits','platform'], queryFn: async () => (await coreApi.listPlatformAdminCredits()).data });
 
 // Add credits to travel
-export const useAddCredits = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ travel_id, amount, notes }: { travel_id: string; amount: number; notes?: string }) => {
-      // First, upsert the credits
-      const { data: existingCredits } = await supabase
-        .from('package_credits')
-        .select('*')
-        .eq('travel_id', travel_id)
-        .single();
-
-      if (existingCredits) {
-        await supabase
-          .from('package_credits')
-          .update({
-            credits_remaining: existingCredits.credits_remaining + amount,
-            last_purchase_date: new Date().toISOString()
-          })
-          .eq('id', existingCredits.id);
-      } else {
-        await supabase
-          .from('package_credits')
-          .insert({
-            travel_id,
-            credits_remaining: amount,
-            last_purchase_date: new Date().toISOString()
-          });
-      }
-
-      // Record transaction
-      const { error } = await supabase
-        .from('credit_transactions')
-        .insert({
-          travel_id,
-          transaction_type: 'bonus',
-          amount,
-          notes: notes || 'Admin bonus'
-        });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-credits'] });
-    }
-  });
-};
+export const useAddCredits = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:(input:{travel_id:string;amount:number;notes?:string})=>coreApi.addPlatformAdminCredits(input), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-credits','platform']}) }); };
 
 // Fetch credit transactions
-export const useCreditTransactions = () => {
-  return useQuery({
-    queryKey: ['admin-transactions'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('credit_transactions')
-        .select(`
-          *,
-          travel:travels(id, name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (error) throw error;
-      return data as (CreditTransaction & { travel: Travel })[];
-    }
-  });
-};
+export const useCreditTransactions = () => useQuery({ queryKey: ['admin-transactions','platform'], queryFn: async () => (await coreApi.listPlatformCreditTransactions()).data });
 
 // Fetch platform settings
 export const usePlatformSettings = () => {
@@ -195,251 +102,25 @@ export const useUpdatePlatformSetting = () => {
 };
 
 // Update user role
-export const useUpdateUserRole = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ user_id, role }: { user_id: string; role: AppRole }) => {
-      // Update profile role
-      await supabase
-        .from('profiles')
-        .update({ role } as any)
-        .eq('user_id', user_id);
-
-      // Update or insert user_roles
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', user_id)
-        .single();
-
-      if (existingRole) {
-        const { error } = await supabase
-          .from('user_roles')
-          .update({ role } as any)
-          .eq('user_id', user_id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('user_roles')
-          .insert({ user_id, role } as any);
-        if (error) throw error;
-      }
-
-      // Auto-create seller profile when role is set to seller
-      if (role === 'seller') {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('user_id', user_id)
-          .single();
-
-        const { data: existingSeller } = await supabase
-          .from('seller_profiles')
-          .select('id')
-          .eq('user_id', user_id)
-          .maybeSingle();
-
-        if (!existingSeller) {
-          await supabase
-            .from('seller_profiles')
-            .insert({
-              user_id,
-              shop_name: profile?.full_name || 'Toko Baru',
-              phone: profile?.phone || null,
-            });
-        }
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-    }
-  });
-};
+export const useUpdateUserRole = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({user_id,role}:{user_id:string;role:AppRole})=>coreApi.updatePlatformUserRole(user_id,role), onSuccess:()=>{queryClient.invalidateQueries({queryKey:['admin-users','platform']});queryClient.invalidateQueries({queryKey:['admin-stats','platform']});} }); };
 
 // Verify/unverify travel with notes
-export const useVerifyTravel = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, verified, approval_notes }: { id: string; verified: boolean; approval_notes?: string | null }) => {
-      const { error } = await supabase
-        .from('travels')
-        .update({ 
-          verified,
-          verified_at: verified ? new Date().toISOString() : null,
-          approval_notes: approval_notes || null
-        })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
-    }
-  });
-};
+export const useVerifyTravel = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({id,verified,approval_notes}:{id:string;verified:boolean;approval_notes?:string|null})=>coreApi.verifyPlatformTravel(id,verified,approval_notes), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-travels','platform']}) }); };
 
 // Suspend/activate travel
-export const useSuspendTravel = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: TravelStatus }) => {
-      const { error } = await supabase
-        .from('travels')
-        .update({ status })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
-    }
-  });
-};
+export const useSuspendTravel = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({id,status}:{id:string;status:TravelStatus})=>coreApi.setPlatformTravelStatus(id,status), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-travels','platform']}) }); };
 
 // Create new travel (admin)
-export const useCreateTravel = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (travel: {
-      name: string;
-      phone: string;
-      whatsapp?: string | null;
-      email?: string | null;
-      address?: string | null;
-      description?: string | null;
-      verified?: boolean;
-      owner_id?: string | null;
-      logo_url?: string | null;
-      admin_approved_slug?: string | null;
-      is_custom_url_enabled_by_admin?: boolean;
-    }) => {
-      const { data, error } = await supabase
-        .from('travels')
-        .insert({
-          name: travel.name,
-          phone: travel.phone,
-          whatsapp: travel.whatsapp,
-          email: travel.email,
-          address: travel.address,
-          description: travel.description,
-          verified: travel.verified || false,
-          verified_at: travel.verified ? new Date().toISOString() : null,
-          owner_id: travel.owner_id,
-          logo_url: travel.logo_url,
-          admin_approved_slug: travel.admin_approved_slug,
-          is_custom_url_enabled_by_admin: travel.is_custom_url_enabled_by_admin || false,
-          status: 'active'
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-    }
-  });
-};
+export const useCreateTravel = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:(travel:Record<string,unknown>)=>coreApi.createPlatformTravel(travel), onSuccess:()=>{queryClient.invalidateQueries({queryKey:['admin-travels','platform']});queryClient.invalidateQueries({queryKey:['admin-stats','platform']});} }); };
 
 // Delete travel (admin)
-export const useDeleteTravel = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('travels')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
-    }
-  });
-};
+export const useDeleteTravel = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:(id:string)=>coreApi.deletePlatformTravel(id), onSuccess:()=>{queryClient.invalidateQueries({queryKey:['admin-travels','platform']});queryClient.invalidateQueries({queryKey:['admin-stats','platform']});} }); };
 
 // Update travel (admin)
-export const useUpdateTravelAdmin = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ id, ...data }: {
-      id: string;
-      name?: string;
-      phone?: string;
-      whatsapp?: string | null;
-      email?: string | null;
-      address?: string | null;
-      description?: string | null;
-      verified?: boolean;
-      owner_id?: string | null;
-      logo_url?: string | null;
-      admin_approved_slug?: string | null;
-      is_custom_url_enabled_by_admin?: boolean;
-    }) => {
-      const { data: result, error } = await supabase
-        .from('travels')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-travels'] });
-    }
-  });
-};
+export const useUpdateTravelAdmin = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({id,...data}:{id:string;[key:string]:unknown})=>coreApi.updatePlatformTravel(id,data), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-travels','platform']}) }); };
 
 // Fetch all agent website settings for URL management
-export const useAllAgentWebsiteSettings = () => {
-  return useQuery({
-    queryKey: ['admin-agent-website-settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('agent_website_settings')
-        .select(`
-          *,
-          profile:profiles(id, full_name, phone)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    }
-  });
-};
+export const useAllAgentWebsiteSettings = () => useQuery({ queryKey:['admin-agent-website-settings','platform'], queryFn:async()=> (await coreApi.listPlatformAgentWebsiteSettings()).data });
 
 // Update agent website settings (approve/reject slug)
-export const useUpdateAgentWebsiteSettings = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async ({ user_id, ...updates }: { user_id: string } & any) => {
-      const { data, error } = await supabase
-        .from('agent_website_settings')
-        .update(updates)
-        .eq('user_id', user_id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-agent-website-settings'] });
-    }
-  });
-};
+export const useUpdateAgentWebsiteSettings = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({user_id,...updates}:{user_id:string;[key:string]:unknown})=>coreApi.updatePlatformAgentWebsiteSettings(user_id,updates), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-agent-website-settings','platform']}) }); };
