@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { PackageCredits, CreditTransaction } from '@/types/database';
 import { toast } from '@/hooks/use-toast';
 
@@ -10,16 +10,9 @@ export const useAgentCredits = (travelId: string | undefined) => {
     queryFn: async (): Promise<PackageCredits | null> => {
       if (!travelId) return null;
       
-      const { data, error } = await supabase
-        .from('package_credits')
-        .select('*')
-        .eq('travel_id', travelId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching credits:', error);
-        return null;
-      }
+      let data: { credits_remaining: number } | null;
+      try { data = await coreApi.getAgentCredits(travelId); }
+      catch (error) { console.error('Error fetching credits:', error); return null; }
       const typedData = data as PackageCredits | null;
       if (typedData) {
         return {
@@ -49,19 +42,12 @@ export const usePurchaseCredits = () => {
       amount: number; 
       proofUrl: string;
     }) => {
-      // Create a pending transaction
-      const { error } = await supabase
-        .from('credit_transactions')
-        .insert({
-          travel_id: travelId,
-          transaction_type: 'purchase',
-          amount: credits,
-          status: 'pending',
-          payment_proof_url: proofUrl,
-          notes: `Pembelian ${credits} kredit seharga Rp ${amount.toLocaleString('id-ID')}`
-        });
-
-      if (error) throw error;
+      await coreApi.requestCreditPurchase(travelId, {
+        credits,
+        amount,
+        proof_url: proofUrl,
+        notes: `Pembelian ${credits} kredit seharga Rp ${amount.toLocaleString('id-ID')}`,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-transactions'] });
@@ -87,13 +73,7 @@ export const useCreditTransactions = (travelId: string | undefined) => {
     queryFn: async (): Promise<CreditTransaction[]> => {
       if (!travelId) return [];
       
-      const { data, error } = await supabase
-        .from('credit_transactions')
-        .select('*')
-        .eq('travel_id', travelId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await coreApi.listAgentCreditTransactions(travelId);
       return (data || []) as CreditTransaction[];
     },
     enabled: !!travelId,
