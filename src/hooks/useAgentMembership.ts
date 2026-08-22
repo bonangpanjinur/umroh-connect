@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 
 export interface MembershipPlan {
@@ -133,15 +133,7 @@ export const useAgentMembership = (travelId: string | undefined) => {
     queryFn: async (): Promise<AgentMembership | null> => {
       if (!travelId) return null;
 
-      const { data, error } = await supabase
-        .from('memberships')
-        .select('*')
-        .eq('travel_id', travelId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await coreApi.getManagementMembership(travelId);
       return data as AgentMembership | null;
     },
     enabled: !!travelId,
@@ -184,20 +176,11 @@ export const useRequestMembership = () => {
       amount: number;
       paymentProofUrl: string;
     }) => {
-      const { data, error } = await supabase
-        .from('memberships')
-        .insert({
-          travel_id: params.travelId,
-          plan_type: params.planType,
-          status: 'pending',
-          amount: params.amount,
-          payment_proof_url: params.paymentProofUrl,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return coreApi.requestManagementMembership(params.travelId, {
+        plan_type: params.planType,
+        amount: params.amount,
+        payment_proof_url: params.paymentProofUrl,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-membership'] });
