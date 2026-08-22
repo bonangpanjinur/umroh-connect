@@ -32,33 +32,8 @@ export const useTravelReviews = (travelId: string | undefined) => {
     queryFn: async () => {
       if (!travelId) return [];
       
-      // First fetch reviews
-      const { data: reviews, error } = await supabase
-        .from('travel_reviews')
-        .select('*')
-        .eq('travel_id', travelId)
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      // Then fetch profiles for each review
-      const reviewsWithProfiles = await Promise.all(
-        (reviews || []).map(async (review) => {
-          const { data: profile } = await (supabase
-            .from('public_profiles' as any)
-            .select('full_name, avatar_url')
-            .eq('user_id', review.user_id)
-            .maybeSingle()) as any;
-          
-          return {
-            ...review,
-            profile: profile || undefined,
-          } as TravelReview;
-        })
-      );
-      
-      return reviewsWithProfiles;
+      const reviews = await coreApi.listMarketplaceReviewsByTravel(travelId);
+      return reviews as unknown as TravelReview[];
     },
     enabled: !!travelId,
   });
@@ -73,15 +48,8 @@ export const useReviewStats = (travelId: string | undefined) => {
         return { average_rating: 0, total_reviews: 0, rating_distribution: {} };
       }
       
-      const { data, error } = await supabase
-        .from('travel_reviews')
-        .select('rating')
-        .eq('travel_id', travelId)
-        .eq('is_published', true);
-      
-      if (error) throw error;
-      
-      const ratings = data || [];
+      const reviews = await coreApi.listMarketplaceReviewsByTravel(travelId);
+      const ratings = reviews || [];
       const total = ratings.length;
       const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
       const average = total > 0 ? sum / total : 0;

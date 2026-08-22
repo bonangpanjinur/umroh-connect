@@ -162,6 +162,10 @@ function toLegacyPackage(listing: CoreListing): PackageWithDetails {
 }
 
 export const coreApi = {
+  async listMarketplaceReviews(limit = 50) { return request<Record<string, unknown>[]>(`/marketplace/reviews?limit=${Math.min(100, Math.max(1, limit))}`); },
+  async getMarketplaceReviewStats() { return request<{ totalReviews: number; averageRating: number; ratingDistribution: { [key: number]: number } }>('/marketplace/reviews/stats'); },
+  async listMarketplaceReviewsByTravel(travelId: string) { return request<Record<string, unknown>[]>(`/marketplace/reviews/travel/${encodeURIComponent(travelId)}`); },
+
   async listMarketplaceListings(params?: { q?: string; type?: string; page?: number; limit?: number }) {
     const search = new URLSearchParams();
     Object.entries(params || {}).forEach(([key, value]) => {
@@ -226,6 +230,8 @@ export const coreApi = {
   async listAgentFeaturedPackages(travelId: string) { return request<Record<string, unknown>[]>(`/management/featured/${encodeURIComponent(travelId)}`, undefined, true); },
   async listAdminFeaturedPackages(params?: { status?: string; position?: string }) { const search = new URLSearchParams(); if (params?.status) search.set('status', params.status); if (params?.position) search.set('position', params.position); return request<Record<string, unknown>[]>(`/management/featured/admin${search.toString() ? `?${search}` : ''}`, undefined, true); },
   async getAgentCredits(travelId: string) { return request<{ credits_remaining: number }>(`/management/featured/credits/${encodeURIComponent(travelId)}`, undefined, true); },
+  async listAgentCreditTransactions(travelId: string) { return request<Record<string, unknown>[]>(`/management/featured/credits/${encodeURIComponent(travelId)}/transactions`, undefined, true); },
+  async requestCreditPurchase(travelId: string, input: { credits: number; amount: number; proof_url: string; notes?: string }, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>(`/management/featured/credits/${encodeURIComponent(travelId)}/purchase`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async createFeaturedPackage(input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>('/management/featured', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async cancelFeaturedPackage(featuredId: string) { return request<Record<string, unknown>>(`/management/featured/${encodeURIComponent(featuredId)}/cancel`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: '{}' }, true); },
   async listManagementReviews(params?: { q?: string; branchId?: string; page?: number; limit?: number }) {

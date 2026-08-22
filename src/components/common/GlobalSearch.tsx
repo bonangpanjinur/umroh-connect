@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, X, Package, ShoppingBag, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SearchResult {
@@ -47,13 +48,13 @@ const GlobalSearch = ({ onSelect, onClose }: GlobalSearchProps) => {
       setLoading(true);
       try {
         const [pkgRes, prodRes, doaRes] = await Promise.all([
-          supabase.from('packages').select('id, name, travel_id').ilike('name', `%${query}%`).limit(5),
+          coreApi.listMarketplaceListings({ q: query, limit: 5 }),
           supabase.from('shop_products').select('id, name, price').ilike('name', `%${query}%`).eq('is_active', true).limit(5),
           supabase.from('prayers').select('id, title, category').ilike('title', `%${query}%`).limit(5),
         ]);
 
         const mapped: SearchResult[] = [
-          ...(pkgRes.data || []).map((p: any) => ({ id: p.id, title: p.name, type: 'package' as const })),
+          ...(pkgRes || []).map((p: any) => ({ id: p.id, title: p.name, type: 'package' as const })),
           ...(prodRes.data || []).map((p: any) => ({ id: p.id, title: p.name, subtitle: `Rp ${p.price?.toLocaleString('id-ID')}`, type: 'product' as const })),
           ...(doaRes.data || []).map((d: any) => ({ id: d.id, title: d.title, subtitle: d.category, type: 'doa' as const })),
         ];
