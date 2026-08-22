@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 interface JamaahAccess {
@@ -21,6 +21,7 @@ export const useJamaahAccess = (): JamaahAccess => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const checkAccess = async () => {
       if (!user) {
         setHasActiveBooking(false);
@@ -29,102 +30,56 @@ export const useJamaahAccess = (): JamaahAccess => {
         setIsLoading(false);
         return;
       }
-
+      setIsLoading(true);
       try {
-        // Check for any bookings that are still live (not cancelled)
-        const { data: bookings, error } = await supabase
-          .from('bookings')
-          .select(`
-            id,
-            status,
-            paid_amount,
-            departure_id,
-            departures (
-              departure_date,
-              package_id,
-              packages (
-                name,
-                travel_id,
-                travels (name)
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .in('status', ['pending', 'confirmed', 'paid'])
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error checking jamaah access:', error);
-          setIsLoading(false);
-          return;
-        }
-
-        const hasAny = bookings && bookings.length > 0;
-        // A booking counts as confirmed once the agent confirms it, it is fully
-        // paid, or the jamaah has paid at least the down payment.
-        const hasConfirmed = bookings?.some(b =>
-          b.status === 'confirmed' ||
-          b.status === 'paid' ||
-          Number(b.paid_amount ?? 0) > 0
-        ) || false;
-
-
-        setHasActiveBooking(hasAny);
+        const bookings = await coreApi.getMyBookings() as Array<Record<string, any>>;
+        if (cancelled) return;
+        const live = bookings.filter((booking) => ['pending', 'confirmed', 'paid', 'processing', 'completed'].includes(String(booking.status ?? booking.booking_status)));
+        const hasConfirmed = live.some((booking) => ['confirmed', 'paid', 'completed'].includes(String(booking.status ?? booking.booking_status)) || Number(booking.paid_amount ?? 0) > 0);
+        setHasActiveBooking(live.length > 0);
         setHasConfirmedBooking(hasConfirmed);
 
-        // Find upcoming departure
-        if (bookings && bookings.length > 0) {
-          const now = new Date();
-          const upcoming = bookings.find(b => {
-            const departure = b.departures as any;
-            if (!departure?.departure_date) return false;
-            return new Date(departure.departure_date) > now;
+        const now = Date.now();
+        const upcoming = live
+          .filter((booking) => {
+            const departureDate = booking.departure?.departure_date ?? booking.departure_date;
+            return departureDate && new Date(departureDate).getTime() > now;
+          })
+          .sort((a, b) => new Date(String(a.departure?.departure_date ?? a.departure_date)).getTime() - new Date(String(b.departure?.departure_date ?? b.departure_date)).getTime())[0];
+        const departureDate = upcoming?.departure?.departure_date ?? upcoming?.departure_date;
+        if (upcoming && departureDate) {
+          setUpcomingDeparture({
+            date: String(departureDate),
+            packageName: String(upcoming.package?.name ?? upcoming.package_name ?? 'Unknown Package'),
+            travelName: String(upcoming.travel?.name ?? upcoming.travel_name ?? 'Unknown Travel'),
           });
-
-          if (upcoming) {
-            const departure = upcoming.departures as any;
-            const pkg = departure?.packages as any;
-            const travel = pkg?.travels as any;
-
-            setUpcomingDeparture({
-              date: departure?.departure_date,
-              packageName: pkg?.name || 'Unknown Package',
-              travelName: travel?.name || 'Unknown Travel',
-            });
-          }
+        } else {
+          setUpcomingDeparture(null);
         }
       } catch (err) {
-        console.error('Error in useJamaahAccess:', err);
+        if (!cancelled) {
+          console.error('Error checking jamaah access:', err);
+          setHasActiveBooking(false);
+          setHasConfirmedBooking(false);
+          setUpcomingDeparture(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
-
-    checkAccess();
+    void checkAccess();
+    return () => { cancelled = true; };
   }, [user]);
 
-  return {
-    hasActiveBooking,
-    hasConfirmedBooking,
-    upcomingDeparture,
-    isLoading,
-  };
+  return { hasActiveBooking, hasConfirmedBooking, upcomingDeparture, isLoading };
 };
 
-// Component wrapper for jamaah-only features
 export const JamaahOnly: React.FC<{
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }> = ({ children, fallback }) => {
   const { hasActiveBooking, isLoading } = useJamaahAccess();
-
-  if (isLoading) {
-    return null;
-  }
-
-  if (!hasActiveBooking) {
-    return fallback ? React.createElement(React.Fragment, null, fallback) : null;
-  }
-
+  if (isLoading) return null;
+  if (!hasActiveBooking) return fallback ? React.createElement(React.Fragment, null, fallback) : null;
   return React.createElement(React.Fragment, null, children);
 };
