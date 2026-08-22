@@ -346,6 +346,14 @@ export const coreApi = {
     }>(`/management/analytics/package-interests${query.toString() ? `?${query.toString()}` : ''}`, undefined, true);
   },
 
+  async getMyBookingManifest(bookingId: string) {
+    return request<Array<Record<string, unknown>>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/manifest`, undefined, true);
+  },
+
+  async updateMyBookingManifest(bookingId: string, manifestId: string, input: Record<string, unknown>) {
+    return request<Record<string, unknown>>(`/marketplace/bookings/${encodeURIComponent(bookingId)}/manifest/${encodeURIComponent(manifestId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }, true);
+  },
+
   async listManagementManifest(departureId: string, params?: { page?: number; limit?: number }) {
     const query = new URLSearchParams({ departure_id: departureId, page: String(params?.page || 1), limit: String(params?.limit || 100) });
     return request<unknown[]>(`/management/manifest?${query.toString()}`, undefined, true);
@@ -361,6 +369,14 @@ export const coreApi = {
 
   async deleteManagementManifest(id: string) {
     return request<{ id: string }>(`/management/manifest/${encodeURIComponent(id)}`, { method: 'DELETE' }, true);
+  },
+
+  async bulkUpdateManifestRooming(updates: Array<{ id: string; room_number: string | null; room_type?: string }>) {
+    return request<{ count: number }>('/management/manifest/bulk-rooming', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ updates }) }, true);
+  },
+
+  async bulkUpdateManifestApproval(ids: string[], status: 'pending' | 'approved' | 'rejected', reason?: string | null) {
+    return request<{ count: number; status: string }>('/management/manifest/bulk-approval', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, status, reason: reason ?? null }) }, true);
   },
 
   async bulkCreateManagementManifest(rows: Array<Record<string, unknown>>) {
