@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Upload, X, ImagePlus, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -54,23 +54,9 @@ const MultiImageUpload = ({
           throw new Error('Ukuran file maksimal 5MB');
         }
 
-        // Generate unique filename
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${folder ? folder + '/' : ''}${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        // Upload to Supabase Storage
-        const { error: uploadError } = await supabase.storage
-          .from(bucket)
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(fileName);
-
-        return publicUrl;
+        const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
+        const uploaded = await coreApi.uploadPublicAsset({ data, contentType: file.type, filename: `${folder ? `${folder}/` : ''}${file.name}`, bucket });
+        return uploaded.publicUrl || uploaded.url;
       });
 
       const newUrls = await Promise.all(uploadPromises);
@@ -98,12 +84,12 @@ const MultiImageUpload = ({
     // Extract filename from URL for deletion
     try {
       const url = new URL(urlToRemove);
-      const pathParts = url.pathname.split('/');
-      const bucketIndex = pathParts.indexOf(bucket);
-      if (bucketIndex !== -1) {
-        const filePath = pathParts.slice(bucketIndex + 1).join('/');
-        await supabase.storage.from(bucket).remove([filePath]);
-      }
+        const marker = `/uploads/${bucket}/`;
+        const markerIndex = url.pathname.indexOf(marker);
+        if (markerIndex !== -1) {
+          const filePath = `${bucket}/${url.pathname.slice(markerIndex + marker.length)}`;
+          await coreApi.deletePublicAsset(filePath);
+        }
     } catch (err) {
       // Ignore deletion errors, still remove from array
     }

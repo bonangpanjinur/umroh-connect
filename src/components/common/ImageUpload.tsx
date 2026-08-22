@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from 'sonner';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -47,28 +47,10 @@ export const ImageUpload = ({
     setUploading(true);
 
     try {
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = folder ? `${folder}/${fileName}` : fileName;
-
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      setPreview(publicUrl);
-      onUpload(publicUrl);
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPublicAsset({ data, contentType: file.type, filename: `${folder ? `${folder}/` : ''}${file.name}`, bucket });
+      setPreview(uploaded.publicUrl || uploaded.url);
+      onUpload(uploaded.publicUrl || uploaded.url);
       toast.success('Gambar berhasil diupload');
     } catch (error: any) {
       console.error('Upload error:', error);
