@@ -3,6 +3,7 @@ import { coreApi } from '@/lib/coreApi';
 import { Travel, Package, Departure } from '@/types/database';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
 const asRecord = (value: unknown) => value as Record<string, unknown>;
 
@@ -21,7 +22,7 @@ export const useUpdateTravel = () => {
   return useMutation({ mutationFn: async ({ id: _id, ...data }: Partial<Travel> & { id: string }) => coreApi.updateManagementTravel(asRecord(data)) as Promise<Travel>, onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-travel'] }); toast({ title: 'Profil travel berhasil diupdate!' }); }, onError: (error: any) => toast({ title: 'Gagal update travel', description: error.message, variant: 'destructive' }) });
 };
 
-export const useAgentPackages = (travelId?: string) => useQuery({ queryKey: ['agent-packages', travelId], queryFn: async () => travelId ? await coreApi.listManagementPackages() as Package[] : [], enabled: !!travelId });
+export const useAgentPackages = (travelId?: string) => { const { data: scope } = useTenantScope(); return useQuery({ queryKey: ['agent-packages', tenantScopeKey(scope), travelId], queryFn: async () => travelId ? await coreApi.listManagementPackages() as Package[] : [], enabled: !!travelId && !!scope?.tenant_id }); };
 
 export const useCreatePackage = () => {
   const queryClient = useQueryClient();
@@ -38,7 +39,7 @@ export const useDeletePackage = () => {
   return useMutation({ mutationFn: (id: string) => coreApi.archiveManagementPackage(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-packages'] }); queryClient.invalidateQueries({ queryKey: ['packages'] }); toast({ title: 'Paket berhasil diarsipkan!' }); }, onError: (error: any) => toast({ title: 'Gagal mengarsipkan paket', description: error.message, variant: 'destructive' }) });
 };
 
-export const usePackageDepartures = (packageId?: string) => useQuery({ queryKey: ['package-departures', packageId], queryFn: async () => packageId ? await coreApi.listManagementPackageDepartures(packageId) as Departure[] : [], enabled: !!packageId });
+export const usePackageDepartures = (packageId?: string) => { const { data: scope } = useTenantScope(); return useQuery({ queryKey: ['package-departures', tenantScopeKey(scope), packageId], queryFn: async () => packageId ? await coreApi.listManagementPackageDepartures(packageId) as Departure[] : [], enabled: !!packageId && !!scope?.tenant_id }); };
 
 export const useCreateDeparture = () => {
   const queryClient = useQueryClient();

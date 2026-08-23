@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
 // Types
 export type BookingStatus = 'pending' | 'confirmed' | 'paid' | 'cancelled' | 'completed';
@@ -92,15 +93,17 @@ export const useUserBookings = () => {
 
 // Fetch agent's bookings (for their travel)
 export const useAgentBookings = (travelId?: string) => {
+  const { data: scope } = useTenantScope();
+  const scopeKey = tenantScopeKey(scope);
   return useQuery({
-    queryKey: ['bookings', 'agent', travelId],
+    queryKey: ['bookings', 'agent', scopeKey, travelId],
     queryFn: async (): Promise<Booking[]> => {
       if (!travelId) return [];
       
       const data = await coreApi.listManagementBookings({ branchId: travelId });
       return (data || []) as unknown as Booking[];
     },
-    enabled: !!travelId,
+    enabled: !!travelId && !!scope?.tenant_id,
   });
 };
 
@@ -119,8 +122,10 @@ export const useBookingDetails = (bookingId?: string) => {
 };
 
 export const usePaymentSchedules = (bookingId?: string, management = false) => {
+  const { data: scope } = useTenantScope();
+  const scopeKey = management ? tenantScopeKey(scope) : ['customer-owned'];
   return useQuery({
-    queryKey: ['payment-schedules', bookingId, management],
+    queryKey: ['payment-schedules', scopeKey, bookingId, management],
     queryFn: async (): Promise<PaymentSchedule[]> => {
       if (!bookingId) return [];
       const data = management
@@ -145,7 +150,7 @@ export const usePaymentSchedules = (bookingId?: string, management = false) => {
         updated_at: schedule.updated_at || new Date().toISOString(),
       } as PaymentSchedule));
     },
-    enabled: !!bookingId,
+    enabled: !!bookingId && (!management || !!scope?.tenant_id),
   });
 };
 

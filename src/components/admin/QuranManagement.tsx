@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Loader2, RefreshCw, Database, BookOpen, AlertTriangle, CheckCircle, Save } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuranStats, useSyncLogs, useTriggerSync } from '@/hooks/useQuranAdmin';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from 'sonner';
 
 const API_BASE = 'https://api.alquran.cloud/v1';
@@ -18,88 +19,21 @@ export const QuranManagement = () => {
   const [syncing, setSyncing] = useState(false);
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
 
-  // Fetch stats
-  const { data: stats, refetch: refetchStats } = useQuery({
-    queryKey: ['quran-admin-stats'],
-    queryFn: async () => {
-      const { count } = await supabase.from('quran_ayahs').select('*', { count: 'exact', head: true });
-      const { data: surahs } = await supabase.from('quran_surahs').select('number, name, english_name, total_verses').order('number');
-      
-      // Fetch all ayahs counts by surah using a simpler query
-      const { data: existingAyahs } = await supabase
-        .from('quran_ayahs')
-        .select('surah_number');
-      
-      const counts: Record<number, number> = {};
-      existingAyahs?.forEach(a => {
-        counts[a.surah_number] = (counts[a.surah_number] || 0) + 1;
-      });
-
-      return {
-        totalAyahs: count || 0,
-        surahs: surahs || [],
-        counts,
-      };
-    }
-  });
-
-  // Fetch Sync Logs
-  const { data: logs, refetch: refetchLogs } = useQuery({
-    queryKey: ['quran-sync-logs'],
-    queryFn: async () => {
-      const { data } = await supabase.from('quran_sync_logs').select('*').order('started_at', { ascending: false }).limit(10);
-      return data || [];
-    }
-  });
+  const { data: quranStats, refetch: refetchStats } = useQuranStats();
+  const { data: surahs = [] } = useQuery({ queryKey: ['quran-surahs', 'core'], queryFn: () => coreApi.listQuranSurahs() });
+  const { data: logs = [], refetch: refetchLogs } = useSyncLogs();
+  const triggerSync = useTriggerSync();
+  const stats = { totalAyahs: quranStats?.totalAyahs || 0, surahs, counts: quranStats?.surahCounts || {} };
 
   const handleSync = async (mode: 'full' | 'surah', surahNumber?: number) => {
     try {
       setSyncing(true);
-      
-      if (mode === 'surah') {
-        const { error } = await supabase.functions.invoke('sync-quran-data', {
-          body: { mode, surah_number: surahNumber }
-        });
-        if (error) throw error;
-        toast.success(`Sinkronisasi Surat ${surahNumber} berhasil`);
-      } else {
-        // Full sync in batches of 10 surahs to avoid timeouts
-        const batchSize = 10;
-        const totalSurahs = 114;
-        let completed = 0;
-        
-        toast.info('Memulai sinkronisasi penuh dalam 12 batch...');
-        
-        for (let i = 1; i <= totalSurahs; i += batchSize) {
-          const end = Math.min(i + batchSize - 1, totalSurahs);
-          const { error } = await supabase.functions.invoke('sync-quran-data', {
-            body: { 
-              mode: 'full', 
-              start_surah: i, 
-              end_surah: end 
-            }
-          });
-          
-          if (error) {
-            console.error(`Error syncing batch ${i}-${end}:`, error);
-            toast.error(`Gagal pada batch ${i}-${end}: ${error.message}`);
-            // Continue with next batch instead of failing everything
-          } else {
-            completed += (end - i + 1);
-            // Optional: update progress UI if you have a progress state
-          }
-        }
-        toast.success('Sinkronisasi penuh selesai');
-      }
-
-      // Refresh data
-      refetchStats();
-      refetchLogs();
-      setSyncing(false);
-
+      await triggerSync.mutateAsync({ mode, surah_number: surahNumber });
+      await Promise.all([refetchStats(), refetchLogs()]);
     } catch (err: any) {
       console.error('Sync error:', err);
       toast.error('Gagal sinkronisasi: ' + err.message);
+    } finally {
       setSyncing(false);
     }
   };
