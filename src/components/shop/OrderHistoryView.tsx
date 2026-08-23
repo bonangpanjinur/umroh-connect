@@ -15,16 +15,14 @@ import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { toast } from '@/hooks/use-toast';
 
 const lookupSeller = async (productId: string) => {
-  const { data } = await supabase
-    .from('shop_products')
-    .select('seller_id, seller:seller_profiles!shop_products_seller_id_fkey(id, shop_name)')
-    .eq('id', productId)
-    .single();
-  return data?.seller as { id: string; shop_name: string } | null;
+  const product = await coreApi.getCommerceProduct(productId);
+  const sellerId = typeof product.seller_id === 'string' ? product.seller_id : null;
+  if (!sellerId) return null;
+  return { id: sellerId, shop_name: typeof product.shop_name === 'string' && product.shop_name ? product.shop_name : 'Seller' };
 };
 
 const statusLabels: Record<ShopOrderStatus, string> = {
@@ -61,12 +59,7 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const handleCancelOrder = async (orderId: string) => {
     setCancellingId(orderId);
     try {
-      const { error } = await supabase
-        .from('shop_orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId)
-        .eq('status', 'pending');
-      if (error) throw error;
+      await coreApi.updateCommerceOrderStatus(orderId, { status: 'cancelled' });
       toast({ title: 'Pesanan berhasil dibatalkan' });
       queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
     } catch (err: any) {
@@ -79,11 +72,7 @@ const OrderHistoryView = ({ onBack }: OrderHistoryViewProps) => {
   const handleConfirmDelivery = async (orderId: string) => {
     setConfirmingId(orderId);
     try {
-      const { error } = await supabase
-        .from('shop_orders')
-        .update({ status: 'delivered' })
-        .eq('id', orderId);
-      if (error) throw error;
+      await coreApi.updateCommerceOrderStatus(orderId, { status: 'delivered' });
       toast({ title: 'Pesanan dikonfirmasi diterima ✅' });
       queryClient.invalidateQueries({ queryKey: ['shop-orders'] });
     } catch (err: any) {
