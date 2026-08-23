@@ -27,7 +27,7 @@ import {
 import { usePlatformSettings } from '@/hooks/useAdminData';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -44,7 +44,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
   const [selectedPlan, setSelectedPlan] = useState('pro');
   const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentProofDocumentId, setPaymentProofDocumentId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
@@ -94,18 +94,13 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
 
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const fileName = `${user.id}/membership/${travelId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage
-        .from('private-uploads')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      // Store path (private bucket — read via signed URL)
-      setPaymentProofUrl(fileName);
+      const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowed.includes(file.type)) throw new Error('Gunakan JPG, PNG, atau PDF.');
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPrivateUserDocument({ purpose: 'membership_payment_proof', data, contentType: file.type as 'image/jpeg' | 'image/png' | 'application/pdf', filename: file.name });
+      const documentId = String(uploaded.id || '');
+      if (!documentId) throw new Error('Core tidak mengembalikan document ID');
+      setPaymentProofDocumentId(documentId);
       toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
       toast({
@@ -126,7 +121,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
     }
 
     // If using Manual Transfer
-    if (!paymentProofUrl) {
+    if (!paymentProofDocumentId) {
       toast({
         title: 'Bukti pembayaran diperlukan',
         description: 'Upload bukti pembayaran terlebih dahulu',
@@ -142,11 +137,11 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
       travelId,
       planType: selectedPlan,
       amount: plan.price,
-      paymentProofUrl,
+      paymentProofDocumentId,
     }, {
       onSuccess: () => {
         setShowUpgradeModal(false);
-        setPaymentProofUrl('');
+        setPaymentProofDocumentId('');
         setModalStep('plan');
       }
     });
@@ -158,30 +153,12 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
       const plan = MEMBERSHIP_PLANS.find(p => p.id === selectedPlan);
       if (!plan) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Anda harus login");
-
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          amount: plan.price,
-          description: `Upgrade Membership Agen ${plan.name}`,
-          type: "agent_membership",
-          metadata: {
-            user_id: user.id,
-            plan: selectedPlan,
-            travel_id: travelId
-          }
-        }
-      });
-
-      if (error) throw error;
-      if (data?.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else if (data?.redirect_url) {
-        window.location.href = data.redirect_url;
-      } else if (data?.invoice_url) {
-        window.location.href = data.invoice_url;
-      }
+      const gatewayProvider = provider === 'midtrans' || provider === 'xendit' ? provider : null;
+      if (!gatewayProvider) throw new Error('Provider payment gateway belum dikonfigurasi');
+      const intent = await coreApi.createManagementMembershipPaymentIntent(travelId, { plan_type: selectedPlan as 'pro' | 'premium', amount: plan.price, provider: gatewayProvider });
+      const paymentUrl = String(intent.payment_url || '');
+      if (!paymentUrl) throw new Error('Core tidak mengembalikan URL pembayaran');
+      window.location.href = paymentUrl;
     } catch (error: any) {
       toast({
         title: "Gagal memproses pembayaran otomatis",
@@ -549,12 +526,12 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
 
                   <div className="space-y-3">
                     <Label className="text-sm font-semibold">Upload Bukti Pembayaran</Label>
-                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border'}`}>
-                      {paymentProofUrl ? (
+                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofDocumentId ? 'border-green-500 bg-green-50' : 'border-border'}`}>
+                      {paymentProofDocumentId ? (
                         <div className="space-y-2">
                           <Check className="w-8 h-8 text-green-500 mx-auto" />
                           <p className="text-sm font-bold text-green-700">Bukti Terupload</p>
-                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofUrl('')}>Ganti</Button>
+                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofDocumentId('')}>Ganti</Button>
                         </div>
                       ) : (
                         <Label htmlFor="proof-upload-agent" className="cursor-pointer space-y-2 block">
@@ -566,7 +543,7 @@ export const AgentMembershipCard = ({ travelId }: AgentMembershipCardProps) => {
                     </div>
                   </div>
 
-                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitUpgrade} disabled={!paymentProofUrl || requestMembership.isPending || isUploading}>
+                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitUpgrade} disabled={!paymentProofDocumentId || requestMembership.isPending || isUploading}>
                     {requestMembership.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Crown className="w-5 h-5 mr-2" />}
                     Konfirmasi Pembayaran
                   </Button>

@@ -174,12 +174,12 @@ export const useRequestMembership = () => {
       travelId: string;
       planType: string;
       amount: number;
-      paymentProofUrl: string;
+      paymentProofDocumentId: string;
     }) => {
       return coreApi.requestManagementMembership(params.travelId, {
         plan_type: params.planType,
         amount: params.amount,
-        payment_proof_url: params.paymentProofUrl,
+        payment_proof_document_id: params.paymentProofDocumentId,
       });
     },
     onSuccess: () => {

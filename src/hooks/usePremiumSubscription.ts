@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { coreApi } from '@/lib/coreApi';
@@ -81,28 +80,14 @@ export const useCreateSubscription = () => {
   return useMutation({
     mutationFn: async (params: {
       planId: string;
-      paymentProofUrl: string;
-      paymentAmount: number;
+      paymentProofDocumentId?: string;
+      paymentProofUrl?: string;
+      paymentAmount?: number;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
-
-      const { data, error } = await (supabase as any)
-        .from('user_subscriptions')
-        .upsert({
-          user_id: user.id,
-          plan_id: params.planId,
-          status: 'pending',
-          payment_proof_url: params.paymentProofUrl,
-          payment_amount: params.paymentAmount,
-          payment_date: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const documentId = params.paymentProofDocumentId || (params.paymentProofUrl && /^[0-9a-f-]{36}$/i.test(params.paymentProofUrl) ? params.paymentProofUrl : '');
+      if (!documentId) throw new Error('Payment proof harus berupa private document ID dari Core.');
+      return coreApi.submitPremiumPaymentProof(params.planId, documentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-subscription'] });
@@ -128,33 +113,8 @@ export const useAllSubscriptions = () => {
   return useQuery({
     queryKey: ['all-subscriptions'],
     queryFn: async () => {
-      // Get subscriptions
-      const { data: subs, error } = await supabase
-        .from('user_subscriptions')
-        .select(`
-          *,
-          plan:subscription_plans(name, price_yearly)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (!subs || subs.length === 0) return [];
-
-      // Get profiles for these users
-      const userIds = subs.map(s => s.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email')
-        .in('user_id', userIds);
-
-      const profileMap = new Map(
-        (profiles || []).map(p => [p.user_id, p])
-      );
-
-      return subs.map(sub => ({
-        ...sub,
-        profile: profileMap.get(sub.user_id) || null,
-      }));
+      const rows = await coreApi.listPlatformAdminMemberships();
+      return (rows || []) as Array<Record<string, unknown>>;
     },
     enabled: isAdmin(),
   });
@@ -172,35 +132,7 @@ export const useVerifySubscription = () => {
       approved: boolean;
       adminNotes?: string;
     }) => {
-      if (!user?.id) throw new Error('Admin not authenticated');
-
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setFullYear(endDate.getFullYear() + 1); // 1 year subscription
-
-      const updateData = params.approved ? {
-        status: 'active',
-        verified_by: user.id,
-        verified_at: now.toISOString(),
-        start_date: now.toISOString(),
-        end_date: endDate.toISOString(),
-        admin_notes: params.adminNotes,
-      } : {
-        status: 'rejected',
-        verified_by: user.id,
-        verified_at: now.toISOString(),
-        admin_notes: params.adminNotes,
-      };
-
-      const { data, error } = await supabase
-        .from('user_subscriptions')
-        .update(updateData)
-        .eq('id', params.subscriptionId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return coreApi.updatePlatformMembership(params.subscriptionId, { status: params.approved ? 'active' : 'rejected', notes: params.adminNotes });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['all-subscriptions'] });
@@ -226,14 +158,8 @@ export const useSubscriptionPriceSetting = () => {
   return useQuery({
     queryKey: ['subscription-price-setting'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('*')
-        .eq('key', 'subscription_price_yearly')
-        .single();
-
-      if (error) throw error;
-      return data;
+      const settings = await coreApi.getPlatformAdminSettings() as Array<Record<string, unknown>>;
+      return (settings || []).find((setting) => setting.key === 'subscription_price_yearly') || null;
     },
   });
 };
@@ -245,21 +171,7 @@ export const useUpdateSubscriptionPrice = () => {
 
   return useMutation({
     mutationFn: async (newPrice: number) => {
-      // Update platform setting
-      const { error: settingError } = await supabase
-        .from('platform_settings')
-        .update({ value: newPrice.toString() })
-        .eq('key', 'subscription_price_yearly');
-
-      if (settingError) throw settingError;
-
-      // Also update the active plan
-      const { error: planError } = await supabase
-        .from('subscription_plans')
-        .update({ price_yearly: newPrice })
-        .eq('is_active', true);
-
-      if (planError) throw planError;
+      await coreApi.updatePlatformAdminSetting('subscription_price_yearly', newPrice);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription-price-setting'] });
