@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useTenantScope, tenantScopeKey } from '@/hooks/useTenantScope';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
 
@@ -30,20 +31,9 @@ export const useMyCancellationRequests = (bookingId?: string) => {
   const { user } = useAuthContext();
 
   return useQuery({
-    queryKey: ['cancellation-requests', 'user', user?.id, bookingId],
-    queryFn: async (): Promise<CancellationRequest[]> => {
-      if (!user?.id) return [];
-      let query = (supabase as any)
-        .from('booking_cancellation_requests')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (bookingId) query = query.eq('booking_id', bookingId);
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as CancellationRequest[];
-    },
-    enabled: !!user?.id,
+    queryKey: ['cancellation-requests', 'core', 'user', user?.id ?? null, bookingId ?? null],
+    queryFn: () => coreApi.listMyCancellationRequests(bookingId) as Promise<CancellationRequest[]>,
+    enabled: Boolean(user?.id),
   });
 };
 
@@ -61,10 +51,7 @@ export const useCreateCancellationRequest = () => {
       refund_estimate: number;
     }) => {
       if (!user?.id) throw new Error('Anda harus masuk terlebih dahulu.');
-      const { error } = await (supabase as any)
-        .from('booking_cancellation_requests')
-        .insert({ ...payload, user_id: user.id, status: 'pending' });
-      if (error) throw error;
+      await coreApi.createCancellationRequest(payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cancellation-requests'] });
@@ -86,19 +73,14 @@ export const useCreateCancellationRequest = () => {
 };
 
 export const useTravelCancellationRequests = (travelId?: string) => {
+  const { data: scope } = useTenantScope();
   return useQuery({
-    queryKey: ['cancellation-requests', 'travel', travelId],
+    queryKey: ['cancellation-requests', 'core', 'management', tenantScopeKey(scope), travelId ?? null],
     queryFn: async (): Promise<CancellationRequest[]> => {
       if (!travelId) return [];
-      const { data, error } = await (supabase as any)
-        .from('booking_cancellation_requests')
-        .select('*, booking:bookings(booking_code, contact_name, total_price, paid_amount, status)')
-        .eq('travel_id', travelId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as CancellationRequest[];
+      return coreApi.listManagementCancellationRequests() as Promise<CancellationRequest[]>;
     },
-    enabled: !!travelId,
+    enabled: Boolean(travelId && scope?.tenant_id),
   });
 };
 
@@ -116,11 +98,7 @@ export const useReviewCancellationRequest = () => {
       status: 'approved' | 'rejected';
       travel_note?: string;
     }) => {
-      const { error } = await (supabase as any)
-        .from('booking_cancellation_requests')
-        .update({ status, travel_note: travel_note || null })
-        .eq('id', id);
-      if (error) throw error;
+      await coreApi.reviewCancellationRequest(id, { status, travel_note: travel_note || null });
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cancellation-requests'] });

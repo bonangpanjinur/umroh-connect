@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { coreApi } from '@/lib/coreApi';
 
 interface NotificationState {
   isSupported: boolean;
@@ -127,27 +128,9 @@ export const useNotifications = () => {
         applicationServerKey: vapidPublicKey
       });
 
-      // Send subscription to backend (Supabase)
-      const { supabase } = await import('@/integrations/supabase/client');
-      
       const subJson = subscription.toJSON();
-      if (!subJson.endpoint || !subJson.keys?.p256dh || !subJson.keys?.auth) {
-        throw new Error('Invalid subscription object');
-      }
-
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert({
-          user_id: userId,
-          endpoint: subJson.endpoint,
-          p256dh: subJson.keys.p256dh,
-          auth: subJson.keys.auth,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'endpoint'
-        });
-
-      if (error) throw error;
+      if (!subJson.endpoint || !subJson.keys?.p256dh || !subJson.keys?.auth) throw new Error('Invalid subscription object');
+      await coreApi.savePushSubscription({ endpoint: subJson.endpoint, p256dh: subJson.keys.p256dh, auth: subJson.keys.auth });
       
       return true;
     } catch (error) {
