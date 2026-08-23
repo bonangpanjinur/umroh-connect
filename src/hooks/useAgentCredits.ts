@@ -35,17 +35,17 @@ export const usePurchaseCredits = () => {
       travelId, 
       credits, 
       amount, 
-      proofUrl 
+      proofDocumentId
     }: { 
       travelId: string; 
       credits: number; 
       amount: number; 
-      proofUrl: string;
+      proofDocumentId: string;
     }) => {
       await coreApi.requestCreditPurchase(travelId, {
         credits,
         amount,
-        proof_url: proofUrl,
+        proof_document_id: proofDocumentId,
         notes: `Pembelian ${credits} kredit seharga Rp ${amount.toLocaleString('id-ID')}`,
       });
     },

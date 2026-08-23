@@ -27,7 +27,7 @@ import {
 import { usePlatformSettings } from '@/hooks/useAdminData';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 
@@ -56,7 +56,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
   const [selectedPackage, setSelectedPackage] = useState('medium');
   const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentProofDocumentId, setPaymentProofDocumentId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessingGateway, setIsProcessingGateway] = useState(false);
 
@@ -100,28 +100,26 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
   const handleUploadProof = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowed.includes(file.type)) {
+      toast({ title: 'Format tidak didukung', description: 'Gunakan JPG, PNG, atau PDF.', variant: 'destructive' });
+      return;
+    }
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const fileName = `${user.id}/credits/${travelId}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage
-        .from('private-uploads')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      // Store path (private bucket — read via signed URL)
-      setPaymentProofUrl(fileName);
+      const data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('File tidak dapat dibaca'));
+        reader.readAsDataURL(file);
+      });
+      const uploaded = await coreApi.uploadPrivateUserDocument({ purpose: 'credit_payment_proof', data, contentType: file.type as 'image/jpeg' | 'image/png' | 'application/pdf', filename: file.name });
+      const documentId = String(uploaded.id || '');
+      if (!documentId) throw new Error('Core tidak mengembalikan document ID');
+      setPaymentProofDocumentId(documentId);
       toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
-      toast({
-        title: 'Gagal upload',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Gagal upload', description: error.message, variant: 'destructive' });
     } finally {
       setIsUploading(false);
     }
@@ -133,7 +131,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       return;
     }
 
-    if (!paymentProofUrl) {
+    if (!paymentProofDocumentId) {
       toast({
         title: 'Bukti pembayaran diperlukan',
         description: 'Upload bukti pembayaran terlebih dahulu',
@@ -149,11 +147,11 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       travelId,
       credits: pkg.credits,
       amount: creditPrices[selectedPackage],
-      proofUrl: paymentProofUrl,
+      proofDocumentId: paymentProofDocumentId,
     }, {
       onSuccess: () => {
         setShowPurchaseModal(false);
-        setPaymentProofUrl('');
+        setPaymentProofDocumentId('');
         setModalStep('package');
       }
     });
@@ -165,31 +163,12 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
       const pkg = creditPackages.find(p => p.id === selectedPackage);
       if (!pkg) return;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Anda harus login");
-
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          amount: creditPrices[selectedPackage],
-          description: `Pembelian ${pkg.credits} Kredit Broadcast`,
-          type: "agent_credits",
-          metadata: {
-            user_id: user.id,
-            credits: pkg.credits,
-            package_id: selectedPackage,
-            travel_id: travelId
-          }
-        }
-      });
-
-      if (error) throw error;
-      if (data?.paymentUrl) {
-        window.location.href = data.paymentUrl;
-      } else if (data?.redirect_url) {
-        window.location.href = data.redirect_url;
-      } else if (data?.invoice_url) {
-        window.location.href = data.invoice_url;
-      }
+      const gatewayProvider = provider === 'xendit' || provider === 'midtrans' ? provider : null;
+      if (!gatewayProvider) throw new Error('Provider payment gateway belum dikonfigurasi');
+      const intent = await coreApi.createCreditPaymentIntent(travelId, { credits: pkg.credits, amount: creditPrices[selectedPackage], provider: gatewayProvider });
+      const paymentUrl = String(intent.payment_url || '');
+      if (!paymentUrl) throw new Error('Core tidak mengembalikan URL pembayaran');
+      window.location.href = paymentUrl;
     } catch (error: any) {
       toast({
         title: "Gagal memproses pembayaran otomatis",
@@ -428,12 +407,12 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
 
                   <div className="space-y-3">
                     <Label className="text-sm font-semibold">Upload Bukti Pembayaran</Label>
-                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border'}`}>
-                      {paymentProofUrl ? (
+                    <div className={`border-2 border-dashed rounded-xl p-6 text-center ${paymentProofDocumentId ? 'border-green-500 bg-green-50' : 'border-border'}`}>
+                      {paymentProofDocumentId ? (
                         <div className="space-y-2">
                           <Check className="w-8 h-8 text-green-500 mx-auto" />
                           <p className="text-sm font-bold text-green-700">Bukti Terupload</p>
-                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofUrl('')}>Ganti</Button>
+                          <Button variant="ghost" size="sm" onClick={() => setPaymentProofDocumentId('')}>Ganti</Button>
                         </div>
                       ) : (
                         <Label htmlFor="proof-upload-credits" className="cursor-pointer space-y-2 block">
@@ -445,7 +424,7 @@ export const AgentCreditsManager = ({ travelId }: AgentCreditsManagerProps) => {
                     </div>
                   </div>
 
-                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitPurchase} disabled={!paymentProofUrl || purchaseCredits.isPending || isUploading}>
+                  <Button className="w-full py-6 text-base font-bold" onClick={handleSubmitPurchase} disabled={!paymentProofDocumentId || purchaseCredits.isPending || isUploading}>
                     {purchaseCredits.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Zap className="w-5 h-5 mr-2" />}
                     Konfirmasi Pembayaran
                   </Button>
