@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -93,20 +93,16 @@ const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-packing-list', {
-        body: {
-          departureDate,
-          returnDate,
-          gender,
-          duration,
-        },
+      const data = await coreApi.generatePackingList({
+        departureDate,
+        returnDate,
+        gender,
+        duration,
       });
 
-      if (error) throw error;
-
       if (data.success) {
-        setPackingList(data.packing_list);
-        setWeather(data.weather);
+        setPackingList(data.packing_list as unknown as PackingList);
+        setWeather(data.weather as WeatherData | null);
         // Expand all categories by default
         setExpandedCategories(new Set(data.packing_list.categories.map((c: PackingCategory) => c.name)));
         setStep('result');

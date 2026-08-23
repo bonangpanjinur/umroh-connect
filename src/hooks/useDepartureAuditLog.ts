@@ -1,55 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
-
-export interface DepartureAuditEntry {
-  id: string;
-  departure_id: string;
-  package_id: string;
-  travel_id: string;
-  change_type: 'created' | 'status' | 'seats' | 'price' | 'mixed';
-  old_status: string | null;
-  new_status: string | null;
-  old_total_seats: number | null;
-  new_total_seats: number | null;
-  old_available_seats: number | null;
-  new_available_seats: number | null;
-  old_price: number | null;
-  new_price: number | null;
-  changed_by: string | null;
-  note: string | null;
-  created_at: string;
-}
-
-export const usePackageAuditLog = (packageId: string | undefined, limit = 100) => {
-  return useQuery({
-    queryKey: ['departure-audit', packageId, limit],
-    queryFn: async (): Promise<DepartureAuditEntry[]> => {
-      if (!packageId) return [];
-      const { data, error } = await supabase
-        .from('departure_audit_log')
-        .select('*')
-        .eq('package_id', packageId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      if (error) throw error;
-      return (data || []) as DepartureAuditEntry[];
-    },
-    enabled: !!packageId,
-  });
-};
-
-export const useAuditLogCount = (packageId: string | undefined) => {
-  return useQuery({
-    queryKey: ['departure-audit-count', packageId],
-    queryFn: async (): Promise<number> => {
-      if (!packageId) return 0;
-      const { count, error } = await supabase
-        .from('departure_audit_log')
-        .select('id', { count: 'exact', head: true })
-        .eq('package_id', packageId);
-      if (error) throw error;
-      return count || 0;
-    },
-    enabled: !!packageId,
-  });
-};
+import { coreApi } from '@/lib/coreApi';
+import { useTenantScope } from './useTenantScope';
+export interface DepartureAuditEntry { id:string; departure_id:string; package_id:string; travel_id:string; change_type:'created'|'status'|'seats'|'price'|'mixed'; old_status:string|null; new_status:string|null; old_total_seats:number|null; new_total_seats:number|null; old_available_seats:number|null; new_available_seats:number|null; old_price:number|null; new_price:number|null; changed_by:string|null; note:string|null; created_at:string; }
+export const usePackageAuditLog=(packageId:string|undefined,limit=100)=>{const scope=useTenantScope();return useQuery({queryKey:['departure-audit','core',scope.tenantId,scope.branchId,packageId,limit],queryFn:()=>coreApi.getDepartureAudit(packageId!,limit) as Promise<DepartureAuditEntry[]>,enabled:Boolean(packageId&&scope.tenantId&&scope.branchId)});};
+export const useAuditLogCount=(packageId:string|undefined)=>{const scope=useTenantScope();return useQuery({queryKey:['departure-audit-count','core',scope.tenantId,scope.branchId,packageId],queryFn:()=>coreApi.getDepartureAuditCount(packageId!),enabled:Boolean(packageId&&scope.tenantId&&scope.branchId)});};
