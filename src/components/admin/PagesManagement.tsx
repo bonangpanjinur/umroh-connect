@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { coreApi } from '@/lib/coreApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -94,21 +94,11 @@ export const PagesManagement = () => {
   const fetchPages = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('static_pages' as any)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching pages:', error);
-        toast.error('Gagal memuat halaman');
-        setPages([]);
-        return;
-      }
-
+      const data = await coreApi.listPlatformPages({ q: searchQuery });
       setPages((data || []) as unknown as Page[]);
     } catch (err) {
       console.error('Error:', err);
+      toast.error('Gagal memuat halaman');
       setPages([]);
     } finally {
       setIsLoading(false);
@@ -204,24 +194,9 @@ export const PagesManagement = () => {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `pages/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({
-        ...prev,
-        image_url: data.publicUrl,
-      }));
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPublicAsset({ data, contentType: file.type, filename: file.name, bucket: 'content-pages' });
+      setFormData(prev => ({ ...prev, image_url: uploaded.publicUrl || uploaded.url }));
       toast.success('Gambar berhasil diunggah');
     } catch (error: any) {
       console.error('Error uploading image:', error);
@@ -233,16 +208,13 @@ export const PagesManagement = () => {
 
   const checkSlugUniqueness = async (slug: string, id?: string) => {
     if (!slug) return true;
-    const { data, error } = await supabase
-      .from('static_pages')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle();
-    
-    if (error) return true;
-    const pageData = data as { id: string } | null;
-    if (pageData && pageData.id !== id) return false;
-    return true;
+    try {
+      const pages = await coreApi.listPlatformPages({ q: slug });
+      const pageData = (pages || []).find((page) => page.slug === slug) as { id?: string } | undefined;
+      return !pageData || pageData.id === id;
+    } catch {
+      return false;
+    }
   };
 
   const validateSlug = (slug: string) => {
@@ -319,36 +291,10 @@ ${jsContent}
       };
 
       if (editingPage) {
-        const { error } = await supabase
-          .from('static_pages' as any)
-          .update(pageData)
-          .eq('id', editingPage.id);
-
-        if (error) throw error;
-        
-        // Phase 6: Versioning & Recovery
-        // Save a snapshot to page_versions table
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          await supabase.from('page_versions' as any).insert([{
-            page_id: editingPage.id,
-            content: finalContent,
-            layout_data: layoutData,
-            design_data: designSettings,
-            version_name: `Versi ${new Date().toLocaleString('id-ID')}`,
-            created_by: userData.user?.id
-          }]);
-        } catch (vError) {
-          console.warn('Failed to save version snapshot:', vError);
-        }
-        
+        await coreApi.updatePlatformPage(editingPage.id, pageData);
         toast.success('Halaman berhasil diperbarui');
       } else {
-        const { error } = await supabase
-          .from('static_pages' as any)
-          .insert([pageData]);
-
-        if (error) throw error;
+        await coreApi.createPlatformPage(pageData);
         toast.success('Halaman berhasil dibuat');
       }
 
@@ -365,12 +311,7 @@ ${jsContent}
     if (!confirm('Apakah Anda yakin ingin menghapus halaman ini?')) return;
 
     try {
-      const { error } = await supabase
-        .from('static_pages' as any)
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await coreApi.deletePlatformPage(id);
       toast.success('Halaman berhasil dihapus');
       fetchPages();
     } catch (error: any) {
@@ -381,12 +322,7 @@ ${jsContent}
 
   const toggleActive = async (page: Page) => {
     try {
-      const { error } = await supabase
-        .from('static_pages' as any)
-        .update({ is_active: !page.is_active })
-        .eq('id', page.id);
-
-      if (error) throw error;
+      await coreApi.togglePlatformPage(page.id, !page.is_active);
       toast.success(page.is_active ? 'Halaman dinonaktifkan' : 'Halaman diaktifkan');
       fetchPages();
     } catch (error: any) {
