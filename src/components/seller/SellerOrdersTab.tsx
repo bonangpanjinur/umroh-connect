@@ -37,9 +37,12 @@ const STATUS_TABS = ['all', 'paid', 'processing', 'shipped', 'delivered'] as con
 interface SellerOrdersTabProps {
   items: SellerOrderItem[];
   isLoading: boolean;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
-const SellerOrdersTab = ({ items, isLoading }: SellerOrdersTabProps) => {
+const SellerOrdersTab = ({ items, isLoading, hasNextPage = false, isFetchingNextPage = false, onLoadMore }: SellerOrdersTabProps) => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [actionOrder, setActionOrder] = useState<SellerOrderItem | null>(null);
   const [detailOrder, setDetailOrder] = useState<SellerOrderItem | null>(null);
@@ -134,6 +137,14 @@ const SellerOrdersTab = ({ items, isLoading }: SellerOrdersTabProps) => {
           </Card>
         );
       })}
+
+      {hasNextPage && onLoadMore && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" size="sm" onClick={onLoadMore} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? 'Memuat...' : 'Muat pesanan berikutnya'}
+          </Button>
+        </div>
+      )}
 
       {/* Action dialog */}
       {actionOrder && actionOrder.order && (

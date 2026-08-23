@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { coreApi } from '@/lib/coreApi';
 
 export interface SellerOrderItem {
@@ -66,19 +66,29 @@ function mapOrderItem(order: Record<string, unknown>, item: Record<string, unkno
   };
 }
 
-export const useSellerOrders = (sellerId: string | undefined) => useQuery({
+type SellerOrderPage = { items: SellerOrderItem[]; nextCursor: string | null; hasMore: boolean };
+
+export const useSellerOrders = (sellerId: string | undefined) => useInfiniteQuery({
   queryKey: ['seller-orders', sellerId || null],
-  queryFn: async (): Promise<SellerOrderItem[]> => {
-    if (!sellerId) return [];
-    const orders = await coreApi.listCommerceOrders({ scope: 'seller', page: 1, limit: 100 });
-    return orders.flatMap((order) => (Array.isArray(order.items) ? order.items : []).map((item) => mapOrderItem(order, item as Record<string, unknown>)));
+  queryFn: async ({ pageParam }): Promise<SellerOrderPage> => {
+    if (!sellerId) return { items: [], nextCursor: null, hasMore: false };
+    const page = await coreApi.listCommerceOrdersPage({ scope: 'seller', cursor: pageParam, limit: 25 });
+    return {
+      items: page.data.flatMap((order) => (Array.isArray(order.items) ? order.items : []).map((item) => mapOrderItem(order, item as Record<string, unknown>))),
+      nextCursor: page.meta.next_cursor,
+      hasMore: page.meta.has_more,
+    };
   },
+  initialPageParam: null as string | null,
+  getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   enabled: !!sellerId,
   staleTime: 30 * 1000,
 });
 
 export const useSellerStats = (sellerId: string | undefined) => {
-  const { data: orderItems = [], isLoading } = useSellerOrders(sellerId);
+  const ordersQuery = useSellerOrders(sellerId);
+  const orderItems = ordersQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const isLoading = ordersQuery.isLoading;
   const paidItems = orderItems.filter((item) => item.order && ['paid', 'processing', 'shipped', 'delivered'].includes(item.order.status));
   const totalRevenue = paidItems.reduce((sum, item) => sum + item.subtotal, 0);
   const totalOrders = new Set(paidItems.map((item) => item.order_id)).size;
@@ -91,5 +101,5 @@ export const useSellerStats = (sellerId: string | undefined) => {
     productMap.set(item.product_name, existing);
   });
   const topProducts = Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  return { isLoading, stats: { totalRevenue, totalOrders, totalItemsSold, topProducts } as SellerStats, allItems: orderItems };
+  return { isLoading, stats: { totalRevenue, totalOrders, totalItemsSold, topProducts } as SellerStats, allItems: orderItems, hasNextPage: ordersQuery.hasNextPage, isFetchingNextPage: ordersQuery.isFetchingNextPage, fetchNextPage: ordersQuery.fetchNextPage };
 };

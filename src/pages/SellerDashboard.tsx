@@ -31,7 +31,7 @@ const SellerDashboard = () => {
   const { data: products = [], isLoading: loadingProducts } = useSellerProducts(sellerProfile?.id);
   const { maxProducts, currentPlan } = useSellerPlanLimits(sellerProfile?.id);
   const deleteMutation = useDeleteSellerProduct();
-  const { stats, allItems: orderItems, isLoading: loadingStats } = useSellerStats(sellerProfile?.id);
+  const { stats, allItems: orderItems, isLoading: loadingStats, hasNextPage, isFetchingNextPage, fetchNextPage } = useSellerStats(sellerProfile?.id);
   const [activeTab, setActiveTab] = useState('products');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ShopProduct | null>(null);
@@ -285,7 +285,7 @@ const SellerDashboard = () => {
           </TabsContent>
 
           <TabsContent value="orders">
-            <SellerOrdersTab items={orderItems} isLoading={loadingStats} />
+            <SellerOrdersTab items={orderItems} isLoading={loadingStats} hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} onLoadMore={() => { void fetchNextPage(); }} />
           </TabsContent>
 
           <TabsContent value="chat">

@@ -18,7 +18,7 @@ export class CoreApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit, authenticated = false): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, authenticated = false, envelope = false): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const requestId = crypto.randomUUID();
@@ -52,7 +52,7 @@ async function request<T>(path: string, init?: RequestInit, authenticated = fals
         requestId: error?.request_id || response.headers.get('x-request-id') || requestId,
       });
     }
-    return body?.data as T;
+    return (envelope ? body : body?.data) as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new CoreApiError('Core API timeout', { status: 408, requestId });
@@ -175,6 +175,7 @@ export const coreApi = {
   async createCommerceCategory(input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>('/commerce/categories', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async updateCommerceCategory(categoryId: string, input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>(`/commerce/categories/${encodeURIComponent(categoryId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async listCommerceOrders(params?: { scope?: 'buyer' | 'seller'; page?: number; limit?: number }) { const search = new URLSearchParams(); if (params?.scope) search.set('scope', params.scope); if (params?.page) search.set('page', String(params.page)); if (params?.limit) search.set('limit', String(params.limit)); return request<Array<Record<string, unknown>>>(`/commerce/orders${search.toString() ? `?${search}` : ''}`, undefined, true); },
+  async listCommerceOrdersPage(params?: { scope?: 'buyer' | 'seller'; cursor?: string | null; limit?: number }) { const search = new URLSearchParams(); if (params?.scope) search.set('scope', params.scope); if (params?.cursor) search.set('cursor', params.cursor); if (params?.limit) search.set('limit', String(params.limit)); return request<{ data: Array<Record<string, unknown>>; meta: { next_cursor: string | null; has_more: boolean; limit: number } }>(`/commerce/orders?${search}`, undefined, true, true); },
   async getCommerceOrder(orderId: string) { return request<Record<string, unknown>>(`/commerce/orders/${encodeURIComponent(orderId)}`, undefined, true); },
   async createCommerceOrder(input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>('/commerce/orders', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
   async updateCommerceOrderStatus(orderId: string, input: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) { return request<Record<string, unknown>>(`/commerce/orders/${encodeURIComponent(orderId)}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(input) }, true); },
