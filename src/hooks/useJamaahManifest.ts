@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export type ManifestApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -39,17 +40,18 @@ export const REQUIRED_MANIFEST_FIELDS: { key: keyof EditableManifestFields; labe
   { key: 'phone', label: 'Nomor telepon' },
 ];
 
-export const useMyManifest = (bookingId?: string) => useQuery({
-  queryKey: ['jamaah-manifest', bookingId],
+export const useMyManifest = (bookingId?: string) => { const { user } = useAuthContext(); return useQuery({
+  queryKey: ['jamaah-manifest', user?.id, bookingId],
   queryFn: async (): Promise<JamaahManifestEntry[]> => {
     if (!bookingId) return [];
     return (await coreApi.getMyBookingManifest(bookingId)) as JamaahManifestEntry[];
   },
-  enabled: !!bookingId,
-});
+  enabled: !!bookingId && !!user?.id,
+}); };
 
 export const useUpdateMyManifest = (bookingId?: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuthContext();
   const { toast } = useToast();
   return useMutation({
     mutationFn: async ({ id, values, resetRejection }: { id: string; values: Partial<EditableManifestFields>; resetRejection?: boolean }) => {
@@ -57,7 +59,7 @@ export const useUpdateMyManifest = (bookingId?: string) => {
       return coreApi.updateMyBookingManifest(bookingId, id, { ...values, ...(resetRejection ? { approval_status: 'pending' } : {}) });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jamaah-manifest', bookingId] });
+      queryClient.invalidateQueries({ queryKey: ['jamaah-manifest', user?.id, bookingId] });
       toast({ title: 'Data tersimpan', description: 'Data keberangkatan Anda telah diperbarui.' });
     },
     onError: (error: any) => toast({ title: 'Gagal menyimpan', description: error?.message || 'Terjadi kesalahan saat menyimpan data.', variant: 'destructive' }),

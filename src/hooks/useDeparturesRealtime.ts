@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { coreApi } from '@/lib/coreApi';
+import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
 /**
  * Core is the source of truth for departures. Supabase postgres_changes is not
@@ -9,6 +10,8 @@ import { coreApi } from '@/lib/coreApi';
  */
 export const useDeparturesRealtime = (packageId: string | undefined) => {
   const queryClient = useQueryClient();
+  const { data: scope } = useTenantScope();
+  const scopeKey = tenantScopeKey(scope);
 
   useEffect(() => {
     if (!packageId) return;
@@ -17,8 +20,8 @@ export const useDeparturesRealtime = (packageId: string | undefined) => {
       try {
         await coreApi.listManagementPackageDepartures(packageId);
         if (!disposed) {
-          await queryClient.invalidateQueries({ queryKey: ['package-departures', packageId] });
-          await queryClient.invalidateQueries({ queryKey: ['packages'] });
+          await queryClient.invalidateQueries({ queryKey: ['package-departures', scopeKey, packageId] });
+          await queryClient.invalidateQueries({ queryKey: ['agent-packages', scopeKey] });
         }
       } catch {
         // The owning query remains responsible for presenting the API error.
@@ -29,5 +32,5 @@ export const useDeparturesRealtime = (packageId: string | undefined) => {
       disposed = true;
       window.clearInterval(interval);
     };
-  }, [packageId, queryClient]);
+  }, [packageId, queryClient, scopeKey]);
 };

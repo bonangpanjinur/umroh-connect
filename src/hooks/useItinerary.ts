@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
 export interface ItineraryDay {
   id: string;
@@ -13,8 +14,10 @@ export interface ItineraryDay {
 }
 
 export const useDepartureItinerary = (departureId?: string | null) => {
+  const { data: scope } = useTenantScope();
+  const scopeKey = tenantScopeKey(scope);
   return useQuery({
-    queryKey: ['departure-itinerary', departureId],
+    queryKey: ['departure-itinerary', scopeKey, departureId],
     queryFn: async (): Promise<ItineraryDay[]> => {
       if (!departureId) return [];
       const { data, error } = await (supabase as any)
@@ -25,13 +28,15 @@ export const useDepartureItinerary = (departureId?: string | null) => {
       if (error) throw error;
       return (data || []) as ItineraryDay[];
     },
-    enabled: !!departureId,
+    enabled: !!departureId && !!scope?.tenant_id,
   });
 };
 
 export const useSaveItineraryDay = (departureId?: string | null) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: scope } = useTenantScope();
+  const scopeKey = tenantScopeKey(scope);
 
   return useMutation({
     mutationFn: async (day: {
@@ -66,7 +71,7 @@ export const useSaveItineraryDay = (departureId?: string | null) => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departure-itinerary', departureId] });
+      queryClient.invalidateQueries({ queryKey: ['departure-itinerary', scopeKey, departureId] });
       toast({ title: 'Itinerary tersimpan' });
     },
     onError: (error: any) => {
@@ -78,6 +83,8 @@ export const useSaveItineraryDay = (departureId?: string | null) => {
 export const useDeleteItineraryDay = (departureId?: string | null) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: scope } = useTenantScope();
+  const scopeKey = tenantScopeKey(scope);
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -88,7 +95,7 @@ export const useDeleteItineraryDay = (departureId?: string | null) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['departure-itinerary', departureId] });
+      queryClient.invalidateQueries({ queryKey: ['departure-itinerary', scopeKey, departureId] });
       toast({ title: 'Hari dihapus dari itinerary' });
     },
     onError: (error: any) => {

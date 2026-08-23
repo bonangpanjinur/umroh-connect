@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -132,21 +133,9 @@ export const ManasikManagement = () => {
     setIsUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `manasik-${Date.now()}.${fileExt}`;
-      const filePath = `doa/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('prayer-audio')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('prayer-audio')
-        .getPublicUrl(filePath);
-
-      setFormData({ ...formData, audio_url: urlData.publicUrl });
+      const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File audio tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPublicAsset({ data: dataUrl, contentType: file.type, filename: file.name, bucket: 'manasik-audio' });
+      setFormData({ ...formData, audio_url: uploaded.publicUrl || uploaded.url });
       toast.success('Audio berhasil diupload');
     } catch (error) {
       console.error('Upload error:', error);

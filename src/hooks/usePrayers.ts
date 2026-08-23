@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 
 export interface PrayerCategory {
@@ -292,20 +293,10 @@ export const useUploadPrayerAudio = () => {
 
   return useMutation({
     mutationFn: async ({ file, prayerId }: { file: File; prayerId: string }) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${prayerId}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('prayer-audio')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('prayer-audio')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
+      if (!file.type.startsWith('audio/')) throw new Error('Hanya file audio yang diperbolehkan');
+      const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File audio tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPublicAsset({ data: dataUrl, contentType: file.type, filename: file.name, bucket: 'prayer-audio' });
+      return uploaded.publicUrl || uploaded.url;
     },
     onError: (error) => {
       toast({ title: 'Gagal upload audio', description: error.message, variant: 'destructive' });
