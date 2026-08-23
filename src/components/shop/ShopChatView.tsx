@@ -6,11 +6,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useShopChat, ShopChatMessage } from '@/hooks/useShopChat';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Send, MessageSquare, Check, CheckCheck, Loader2, ArrowLeft, Image as ImageIcon, Paperclip, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { coreApi } from '@/lib/coreApi';
 
 interface ShopChatViewProps {
   sellerId: string;
@@ -76,22 +76,9 @@ const ShopChatView = ({ sellerId, sellerName, orderId, senderRole, onBack }: Sho
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const uploadFile = async (file: File): Promise<{ url: string; type: string }> => {
-    const ext = file.name.split('.').pop();
-    const filePath = `chat/${sellerId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from('shop-images')
-      .upload(filePath, file, { contentType: file.type });
-
-    if (error) throw error;
-
-    const { data: urlData } = supabase.storage
-      .from('shop-images')
-      .getPublicUrl(filePath);
-
-    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
-    return { url: urlData.publicUrl, type: isImage ? 'image' : 'file' };
+  const uploadFile = async (file: File): Promise<{ key: string; type: 'image' | 'file' }> => {
+    const result = await coreApi.uploadCommerceChatAttachmentPresigned(orderId!, file);
+    return { key: result.object_key, type: result.attachment_type };
   };
 
   const handleSend = async () => {
@@ -99,19 +86,20 @@ const ShopChatView = ({ sellerId, sellerName, orderId, senderRole, onBack }: Sho
 
     try {
       setIsUploading(!!selectedFile);
-      let attachmentUrl: string | undefined;
-      let attachmentType: string | undefined;
+      let attachmentKey: string | undefined;
+      let attachmentType: 'image' | 'file' | undefined;
 
       if (selectedFile) {
+        if (!orderId) throw new Error('Lampiran hanya tersedia pada chat pesanan.');
         const result = await uploadFile(selectedFile);
-        attachmentUrl = result.url;
+        attachmentKey = result.key;
         attachmentType = result.type;
       }
 
       await sendMessage.mutateAsync({
         message: newMessage.trim() || (attachmentType === 'image' ? '📷 Gambar' : '📎 File'),
         senderRole,
-        attachmentUrl,
+        attachmentKey,
         attachmentType,
       });
 
