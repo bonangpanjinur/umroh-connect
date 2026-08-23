@@ -1,88 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { coreApi } from '@/lib/coreApi';
+import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
-export type ManifestAuditAction =
-  | 'created'
-  | 'updated'
-  | 'approved'
-  | 'rejected'
-  | 'reset_pending'
-  | 'deleted';
-
-export interface ManifestAuditEntry {
-  id: string;
-  pilgrim_id: string | null;
-  departure_id: string | null;
-  travel_id: string;
-  booking_id: string | null;
-  pilgrim_name: string | null;
-  action: ManifestAuditAction;
-  old_approval_status: string | null;
-  new_approval_status: string | null;
-  rejection_reason: string | null;
-  changed_fields: string[] | null;
-  old_values: Record<string, unknown> | null;
-  new_values: Record<string, unknown> | null;
-  changed_by: string | null;
-  created_at: string;
-}
-
-export const MANIFEST_AUDIT_LABEL: Record<ManifestAuditAction, string> = {
-  created: 'Ditambahkan',
-  updated: 'Data diubah',
-  approved: 'Disetujui',
-  rejected: 'Ditolak',
-  reset_pending: 'Dikembalikan ke menunggu',
-  deleted: 'Dihapus',
-};
-
-export const MANIFEST_FIELD_LABEL: Record<string, string> = {
-  full_name: 'Nama lengkap',
-  gender: 'Jenis kelamin',
-  birth_date: 'Tanggal lahir',
-  nik: 'NIK',
-  passport_number: 'No. paspor',
-  passport_expiry: 'Masa berlaku paspor',
-  phone: 'No. HP',
-  mahram_name: 'Mahram',
-  room_type: 'Tipe kamar',
-  room_number: 'Nomor kamar',
-  bus_number: 'Nomor bus',
-  notes: 'Catatan',
-};
-
-export const useManifestAuditLog = (departureId: string | undefined, limit = 100) => {
-  return useQuery({
-    queryKey: ['manifest-audit', departureId, limit],
-    queryFn: async (): Promise<ManifestAuditEntry[]> => {
-      if (!departureId) return [];
-      const response = await coreApi.listManagementManifestAudit({ departureId, limit, offset: 0 });
-      return (response?.data || []) as unknown as ManifestAuditEntry[];
-    },
-    enabled: !!departureId,
-  });
-};
-
-export const useManifestAuditCount = (departureId: string | undefined) => {
-  return useQuery({
-    queryKey: ['manifest-audit-count', departureId],
-    queryFn: async (): Promise<number> => {
-      if (!departureId) return 0;
-      const response = await coreApi.listManagementManifestAudit({ departureId, limit: 1, offset: 0 });
-      return Number(response?.meta?.total || 0);
-    },
-    enabled: !!departureId,
-  });
-};
-
-export const useAuditActorNames = (userIds: string[]) => {
-  const unique = Array.from(new Set(userIds.filter(Boolean)));
-  return useQuery({
-    queryKey: ['audit-actor-names', unique.sort().join(',')],
-    queryFn: async (): Promise<Record<string, string>> => {
-      if (unique.length === 0) return {};
-      return Object.fromEntries(unique.map((id) => [id, 'Pengguna']));
-    },
-    enabled: unique.length > 0,
-  });
-};
+export type ManifestAuditAction = 'created' | 'updated' | 'approved' | 'rejected' | 'reset_pending' | 'deleted';
+export interface ManifestAuditEntry { id: string; pilgrim_id: string | null; departure_id: string | null; travel_id: string; booking_id: string | null; pilgrim_name: string | null; action: ManifestAuditAction; old_approval_status: string | null; new_approval_status: string | null; rejection_reason: string | null; changed_fields: string[] | null; old_values: Record<string, unknown> | null; new_values: Record<string, unknown> | null; changed_by: string | null; created_at: string; }
+export const MANIFEST_AUDIT_LABEL: Record<ManifestAuditAction, string> = { created: 'Ditambahkan', updated: 'Data diubah', approved: 'Disetujui', rejected: 'Ditolak', reset_pending: 'Dikembalikan ke menunggu', deleted: 'Dihapus' };
+export const MANIFEST_FIELD_LABEL: Record<string, string> = { full_name: 'Nama lengkap', gender: 'Jenis kelamin', birth_date: 'Tanggal lahir', nik: 'NIK', passport_number: 'No. paspor', passport_expiry: 'Masa berlaku paspor', phone: 'No. HP', mahram_name: 'Mahram', room_type: 'Tipe kamar', room_number: 'Nomor kamar', bus_number: 'Nomor bus', notes: 'Catatan' };
+export const useManifestAuditLog = (departureId: string | undefined, limit = 100) => { const { data: scope } = useTenantScope(); const scopeKey = tenantScopeKey(scope); return useQuery({ queryKey: ['manifest-audit', 'core', scopeKey, departureId, limit], queryFn: async (): Promise<ManifestAuditEntry[]> => { if (!departureId) return []; const response = await coreApi.listManagementManifestAudit({ departureId, limit, offset: 0 }); return (response?.data || []) as unknown as ManifestAuditEntry[]; }, enabled: Boolean(departureId && scope?.tenant_id) }); };
+export const useManifestAuditCount = (departureId: string | undefined) => { const { data: scope } = useTenantScope(); const scopeKey = tenantScopeKey(scope); return useQuery({ queryKey: ['manifest-audit-count', 'core', scopeKey, departureId], queryFn: async (): Promise<number> => { if (!departureId) return 0; const response = await coreApi.listManagementManifestAudit({ departureId, limit: 1, offset: 0 }); return Number(response?.meta?.total || 0); }, enabled: Boolean(departureId && scope?.tenant_id) }); };
+export const useAuditActorNames = (userIds: string[]) => { const unique = Array.from(new Set(userIds.filter(Boolean))).sort(); return useQuery({ queryKey: ['audit-actor-names', 'core', unique.join(',')], queryFn: async (): Promise<Record<string, string>> => Object.fromEntries(unique.map((id) => [id, 'Pengguna'])), enabled: unique.length > 0 }); };
