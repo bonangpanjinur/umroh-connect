@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { coreApi } from '@/lib/coreApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,18 +58,15 @@ export const ManasikManagement = () => {
   });
 
   const fetchGuides = async () => {
-    const { data, error } = await supabase
-      .from('manasik_guides')
-      .select('*')
-      .order('order_index');
-
-    if (error) {
+    try {
+      const data = await coreApi.listManasik(true);
+      setGuides((data || []) as ManasikGuide[]);
+    } catch (error) {
       console.error('Error fetching guides:', error);
-      return;
+      toast.error('Gagal memuat panduan');
+    } finally {
+      setIsLoading(false);
     }
-
-    setGuides(data || []);
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -167,27 +163,18 @@ export const ManasikManagement = () => {
       order_index: editingGuide?.order_index ?? guides.length,
     };
 
-    if (editingGuide) {
-      const { error } = await supabase
-        .from('manasik_guides')
-        .update(payload)
-        .eq('id', editingGuide.id);
-
-      if (error) {
-        toast.error('Gagal mengupdate panduan');
-        return;
+    try {
+      if (editingGuide) {
+        await coreApi.updateManasik(editingGuide.id, payload);
+        toast.success('Panduan berhasil diupdate');
+      } else {
+        await coreApi.createManasik(payload);
+        toast.success('Panduan berhasil ditambahkan');
       }
-      toast.success('Panduan berhasil diupdate');
-    } else {
-      const { error } = await supabase
-        .from('manasik_guides')
-        .insert(payload);
-
-      if (error) {
-        toast.error('Gagal menambah panduan');
-        return;
-      }
-      toast.success('Panduan berhasil ditambahkan');
+    } catch (error) {
+      console.error('Manasik mutation error:', error);
+      toast.error(editingGuide ? 'Gagal mengupdate panduan' : 'Gagal menambah panduan');
+      return;
     }
 
     setIsDialogOpen(false);
@@ -198,32 +185,24 @@ export const ManasikManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Yakin ingin menghapus panduan ini?')) return;
 
-    const { error } = await supabase
-      .from('manasik_guides')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await coreApi.deleteManasik(id);
+      toast.success('Panduan berhasil dihapus');
+      fetchGuides();
+    } catch (error) {
+      console.error('Manasik delete error:', error);
       toast.error('Gagal menghapus panduan');
-      return;
     }
-
-    toast.success('Panduan berhasil dihapus');
-    fetchGuides();
   };
 
   const handleToggleActive = async (id: string, isActive: boolean) => {
-    const { error } = await supabase
-      .from('manasik_guides')
-      .update({ is_active: isActive })
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await coreApi.updateManasik(id, { is_active: isActive });
+      fetchGuides();
+    } catch (error) {
+      console.error('Manasik status error:', error);
       toast.error('Gagal mengubah status');
-      return;
     }
-
-    fetchGuides();
   };
 
   const getCategoryBadge = (category: string) => {
