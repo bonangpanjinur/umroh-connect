@@ -226,7 +226,7 @@ const PaymentProofUpload = ({ schedule, bookingCode, onSuccess, onCancel }: Paym
         </Button>
         <Button 
           onClick={handleSubmit} 
-          disabled={!uploadedPath || isSubmitting}
+          disabled={!proofPayload || isSubmitting || isUploading}
           className="flex-1"
         >
           {isSubmitting ? (

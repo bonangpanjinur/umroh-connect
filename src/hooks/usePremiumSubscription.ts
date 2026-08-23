@@ -80,14 +80,11 @@ export const useCreateSubscription = () => {
   return useMutation({
     mutationFn: async (params: {
       planId: string;
-      paymentProofDocumentId?: string;
-      paymentProofUrl?: string;
+      paymentProofDocumentId: string;
       paymentAmount?: number;
     }) => {
       if (!user?.id) throw new Error('User not authenticated');
-      const documentId = params.paymentProofDocumentId || (params.paymentProofUrl && /^[0-9a-f-]{36}$/i.test(params.paymentProofUrl) ? params.paymentProofUrl : '');
-      if (!documentId) throw new Error('Payment proof harus berupa private document ID dari Core.');
-      return coreApi.submitPremiumPaymentProof(params.planId, documentId);
+      return coreApi.submitPremiumPaymentProof(params.planId, params.paymentProofDocumentId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-subscription'] });

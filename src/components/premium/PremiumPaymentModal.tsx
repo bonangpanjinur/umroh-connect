@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateSubscription, useSubscriptionPlans } from '@/hooks/usePremiumSubscription';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
@@ -41,7 +41,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
   const { user, profile } = useAuthContext();
   const [step, setStep] = useState<'info' | 'payment' | 'processing' | 'gateway'>('info');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentProofDocumentId, setPaymentProofDocumentId] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
@@ -97,18 +97,13 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
 
     setIsUploading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const fileName = `${user.id}/premium/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage
-        .from('private-uploads')
-        .upload(fileName, file);
-
-      if (error) throw error;
-
-      // Store path (private bucket — read via signed URL)
-      setPaymentProofUrl(fileName);
+      const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowed.includes(file.type)) throw new Error('Gunakan JPG, PNG, atau PDF.');
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPrivateUserDocument({ purpose: 'premium_payment_proof', data, contentType: file.type as 'image/jpeg' | 'image/png' | 'application/pdf', filename: file.name });
+      const documentId = String(uploaded.id || '');
+      if (!documentId) throw new Error('Core tidak mengembalikan document ID');
+      setPaymentProofDocumentId(documentId);
       toast({ title: 'Bukti transfer berhasil diupload' });
     } catch (error: any) {
       toast({
@@ -129,66 +124,23 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
     setStep('processing');
 
     try {
-      const orderId = `PREMIUM-${Date.now()}-${user.id.substring(0, 8)}`;
-      
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          amount: activePlan.price_yearly,
-          order_id: orderId,
-          customer_name: profile?.full_name || user.email?.split('@')[0] || 'User',
-          customer_email: user.email || '',
-          customer_phone: profile?.phone || '',
-          item_name: `Premium Tracker - ${activePlan.name}`,
-          payment_type: 'premium_subscription'
-        }
-      });
-
-      if (error) throw error;
-
-      console.log('Payment response:', data);
-
-      if (data.provider === 'midtrans' && data.token) {
-        // Use Midtrans Snap popup
-        if (window.snap) {
-          window.snap.pay(data.token, {
-            onSuccess: async (result) => {
-              console.log('Payment success:', result);
-              // Create subscription with auto-verified status
-              await createSubscription.mutateAsync({
-                planId: activePlan.id,
-                paymentProofUrl: `midtrans:${result.order_id}`,
-                paymentAmount: activePlan.price_yearly,
-              });
-              toast({ title: 'Pembayaran berhasil!', description: 'Premium aktif sekarang' });
-              onOpenChange(false);
-            },
-            onPending: (result) => {
-              console.log('Payment pending:', result);
-              toast({ title: 'Menunggu pembayaran', description: 'Silakan selesaikan pembayaran Anda' });
-              setStep('info');
-            },
-            onError: (result) => {
-              console.error('Payment error:', result);
-              toast({ title: 'Pembayaran gagal', variant: 'destructive' });
-              setStep('info');
-            },
-            onClose: () => {
-              setStep('info');
-            }
-          });
-        } else {
-          // Fallback to redirect URL
-          if (data.redirect_url) {
-            setPaymentUrl(data.redirect_url);
-            setStep('gateway');
-          }
-        }
-      } else if (data.provider === 'xendit' && data.invoice_url) {
-        // Redirect to Xendit invoice
-        setPaymentUrl(data.invoice_url);
+      const gatewayProvider = provider === 'midtrans' || provider === 'xendit' ? provider : null;
+      if (!gatewayProvider) throw new Error('Provider payment gateway belum dikonfigurasi');
+      const intent = await coreApi.createPremiumPaymentIntent(activePlan.id, gatewayProvider);
+      const paymentUrlFromCore = String(intent.payment_url || '');
+      const clientToken = String(intent.client_token || '');
+      if (gatewayProvider === 'midtrans' && clientToken && window.snap) {
+        window.snap.pay(clientToken, {
+          onSuccess: () => { toast({ title: 'Pembayaran diterima', description: 'Status premium akan diperbarui setelah webhook gateway diproses.' }); setStep('info'); },
+          onPending: () => { toast({ title: 'Menunggu pembayaran', description: 'Selesaikan pembayaran untuk melanjutkan.' }); setStep('info'); },
+          onError: () => { toast({ title: 'Pembayaran gagal', variant: 'destructive' }); setStep('info'); },
+          onClose: () => setStep('info'),
+        });
+      } else if (paymentUrlFromCore) {
+        setPaymentUrl(paymentUrlFromCore);
         setStep('gateway');
       } else {
-        throw new Error('Invalid payment response');
+        throw new Error('Core tidak mengembalikan token atau URL pembayaran');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
@@ -205,7 +157,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
 
   // Handle manual payment submission
   const handleManualSubmit = async () => {
-    if (!paymentProofUrl || !activePlan) {
+    if (!paymentProofDocumentId || !activePlan) {
       toast({
         title: 'Bukti transfer diperlukan',
         description: 'Upload bukti pembayaran terlebih dahulu',
@@ -217,13 +169,13 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
     try {
       await createSubscription.mutateAsync({
         planId: activePlan.id,
-        paymentProofUrl,
+        paymentProofDocumentId,
         paymentAmount: activePlan.price_yearly,
       });
       
       onOpenChange(false);
       setStep('info');
-      setPaymentProofUrl('');
+      setPaymentProofDocumentId('');
     } catch (error) {
       // Error handled by mutation
     }
@@ -477,12 +429,12 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                 <Label
                   htmlFor="premium-proof-upload"
                   className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                    paymentProofUrl ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-border hover:border-primary'
+                    paymentProofDocumentId ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : 'border-border hover:border-primary'
                   }`}
                 >
                   {isUploading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : paymentProofUrl ? (
+                  ) : paymentProofDocumentId ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
                       <span className="text-green-700 dark:text-green-300">Bukti terupload</span>
@@ -495,12 +447,8 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
                   )}
                 </Label>
               </div>
-              {paymentProofUrl && (
-                <img
-                  src={paymentProofUrl}
-                  alt="Bukti"
-                  className="mt-2 rounded-lg max-h-32 object-cover"
-                />
+              {paymentProofDocumentId && (
+                <p className="mt-2 text-xs text-muted-foreground">Bukti tersimpan privat dan akan diverifikasi oleh Core.</p>
               )}
             </div>
 
@@ -516,7 +464,7 @@ export const PremiumPaymentModal = ({ open, onOpenChange }: PremiumPaymentModalP
               <Button
                 className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500"
                 onClick={handleManualSubmit}
-                disabled={!paymentProofUrl || createSubscription.isPending}
+                disabled={!paymentProofDocumentId || createSubscription.isPending || isUploading}
               >
                 {createSubscription.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />

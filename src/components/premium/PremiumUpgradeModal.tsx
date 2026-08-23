@@ -14,7 +14,7 @@ import { useSubscriptionPlans, useCreateSubscription, useIsPremium } from '@/hoo
 import { usePremiumPlanConfig } from '@/hooks/usePremiumConfig';
 import { usePublicPaymentConfig } from '@/hooks/usePublicPaymentConfig';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { coreApi } from '@/lib/coreApi';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,7 +52,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<PaymentCategory | ''>('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [paymentProofUrl, setPaymentProofUrl] = useState('');
+  const [paymentProofDocumentId, setPaymentProofDocumentId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
 
@@ -157,53 +157,23 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     setStep('processing');
 
     try {
-      const orderId = `PREMIUM-${Date.now()}-${user.id.substring(0, 8)}`;
-      
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          amount: plan.price_yearly,
-          order_id: orderId,
-          customer_name: profile?.full_name || user.email?.split('@')[0] || 'User',
-          customer_email: user.email || '',
-          customer_phone: profile?.phone || '',
-          item_name: `Premium Tracker - ${plan.name}`,
-          payment_type: 'premium_subscription'
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.provider === 'midtrans' && data.token) {
-        if (window.snap) {
-          window.snap.pay(data.token, {
-            onSuccess: async (result) => {
-              await createSubscription.mutateAsync({
-                planId: plan.id,
-                paymentProofUrl: `midtrans:${result.order_id}`,
-                paymentAmount: plan.price_yearly,
-              });
-              toast({ title: 'Pembayaran berhasil!', description: 'Premium aktif sekarang' });
-              onOpenChange(false);
-            },
-            onPending: () => {
-              toast({ title: 'Menunggu pembayaran', description: 'Silakan selesaikan pembayaran Anda' });
-              setStep('info');
-            },
-            onError: () => {
-              toast({ title: 'Pembayaran gagal', variant: 'destructive' });
-              setStep('info');
-            },
-            onClose: () => setStep('info')
-          });
-        } else if (data.redirect_url) {
-          setPaymentUrl(data.redirect_url);
-          setStep('gateway');
-        }
-      } else if (data.provider === 'xendit' && data.invoice_url) {
-        setPaymentUrl(data.invoice_url);
+      const gatewayProvider = provider === 'midtrans' || provider === 'xendit' ? provider : null;
+      if (!gatewayProvider) throw new Error('Provider payment gateway belum dikonfigurasi');
+      const intent = await coreApi.createPremiumPaymentIntent(plan.id, gatewayProvider);
+      const paymentUrlFromCore = String(intent.payment_url || '');
+      const clientToken = String(intent.client_token || '');
+      if (gatewayProvider === 'midtrans' && clientToken && window.snap) {
+        window.snap.pay(clientToken, {
+          onSuccess: () => { toast({ title: 'Pembayaran diterima', description: 'Status premium akan diperbarui setelah webhook gateway diproses.' }); setStep('info'); },
+          onPending: () => { toast({ title: 'Menunggu pembayaran', description: 'Selesaikan pembayaran untuk melanjutkan.' }); setStep('info'); },
+          onError: () => { toast({ title: 'Pembayaran gagal', variant: 'destructive' }); setStep('info'); },
+          onClose: () => setStep('info'),
+        });
+      } else if (paymentUrlFromCore) {
+        setPaymentUrl(paymentUrlFromCore);
         setStep('gateway');
       } else {
-        throw new Error('Invalid payment response');
+        throw new Error('Core tidak mengembalikan token atau URL pembayaran');
       }
     } catch (error: any) {
       toast({
@@ -222,17 +192,13 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/payment-proof-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('private-uploads')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Store storage path — readers must createSignedUrl
-      setPaymentProofUrl(fileName);
+      const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowed.includes(file.type)) throw new Error('Gunakan JPG, PNG, atau PDF.');
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('File tidak dapat dibaca')); reader.readAsDataURL(file); });
+      const uploaded = await coreApi.uploadPrivateUserDocument({ purpose: 'premium_payment_proof', data, contentType: file.type as 'image/jpeg' | 'image/png' | 'application/pdf', filename: file.name });
+      const documentId = String(uploaded.id || '');
+      if (!documentId) throw new Error('Core tidak mengembalikan document ID');
+      setPaymentProofDocumentId(documentId);
       toast({ title: 'Bukti pembayaran berhasil diupload' });
     } catch (error: any) {
       toast({
@@ -246,7 +212,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
   };
 
   const handleManualSubmit = async () => {
-    if (!paymentProofUrl || !plan) {
+    if (!paymentProofDocumentId || !plan) {
       toast({
         title: 'Bukti transfer diperlukan',
         description: 'Upload bukti pembayaran terlebih dahulu',
@@ -258,12 +224,12 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     try {
       await createSubscription.mutateAsync({
         planId: plan.id,
-        paymentProofUrl,
+        paymentProofDocumentId,
         paymentAmount: plan.price_yearly,
       });
       
       setStep('info');
-      setPaymentProofUrl('');
+      setPaymentProofDocumentId('');
       onOpenChange(false);
     } catch (error) {
       // Error handled by mutation
@@ -696,10 +662,10 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     <Label className="text-sm font-semibold">Bukti Pembayaran</Label>
                     <div 
                       className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                        paymentProofUrl ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary/30'
+                        paymentProofDocumentId ? 'border-green-500 bg-green-50' : 'border-border hover:border-primary/30'
                       }`}
                     >
-                      {paymentProofUrl ? (
+                      {paymentProofDocumentId ? (
                         <div className="space-y-2">
                           <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto">
                             <Check className="w-6 h-6 text-white" />
@@ -743,7 +709,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                   <Button 
                     className="w-full py-6 text-base font-bold"
                     onClick={handleManualSubmit}
-                    disabled={!paymentProofUrl || createSubscription.isPending || uploading}
+                    disabled={!paymentProofDocumentId || createSubscription.isPending || uploading}
                   >
                     {createSubscription.isPending ? (
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
