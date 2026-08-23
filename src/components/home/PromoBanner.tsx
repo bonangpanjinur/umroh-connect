@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { usePublicBanners } from '@/hooks/useAdminData';
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
@@ -16,22 +15,8 @@ interface Banner {
 }
 
 const PromoBanner = () => {
-  // Fetch active home banners from database
-  const { data: banners, isLoading } = useQuery({
-    queryKey: ['home-banners'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('banners')
-        .select('*')
-        .eq('position', 'home')
-        .eq('is_active', true)
-        .order('priority', { ascending: false });
-      
-      if (error) throw error;
-      return data as Banner[];
-    },
-    staleTime: 60000,
-  });
+  // Fetch active public banners from Core Content API
+  const { data: banners, isLoading } = usePublicBanners();
 
   // Autoplay carousel setup
   const [emblaRef, emblaApi] = useEmblaCarousel(

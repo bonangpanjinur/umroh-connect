@@ -58,6 +58,11 @@ export const useUpdateMembership = () => {
   });
 };
 
+// Fetch active public banners from Core Content API
+export const usePublicBanners = () => {
+  return useQuery({ queryKey: ['public-banners', 'core'], queryFn: async () => (await coreApi.listPublicBanners()) as Banner[], staleTime: 60_000 });
+};
+
 // Fetch all banners
 export const useBanners = () => {
   return useQuery({ queryKey: ['admin-banners', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminBanners()).data });
