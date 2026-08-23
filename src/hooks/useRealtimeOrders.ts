@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { coreApi } from '@/lib/coreApi';
 
 const statusLabels: Record<string, string> = {
   pending: 'Menunggu Bayar',
@@ -14,90 +14,51 @@ const statusLabels: Record<string, string> = {
 };
 
 /**
- * Hook that subscribes to real-time order status changes.
- * Shows toast notifications and updates the relevant query cache automatically.
+ * Polls the Core Commerce API for order changes. Core remains the source of
+ * truth; the frontend never subscribes directly to database tables.
  */
 export const useRealtimeOrders = () => {
   const { user } = useAuthContext();
   const queryClient = useQueryClient();
+  const previousRef = useRef<Map<string, string>>(new Map());
   const soundRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
 
-    const channel = supabase
-      .channel('realtime-orders-' + user.id)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'shop_orders',
-        },
-        (payload) => {
-          const updated = payload.new as any;
-          const old = payload.old as any;
-
-          // Invalidate buyer orders
-          if (updated.user_id === user.id) {
-            queryClient.invalidateQueries({ queryKey: ['shop-orders', user.id] });
-
-            // Show toast to buyer when status changes
-            if (old.status !== updated.status) {
-              const label = statusLabels[updated.status] || updated.status;
-              toast({
-                title: `📦 Pesanan ${updated.order_code || ''}`,
-                description: `Status berubah: ${label}`,
-              });
-              playNotifSound();
-            }
-          }
-
-          // Invalidate seller orders
-          queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-
-          // Invalidate order status history
-          queryClient.invalidateQueries({ queryKey: ['order-status-history', updated.id] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'shop_orders',
-        },
-        (payload) => {
-          const newOrder = payload.new as any;
-          // New orders -> refresh seller list
-          queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-
-          // Show toast to seller
-          if (newOrder.user_id !== user.id) {
+    const refresh = async () => {
+      try {
+        const orders = await coreApi.listCommerceOrders();
+        if (!active) return;
+        const next = new Map(orders.map((order) => [String(order.id), String(order.status || '')]));
+        for (const order of orders) {
+          const id = String(order.id);
+          const status = String(order.status || '');
+          const previous = previousRef.current.get(id);
+          if (previous && previous !== status && order.user_id === user.id) {
             toast({
-              title: '🔔 Pesanan Baru!',
-              description: `Kode: ${newOrder.order_code || 'Baru'}`,
+              title: `Pesanan ${String(order.order_code || '')}`,
+              description: `Status berubah: ${statusLabels[status] || status}`,
             });
             playNotifSound();
           }
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'order_status_history',
-        },
-        (payload) => {
-          const entry = payload.new as any;
-          queryClient.invalidateQueries({ queryKey: ['order-status-history', entry.order_id] });
-        }
-      )
-      .subscribe();
+        previousRef.current = next;
+        queryClient.invalidateQueries({ queryKey: ['shop-orders', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      } catch {
+        // The owning query exposes the visible error state; background polling
+        // must not interrupt the user's current screen.
+      }
+    };
 
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 20_000);
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      window.clearInterval(timer);
+      previousRef.current.clear();
     };
   }, [user, queryClient]);
 
@@ -107,7 +68,9 @@ export const useRealtimeOrders = () => {
         soundRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
         soundRef.current.volume = 0.3;
       }
-      soundRef.current.play().catch(() => {});
-    } catch {}
+      void soundRef.current.play().catch(() => undefined);
+    } catch {
+      // Browser autoplay policy may block notification sounds.
+    }
   }
 };
