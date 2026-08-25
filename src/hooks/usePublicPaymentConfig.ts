@@ -37,7 +37,7 @@ export const usePublicPaymentConfig = () => useQuery({
       return {
         ...fallbackConfig,
         ...config,
-        paymentMethods: (config.paymentMethods || []) as PublicPaymentMethod[],
+        paymentMethods: (config.paymentMethods || []) as unknown as PublicPaymentMethod[],
       };
     } catch (error) {
       console.error('Failed to fetch Core payment config:', error);

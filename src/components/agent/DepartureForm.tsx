@@ -64,6 +64,7 @@ const DepartureForm = ({ packageId, departure, onClose, onSuccess }: DepartureFo
       const departureData = {
         ...data,
         package_id: packageId,
+        packageId,
         departure_date: format(data.departure_date, 'yyyy-MM-dd'),
         return_date: format(data.return_date, 'yyyy-MM-dd'),
         original_price: data.original_price || null,

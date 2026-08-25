@@ -102,7 +102,7 @@ const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
 
       if (data.success) {
         setPackingList(data.packing_list as unknown as PackingList);
-        setWeather(data.weather as WeatherData | null);
+        setWeather(data.weather as unknown as WeatherData | null);
         // Expand all categories by default
         setExpandedCategories(new Set(data.packing_list.categories.map((c: PackingCategory) => c.name)));
         setStep('result');

@@ -158,7 +158,7 @@ const JournalView = ({ onBack, onViewPackages }: JournalViewProps) => {
 
     try {
       if (viewMode === 'create') {
-        const journal = await createJournal.mutateAsync(formData);
+        const journal = await createJournal.mutateAsync(formData) as { id: string };
         
         // Upload photos
         for (const photo of photos) {
@@ -213,7 +213,7 @@ const JournalView = ({ onBack, onViewPackages }: JournalViewProps) => {
         existingPhotos={selectedJournal?.photos || []}
         onFileChange={handleFileChange}
         onRemovePhoto={removePhoto}
-        onRemoveExistingPhoto={(photoId) => deletePhoto.mutate(photoId)}
+        onRemoveExistingPhoto={(photoId) => selectedJournal && deletePhoto.mutate({ journalId: selectedJournal.id, photoId })}
         onSubmit={handleSubmit}
         onBack={() => setViewMode('list')}
         onRequestLocation={requestLocation}

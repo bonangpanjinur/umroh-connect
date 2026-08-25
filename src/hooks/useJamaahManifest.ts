@@ -44,7 +44,7 @@ export const useMyManifest = (bookingId?: string) => { const { user } = useAuthC
   queryKey: ['jamaah-manifest', user?.id, bookingId],
   queryFn: async (): Promise<JamaahManifestEntry[]> => {
     if (!bookingId) return [];
-    return (await coreApi.getMyBookingManifest(bookingId)) as JamaahManifestEntry[];
+    return (await coreApi.getMyBookingManifest(bookingId)) as unknown as JamaahManifestEntry[];
   },
   enabled: !!bookingId && !!user?.id,
 }); };

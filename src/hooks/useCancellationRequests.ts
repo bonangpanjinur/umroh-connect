@@ -32,7 +32,7 @@ export const useMyCancellationRequests = (bookingId?: string) => {
 
   return useQuery({
     queryKey: ['cancellation-requests', 'core', 'user', user?.id ?? null, bookingId ?? null],
-    queryFn: () => coreApi.listMyCancellationRequests(bookingId) as Promise<CancellationRequest[]>,
+    queryFn: () => coreApi.listMyCancellationRequests(bookingId) as unknown as Promise<CancellationRequest[]>,
     enabled: Boolean(user?.id),
   });
 };
@@ -78,7 +78,7 @@ export const useTravelCancellationRequests = (travelId?: string) => {
     queryKey: ['cancellation-requests', 'core', 'management', tenantScopeKey(scope), travelId ?? null],
     queryFn: async (): Promise<CancellationRequest[]> => {
       if (!travelId) return [];
-      return coreApi.listManagementCancellationRequests() as Promise<CancellationRequest[]>;
+      return coreApi.listManagementCancellationRequests() as unknown as Promise<CancellationRequest[]>;
     },
     enabled: Boolean(travelId && scope?.tenant_id),
   });

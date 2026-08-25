@@ -59,6 +59,7 @@ const EntryForm = ({ entry, bookingId, onDone }: EntryFormProps) => {
     passport_expiry: entry.passport_expiry,
     phone: entry.phone,
     mahram_name: entry.mahram_name,
+    notes: entry.notes,
   });
   const update = useUpdateMyManifest(bookingId);
 

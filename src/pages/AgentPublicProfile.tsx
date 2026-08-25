@@ -32,7 +32,7 @@ const AgentPublicProfile = () => {
       
       const profile = await coreApi.getMarketplaceAgentProfile(slug);
       if (!profile) { setError('Halaman tidak ditemukan'); return; }
-      const settingsData = profile.settings as AgentWebsiteSettings;
+      const settingsData = profile.settings as unknown as AgentWebsiteSettings;
       const travelData = profile.travel;
       setSettings(settingsData);
       setTemplateSlug(String((settingsData as any).template_slug || 'default'));

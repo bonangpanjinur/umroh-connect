@@ -110,7 +110,7 @@ const PrayersTab = () => {
       }
       await updatePrayer.mutateAsync({ id: editingPrayer.id, ...data });
     } else {
-      const newPrayer = await createPrayer.mutateAsync(data);
+      const newPrayer = await createPrayer.mutateAsync(data) as { id: string };
       if (audioFile) {
         const audioUrl = await uploadAudio.mutateAsync({ file: audioFile, prayerId: newPrayer.id });
         await updatePrayer.mutateAsync({ id: newPrayer.id, audio_url: audioUrl });
