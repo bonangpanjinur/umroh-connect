@@ -674,7 +674,7 @@ export const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={() => setPaymentProofUrl('')}
+                            onClick={() => setPaymentProofDocumentId('')}
                             className="text-xs"
                           >
                             Ganti Foto

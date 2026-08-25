@@ -97,7 +97,7 @@ export const useCreditTransactions = () => useQuery({ queryKey: ['admin-transact
 
 // Fetch platform settings
 export const usePlatformSettings = () => {
-  return useQuery({ queryKey: ['platform-settings', 'platform'], queryFn: async () => await coreApi.getPlatformAdminSettings() });
+  return useQuery({ queryKey: ['platform-settings', 'platform'], queryFn: async () => (await coreApi.getPlatformAdminSettings()) as any[] });
 };
 
 // Update platform setting (upsert if not exists)
