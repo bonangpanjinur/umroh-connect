@@ -26,7 +26,7 @@ export const useAdminStats = () => {
 export const useAllUsers = () => {
   return useQuery({
     queryKey: ['admin-users', 'platform'],
-    queryFn: async () => await coreApi.listPlatformAdminUsers(),
+    queryFn: async () => (await coreApi.listPlatformAdminUsers()) as any[],
   });
 };
 
@@ -41,12 +41,12 @@ export const useSuspendUser = () => {
 
 // Fetch all travels with owner info
 export const useAllTravels = () => {
-  return useQuery({ queryKey: ['admin-travels', 'platform'], queryFn: async () => await coreApi.listPlatformAdminTravels() });
+  return useQuery({ queryKey: ['admin-travels', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminTravels()) as any[] });
 };
 
 // Fetch all memberships
 export const useMemberships = () => {
-  return useQuery({ queryKey: ['admin-memberships', 'platform'], queryFn: async () => await coreApi.listPlatformAdminMemberships() });
+  return useQuery({ queryKey: ['admin-memberships', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminMemberships()) as any[] });
 };
 
 // Update membership
@@ -65,7 +65,7 @@ export const usePublicBanners = () => {
 
 // Fetch all banners
 export const useBanners = () => {
-  return useQuery({ queryKey: ['admin-banners', 'platform'], queryFn: async () => await coreApi.listPlatformAdminBanners() });
+  return useQuery({ queryKey: ['admin-banners', 'platform'], queryFn: async () => (await coreApi.listPlatformAdminBanners()) as unknown as Banner[] });
 };
 
 // Create banner
@@ -87,13 +87,13 @@ export const useDeleteBanner = () => {
 };
 
 // Fetch package credits
-export const usePackageCredits = () => useQuery({ queryKey: ['admin-credits','platform'], queryFn: async () => await coreApi.listPlatformAdminCredits() });
+export const usePackageCredits = () => useQuery({ queryKey: ['admin-credits','platform'], queryFn: async () => (await coreApi.listPlatformAdminCredits()) as any[] });
 
 // Add credits to travel
 export const useAddCredits = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:(input:{travel_id:string;amount:number;notes?:string})=>coreApi.addPlatformAdminCredits(input), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-credits','platform']}) }); };
 
 // Fetch credit transactions
-export const useCreditTransactions = () => useQuery({ queryKey: ['admin-transactions','platform'], queryFn: async () => await coreApi.listPlatformCreditTransactions() });
+export const useCreditTransactions = () => useQuery({ queryKey: ['admin-transactions','platform'], queryFn: async () => (await coreApi.listPlatformCreditTransactions()) as any[] });
 
 // Fetch platform settings
 export const usePlatformSettings = () => {
@@ -125,7 +125,7 @@ export const useDeleteTravel = () => { const queryClient=useQueryClient(); retur
 export const useUpdateTravelAdmin = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({id,...data}:{id:string;[key:string]:unknown})=>coreApi.updatePlatformTravel(id,data), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-travels','platform']}) }); };
 
 // Fetch all agent website settings for URL management
-export const useAllAgentWebsiteSettings = () => useQuery({ queryKey:['admin-agent-website-settings','platform'], queryFn:async()=> await coreApi.listPlatformAgentWebsiteSettings() });
+export const useAllAgentWebsiteSettings = () => useQuery({ queryKey:['admin-agent-website-settings','platform'], queryFn:async()=> (await coreApi.listPlatformAgentWebsiteSettings()) as any[] });
 
 // Update agent website settings (approve/reject slug)
 export const useUpdateAgentWebsiteSettings = () => { const queryClient=useQueryClient(); return useMutation({ mutationFn:({user_id,...updates}:{user_id:string;[key:string]:unknown})=>coreApi.updatePlatformAgentWebsiteSettings(user_id,updates), onSuccess:()=>queryClient.invalidateQueries({queryKey:['admin-agent-website-settings','platform']}) }); };
