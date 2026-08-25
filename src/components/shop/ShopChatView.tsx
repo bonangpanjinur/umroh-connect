@@ -78,7 +78,7 @@ const ShopChatView = ({ sellerId, sellerName, orderId, senderRole, onBack }: Sho
 
   const uploadFile = async (file: File): Promise<{ key: string; type: 'image' | 'file' }> => {
     const result = await coreApi.uploadCommerceChatAttachmentPresigned(orderId!, file);
-    return { key: result.object_key, type: result.attachment_type };
+    return { key: result.object_key, type: result.attachment_type as 'image' | 'file' };
   };
 
   const handleSend = async () => {

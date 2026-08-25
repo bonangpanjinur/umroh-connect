@@ -60,7 +60,7 @@ export const ManasikManagement = () => {
   const fetchGuides = async () => {
     try {
       const data = await coreApi.listManasik(true);
-      setGuides((data || []) as ManasikGuide[]);
+      setGuides((data || []) as unknown as ManasikGuide[]);
     } catch (error) {
       console.error('Error fetching guides:', error);
       toast.error('Gagal memuat panduan');

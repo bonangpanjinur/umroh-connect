@@ -104,6 +104,19 @@ export const useCreateSubscription = () => {
 };
 
 // Admin: Get all subscriptions with profile info
+export interface AdminSubscriptionRow {
+  id: string;
+  user_id: string;
+  status: string;
+  payment_amount?: number | null;
+  payment_date?: string | null;
+  payment_proof_url?: string | null;
+  end_date?: string | null;
+  admin_notes?: string | null;
+  profile?: { full_name?: string | null; email?: string | null } | null;
+  plan?: { name?: string | null } | null;
+}
+
 export const useAllSubscriptions = () => {
   const { isAdmin } = useAuthContext();
 
@@ -111,7 +124,7 @@ export const useAllSubscriptions = () => {
     queryKey: ['all-subscriptions'],
     queryFn: async () => {
       const rows = await coreApi.listPlatformAdminMemberships();
-      return (rows || []) as Array<Record<string, unknown>>;
+      return (rows || []) as unknown as AdminSubscriptionRow[];
     },
     enabled: isAdmin(),
   });

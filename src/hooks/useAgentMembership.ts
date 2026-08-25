@@ -134,7 +134,7 @@ export const useAgentMembership = (travelId: string | undefined) => {
       if (!travelId) return null;
 
       const data = await coreApi.getManagementMembership(travelId);
-      return data as AgentMembership | null;
+      return data as unknown as AgentMembership | null;
     },
     enabled: !!travelId,
   });

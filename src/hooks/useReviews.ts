@@ -72,9 +72,19 @@ export const useDeleteReview = () => {
   });
 };
 
+export interface AdminReviewRow {
+  id: string;
+  rating: number;
+  review_text?: string | null;
+  is_published?: boolean;
+  admin_notes?: string | null;
+  created_at: string;
+  travel?: { name?: string | null } | null;
+}
+
 export const useAllReviews = () => useQuery({
   queryKey: ['all-reviews'],
-  queryFn: async () => (await coreApi.listManagementReviews({ limit: 100 })).data,
+  queryFn: async () => (await coreApi.listManagementReviews({ limit: 100 })).data as unknown as AdminReviewRow[],
 });
 
 export const useUpdateReviewStatus = () => {

@@ -14,16 +14,22 @@ import { toast } from 'sonner';
 
 const API_BASE = 'https://api.alquran.cloud/v1';
 
+interface SurahRow { number: number; name: string; english_name: string; total_verses: number }
+interface SyncLogRow { id: string; started_at: string; sync_type: string; status: string; ayahs_synced: number; error_message?: string | null }
+interface AyahRow { id: string; ayah_number: number; arabic_text: string; translation_id?: string | null }
+
 export const QuranManagement = () => {
   const [activeTab, setActiveTab] = useState('status');
   const [syncing, setSyncing] = useState(false);
   const [selectedSurah, setSelectedSurah] = useState<number | null>(null);
 
   const { data: quranStats, refetch: refetchStats } = useQuranStats();
-  const { data: surahs = [] } = useQuery({ queryKey: ['quran-surahs', 'core'], queryFn: () => coreApi.listQuranSurahs() });
-  const { data: logs = [], refetch: refetchLogs } = useSyncLogs();
+  const { data: surahsRaw = [] } = useQuery({ queryKey: ['quran-surahs', 'core'], queryFn: () => coreApi.listQuranSurahs() });
+  const { data: logsRaw = [], refetch: refetchLogs } = useSyncLogs();
   const triggerSync = useTriggerSync();
-  const stats = { totalAyahs: quranStats?.totalAyahs || 0, surahs, counts: quranStats?.surahCounts || {} };
+  const surahs = surahsRaw as unknown as SurahRow[];
+  const logs = logsRaw as unknown as SyncLogRow[];
+  const stats = { totalAyahs: quranStats?.totalAyahs || 0, surahs, counts: (quranStats?.surahCounts || {}) as Record<number, number> };
 
   const handleSync = async (mode: 'full' | 'surah', surahNumber?: number) => {
     try {
@@ -217,26 +223,17 @@ const AyahEditor = ({ surahNumber }: { surahNumber: number | null }) => {
   const { data: ayahs, refetch } = useQuery({
     queryKey: ['quran-admin-ayahs', surahNumber],
     queryFn: async () => {
-      if (!surahNumber) return [];
-      const { data } = await supabase
-        .from('quran_ayahs')
-        .select('*')
-        .eq('surah_number', surahNumber)
-        .order('ayah_number');
-      return data || [];
+      if (!surahNumber) return [] as AyahRow[];
+      const data = await coreApi.listQuranAyahs(surahNumber);
+      return (data || []) as unknown as AyahRow[];
     },
     enabled: !!surahNumber
   });
 
   const handleSave = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('quran_ayahs')
-        .update({ arabic_text: editText, translation_id: editTrans })
-        .eq('id', id);
-      
-      if (error) throw error;
-      
+      await coreApi.updateQuranAyah(id, { arabic_text: editText, translation_id: editTrans });
+
       toast.success('Ayat disimpan');
       setEditingId(null);
       refetch();

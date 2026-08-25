@@ -101,13 +101,14 @@ const PackingListGenerator = ({ onBack }: PackingListGeneratorProps) => {
       });
 
       if (data.success) {
-        setPackingList(data.packing_list as unknown as PackingList);
-        setWeather(data.weather as WeatherData | null);
+        const list = data.packing_list as unknown as PackingList;
+        setPackingList(list);
+        setWeather(data.weather as unknown as WeatherData | null);
         // Expand all categories by default
-        setExpandedCategories(new Set(data.packing_list.categories.map((c: PackingCategory) => c.name)));
+        setExpandedCategories(new Set(list.categories.map((c: PackingCategory) => c.name)));
         setStep('result');
       } else {
-        throw new Error(data.error || 'Failed to generate packing list');
+        throw new Error((data as { error?: string }).error || 'Failed to generate packing list');
       }
     } catch (error) {
       console.error('Error generating packing list:', error);

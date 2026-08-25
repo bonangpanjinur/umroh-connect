@@ -62,10 +62,10 @@ export const AgentWebsiteManager = () => {
 
       if (data) {
         setSettings(data);
-        setRequestedSlug(data.custom_slug || '');
+        setRequestedSlug(String(data.custom_slug || ''));
         // Parse bundled content if exists
         if (data.html_content) {
-          extractBundledContent(data.html_content);
+          extractBundledContent(String(data.html_content));
         }
       } else {
         // Default settings if none exist

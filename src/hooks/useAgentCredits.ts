@@ -74,7 +74,7 @@ export const useCreditTransactions = (travelId: string | undefined) => {
       if (!travelId) return [];
       
       const data = await coreApi.listAgentCreditTransactions(travelId);
-      return (data || []) as CreditTransaction[];
+      return (data || []) as unknown as CreditTransaction[];
     },
     enabled: !!travelId,
   });

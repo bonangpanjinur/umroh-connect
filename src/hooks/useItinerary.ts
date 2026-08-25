@@ -4,12 +4,12 @@ import { useToast } from '@/hooks/use-toast';
 import { tenantScopeKey, useTenantScope } from '@/hooks/useTenantScope';
 
 export interface ItineraryDay { id: string; departure_id: string; day_number: number; date?: string | null; title: string; description: string | null; city: string | null; activities: string[] | null; location?: string | null; sort_order?: number; }
-const queryKey = (scopeKey: string, departureId?: string | null) => ['departure-itinerary', scopeKey, departureId] as const;
+const queryKey = (scopeKey: readonly string[], departureId?: string | null) => ['departure-itinerary', ...scopeKey, departureId] as const;
 
 export const useDepartureItinerary = (departureId?: string | null) => {
   const { data: scope } = useTenantScope();
   const scopeKey = tenantScopeKey(scope);
-  return useQuery({ queryKey: queryKey(scopeKey, departureId), queryFn: async (): Promise<ItineraryDay[]> => { if (!departureId) return []; return await coreApi.listManagementItinerary(departureId) as ItineraryDay[]; }, enabled: !!departureId && !!scope?.tenant_id });
+  return useQuery({ queryKey: queryKey(scopeKey, departureId), queryFn: async (): Promise<ItineraryDay[]> => { if (!departureId) return []; return await coreApi.listManagementItinerary(departureId) as unknown as ItineraryDay[]; }, enabled: !!departureId && !!scope?.tenant_id });
 };
 
 export const useSaveItineraryDay = (departureId?: string | null) => {
