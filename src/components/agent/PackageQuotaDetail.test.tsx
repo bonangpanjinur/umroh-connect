@@ -32,6 +32,7 @@ vi.mock('@/hooks/useAgentData', () => ({
   useUpdateDeparture: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 vi.mock('@/hooks/useDeparturesRealtime', () => ({ useDeparturesRealtime: vi.fn() }));
+vi.mock('./ItineraryEditor', () => ({ default: () => null }));
 vi.mock('@/hooks/use-toast', () => ({
   toast,
   useToast: () => ({ toast }),

@@ -162,6 +162,13 @@ function toLegacyPackage(listing: CoreListing): PackageWithDetails {
 }
 
 export const coreApi = {
+  async generateAIContent(input: { prompt: string; context?: string }): Promise<{ content: string }> {
+    return request<{ content: string }>('/content/ai/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }, true);
+  },
   async getMarketplaceAgentProfile(slug: string) { return request<{ settings: Record<string, unknown>; travel: Record<string, unknown>; packages: Record<string, unknown>[] }>(`/marketplace/agents/${encodeURIComponent(slug)}`); },
   async getPublicPaymentConfig() { return request<{ provider: 'manual' | 'midtrans' | 'xendit'; isTestMode: boolean; apiKey?: string; autoVerify?: boolean; paymentMethods: Array<Record<string, unknown>>; qrisImageUrl: string }>('/marketplace/payment-config'); },
   async getManagementWebsiteSettings() { return request<Record<string, unknown> | null>('/management/website-settings', undefined, true); },
