@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
-  ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, 
+  ArrowLeft, Users, Building2, CreditCard, Image, Settings, BarChart3, KeyRound,
   Database, BookOpen, MessageSquare, Sparkles, FileText, LineChart, Bug, 
   Crown, Wallet, Newspaper, Fingerprint, Globe, Layout, ShoppingBag, 
   Tag, PackageCheck, ChevronDown, Menu, X, Book
@@ -28,6 +28,7 @@ import { PaymentGatewaySettings } from '@/components/admin/PaymentGatewaySetting
 import { TasbihManagement } from '@/components/admin/TasbihManagement';
 import { AgentUrlManagement } from '@/components/admin/AgentUrlManagement';
 import WebsiteTemplatesManagement from '@/components/admin/WebsiteTemplatesManagement';
+import { TenantOnboarding } from '@/components/admin/TenantOnboarding';
 import ShopProductsManagement from '@/components/admin/ShopProductsManagement';
 import ShopCategoriesManagement from '@/components/admin/ShopCategoriesManagement';
 import ShopOrdersManagement from '@/components/admin/ShopOrdersManagement';
@@ -63,6 +64,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'users', label: 'Users', icon: <Users className="h-4 w-4" /> },
       { id: 'travels', label: 'Travels', icon: <Building2 className="h-4 w-4" /> },
+      { id: 'tenant-onboarding', label: 'Tenant & Integrasi', icon: <KeyRound className="h-4 w-4" /> },
       { id: 'memberships', label: 'Membership', icon: <CreditCard className="h-4 w-4" /> },
       { id: 'credits', label: 'Kredit', icon: <CreditCard className="h-4 w-4" /> },
       { id: 'urls', label: 'URL Agent', icon: <Globe className="h-4 w-4" /> },
@@ -149,6 +151,7 @@ const AdminDashboard = () => {
       case 'analytics': return <AdminAnalyticsDashboard />;
       case 'users': return <UsersManagement />;
       case 'travels': return <TravelsManagement />;
+      case 'tenant-onboarding': return <TenantOnboarding />;
       case 'subscriptions': return <SubscriptionsManagement />;
       case 'payment': return <PaymentGatewaySettings />;
       case 'featured': return <FeaturedManagement />;
