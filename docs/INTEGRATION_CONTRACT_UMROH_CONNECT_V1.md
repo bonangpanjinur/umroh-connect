@@ -245,3 +245,26 @@ Endpoint internal sistem travel untuk engine lokal adalah `POST /api/v1/manageme
 Publisher menggunakan `x-integration-key`, `x-integration-timestamp`, `x-integration-nonce`, dan `x-integration-signature`. Signature dihitung sebagai HMAC-SHA256 atas string `${timestamp}.${nonce}.${raw_body}` menggunakan SHA-256 dari secret credential sebagai derived key. Nonce berlaku satu kali dalam window lima menit. Outbox melakukan retry eksponensial dan masuk `dead_letter` setelah delapan percobaan.
 
 Field katalog yang dikirim hanya field publik paket, harga publik, jadwal, kuota, ketersediaan, status publikasi, dan media publik. Data jamaah, paspor, pembayaran, dokumen, komisi, agent, sub-agent, dan cabang internal tidak dikirim.
+
+## 16. Implementasi Fase 3 — Lead intake dan routing
+Lead publik dikirim ke Edge Function `lead-routing` dengan `Idempotency-Key`, `full_name`, `phone`, dan salah satu penentu routing: `product_id` katalog pusat atau `source_domain` custom domain tenant. Pusat meresolusikan tenant melalui resource katalog atau domain terverifikasi; `tenant_id` tidak boleh dikirim sebagai sumber kebenaran oleh browser.
+
+Lead disimpan pada `central_leads` dan dibuatkan satu record `central_lead_deliveries` untuk installation production tenant. Duplikasi dengan tenant dan idempotency key yang sama menghasilkan response sukses idempotent tanpa membuat lead baru.
+
+Sistem travel mengambil lead melalui action `pull` pada Edge Function `lead-routing` menggunakan credential installation. Worker menyimpan lead secara idempotent berdasarkan `central_lead_id` ke tabel lokal `leads`, lalu mengirim action `ack` dengan status `accepted` atau `rejected`. Status delivery pusat berubah mengikuti acknowledgement dan seluruh transisi penting dicatat di `central_lead_delivery_audit`.
+
+Endpoint/worker lokal sistem travel:
+```text
+POST worker:lead-inbox
+```
+
+Environment server-side yang digunakan:
+```text
+UMROH_CONNECT_LEAD_ROUTING_URL
+UMROH_CONNECT_INTEGRATION_KEY
+UMROH_CONNECT_INTEGRATION_SECRET
+TRAVEL_INSTALLATION_ID
+LEAD_INBOX_BATCH_SIZE
+```
+
+Lead hanya membawa identitas kontak dan konteks minat katalog. Data paspor, pembayaran, dokumen jamaah, komisi, dan data internal cabang/agent tidak pernah dikirim dari pusat ke inbox lead.
