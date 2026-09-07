@@ -221,3 +221,27 @@ Sistem travel mengirim heartbeat berkala dengan versi aplikasi, environment, wak
 
 - [sistem-travel-umroh](https://github.com/bonangpanjinur/sistem-travel-umroh)
 - [umroh-connect](https://github.com/bonangpanjinur/umroh-connect)
+
+## 15. Implementasi Fase 2 — Katalog dan synchronization engine
+Event outbound yang dipublikasikan oleh sistem travel menggunakan tipe `package.upserted`, `package.deleted`, `departure.upserted`, dan `departure.deleted`. `source.entity_version` bertambah ketika resource lokal berubah; consumer pusat mengabaikan event dengan versi lebih kecil atau sama dari versi yang sudah diproses.
+
+Envelope event minimum:
+```json
+{
+  "event_id": "package:uuid:3:uuid",
+  "event_type": "package.upserted",
+  "occurred_at": "2026-09-05T00:00:00.000Z",
+  "source": {
+    "installation_id": "uuid",
+    "entity_id": "uuid",
+    "entity_version": 3
+  },
+  "data": {}
+}
+```
+
+Endpoint internal sistem travel untuk engine lokal adalah `POST /api/v1/management/catalog-sync/enqueue`, `POST /api/v1/management/catalog-sync/reconcile`, `POST /api/v1/management/catalog-sync/publish`, dan `GET /api/v1/management/catalog-sync/status`. Endpoint pusat ingestion adalah Edge Function `catalog-ingest`; deployment dapat memetakan function tersebut ke route gateway integrasi.
+
+Publisher menggunakan `x-integration-key`, `x-integration-timestamp`, `x-integration-nonce`, dan `x-integration-signature`. Signature dihitung sebagai HMAC-SHA256 atas string `${timestamp}.${nonce}.${raw_body}` menggunakan SHA-256 dari secret credential sebagai derived key. Nonce berlaku satu kali dalam window lima menit. Outbox melakukan retry eksponensial dan masuk `dead_letter` setelah delapan percobaan.
+
+Field katalog yang dikirim hanya field publik paket, harga publik, jadwal, kuota, ketersediaan, status publikasi, dan media publik. Data jamaah, paspor, pembayaran, dokumen, komisi, agent, sub-agent, dan cabang internal tidak dikirim.
