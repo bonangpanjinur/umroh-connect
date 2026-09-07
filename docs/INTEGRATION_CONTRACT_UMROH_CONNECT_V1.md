@@ -268,3 +268,10 @@ LEAD_INBOX_BATCH_SIZE
 ```
 
 Lead hanya membawa identitas kontak dan konteks minat katalog. Data paspor, pembayaran, dokumen jamaah, komisi, dan data internal cabang/agent tidak pernah dikirim dari pusat ke inbox lead.
+
+## 17. Implementasi Fase 4 — Dashboard dan observability
+Dashboard admin menggunakan Edge Function `lead-admin` dengan action `metrics`, `list`, `retry`, dan `installations`. Akses dibatasi untuk role platform `admin` atau `super_admin`; browser tidak boleh menggunakan service role key.
+
+Metrics minimum yang ditampilkan adalah total lead, queued, delivered, accepted, rejected, pending delivery, claimed, dead-letter, installation connected/degraded/disabled, serta sync event processed/failed/ignored. Detail delivery menampilkan attempt count, last error, waktu update, tenant, dan produk yang diminati.
+
+Retry manual hanya tersedia untuk delivery berstatus `rejected` atau `dead_letter`. Retry mengembalikan delivery ke `pending`, menghapus error terakhir, dan menambahkan audit action `delivery.manual_retry` dengan actor admin. Dashboard harus memperlakukan metrics sebagai operational snapshot, bukan sumber kebenaran bisnis lead.
