@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:integration:contract": "node scripts/verify-integration-contract.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
