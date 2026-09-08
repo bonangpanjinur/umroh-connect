@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
         installation_id: installation.id,
         key_id: keyId,
         secret_hash: await sha256(secret),
-        scopes: ['catalog.write', 'catalog.reconcile', 'health.read'],
+        scopes: ['catalog.write', 'catalog.reconcile', 'health.read', 'lead.read', 'lead.write'],
       });
       if (credentialError) {
         await supabaseAdmin.from('tenant_installations').delete().eq('id', installation.id);

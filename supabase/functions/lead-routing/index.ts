@@ -18,7 +18,7 @@ async function authenticate(req: Request, bodyText: string) {
   const nonce = req.headers.get('x-integration-nonce') || '';
   if (!keyId || !signature || !timestamp || !nonce) throw new Error('INTEGRATION_HEADERS_REQUIRED');
   if (!Number.isFinite(Number(timestamp)) || Math.abs(Date.now() - Number(timestamp)) > 300_000) throw new Error('SIGNATURE_EXPIRED');
-  const { data: credential } = await admin.from('tenant_credentials').select('id,installation_id,secret_hash,revoked_at,expires_at').eq('key_id', keyId).maybeSingle();
+  const { data: credential } = await admin.from('tenant_credentials').select('id,installation_id,secret_hash,scopes,revoked_at,expires_at').eq('key_id', keyId).maybeSingle();
   if (!credential || credential.revoked_at || (credential.expires_at && new Date(credential.expires_at) <= new Date())) throw new Error('INVALID_CREDENTIAL');
   const bodyHash = await sha256(bodyText);
   const canonical = `${req.method}\n${new URL(req.url).pathname}\n${timestamp}\n${nonce}\n${bodyHash}`;
@@ -69,16 +69,26 @@ Deno.serve(async (req) => {
     }
 
     const auth = await authenticate(req, bodyText);
+    const scopes = Array.isArray(auth.credential.scopes) ? auth.credential.scopes as string[] : [];
+    const requireScope = (scope: string) => {
+      if (!scopes.includes(scope)) throw new Error('SCOPE_FORBIDDEN');
+    };
     if (action === 'pull') {
+      requireScope('lead.read');
       const limit = Math.min(50, Math.max(1, Number(body.limit || 20)));
-      const { data: deliveries, error } = await admin.from('central_lead_deliveries').select('id,lead_id,attempts,central_leads(id,full_name,phone,email,message,product_id,source_domain,created_at)').eq('installation_id', auth.installation.id).eq('status', 'pending').lte('available_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(limit);
+      const { data: deliveries, error } = await admin.from('central_lead_deliveries').select('id,lead_id,attempts,central_leads(id,full_name,phone,email,message,product_id,source_domain,created_at,central_catalog_products(name,source_id))').eq('installation_id', auth.installation.id).eq('status', 'pending').lte('available_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(limit);
       if (error) throw error;
-      if (deliveries?.length) {
-        await admin.from('central_lead_deliveries').update({ status: 'claimed', claimed_at: new Date().toISOString(), attempts: (deliveries[0] as { attempts: number }).attempts + 1 }).in('id', deliveries.map((d) => d.id));
+      const claimedAt = new Date().toISOString();
+      const claimed = [];
+      for (const delivery of deliveries || []) {
+        const { data: updated, error: claimError } = await admin.from('central_lead_deliveries').update({ status: 'claimed', claimed_at: claimedAt, attempts: Number(delivery.attempts || 0) + 1, updated_at: claimedAt }).eq('id', delivery.id).eq('status', 'pending').select('id').maybeSingle();
+        if (claimError) throw claimError;
+        if (updated) claimed.push(delivery);
       }
-      return jsonResponse({ data: deliveries || [] });
+      return jsonResponse({ data: claimed });
     }
     if (action === 'ack') {
+      requireScope('lead.write');
       const deliveryId = String(body.delivery_id || '');
       const status = body.status === 'rejected' ? 'rejected' : 'accepted';
       if (!deliveryId) return fail('DELIVERY_REQUIRED', 'delivery_id wajib diisi.');
@@ -92,7 +102,7 @@ Deno.serve(async (req) => {
     return fail('UNKNOWN_ACTION', `Action tidak dikenal: ${action}.`);
   } catch (error) {
     const code = error instanceof Error ? error.message : 'LEAD_ROUTING_FAILED';
-    const status = ['INTEGRATION_HEADERS_REQUIRED', 'SIGNATURE_EXPIRED', 'INVALID_CREDENTIAL', 'INVALID_SIGNATURE', 'NONCE_REPLAYED'].includes(code) ? 401 : 500;
+    const status = ['INTEGRATION_HEADERS_REQUIRED', 'SIGNATURE_EXPIRED', 'INVALID_CREDENTIAL', 'INVALID_SIGNATURE', 'NONCE_REPLAYED'].includes(code) ? 401 : code === 'SCOPE_FORBIDDEN' ? 403 : 500;
     return fail(code, 'Lead routing gagal diproses.', status);
   }
 });

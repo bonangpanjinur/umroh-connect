@@ -20,18 +20,24 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'metrics');
     if (action === 'metrics') {
-      const [leads, deliveries, installations, events] = await Promise.all([
-        admin.from('central_leads').select('status', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(1000),
-        admin.from('central_lead_deliveries').select('status', { count: 'exact', head: false }).order('created_at', { ascending: false }).limit(1000),
-        admin.from('tenant_installations').select('status,last_heartbeat_at,last_sync_at', { count: 'exact', head: false }),
-        admin.from('tenant_sync_events').select('status', { count: 'exact', head: false }).order('received_at', { ascending: false }).limit(1000),
+      const count = async (table: string, status?: string) => {
+        let query = admin.from(table).select('*', { count: 'exact', head: true });
+        if (status) query = query.eq('status', status);
+        const { count: total, error } = await query;
+        if (error) throw error;
+        return total || 0;
+      };
+      const [leadTotal, leadQueued, leadDelivered, leadAccepted, leadRejected, deliveryTotal, deliveryPending, deliveryClaimed, deliveryAccepted, deliveryRejected, deliveryDead, installationTotal, installationConnected, installationDegraded, installationDisabled, eventTotal, eventProcessed, eventFailed, eventIgnored] = await Promise.all([
+        count('central_leads'), count('central_leads', 'queued'), count('central_leads', 'delivered'), count('central_leads', 'accepted'), count('central_leads', 'rejected'),
+        count('central_lead_deliveries'), count('central_lead_deliveries', 'pending'), count('central_lead_deliveries', 'claimed'), count('central_lead_deliveries', 'accepted'), count('central_lead_deliveries', 'rejected'), count('central_lead_deliveries', 'dead_letter'),
+        count('tenant_installations'), count('tenant_installations', 'connected'), count('tenant_installations', 'degraded'), count('tenant_installations', 'disabled'),
+        count('tenant_sync_events'), count('tenant_sync_events', 'processed'), count('tenant_sync_events', 'failed'), count('tenant_sync_events', 'ignored'),
       ]);
-      const count = (rows: Array<{ status?: string }> | null, status: string) => (rows || []).filter((row) => row.status === status).length;
       return jsonResponse({ data: {
-        leads: { total: leads.data?.length || 0, queued: count(leads.data, 'queued'), delivered: count(leads.data, 'delivered'), accepted: count(leads.data, 'accepted'), rejected: count(leads.data, 'rejected') },
-        deliveries: { total: deliveries.data?.length || 0, pending: count(deliveries.data, 'pending'), claimed: count(deliveries.data, 'claimed'), accepted: count(deliveries.data, 'accepted'), rejected: count(deliveries.data, 'rejected'), dead_letter: count(deliveries.data, 'dead_letter') },
-        installations: { total: installations.data?.length || 0, connected: count(installations.data, 'connected'), degraded: count(installations.data, 'degraded'), disabled: count(installations.data, 'disabled') },
-        sync_events: { total: events.data?.length || 0, processed: count(events.data, 'processed'), failed: count(events.data, 'failed'), ignored: count(events.data, 'ignored') },
+        leads: { total: leadTotal, queued: leadQueued, delivered: leadDelivered, accepted: leadAccepted, rejected: leadRejected },
+        deliveries: { total: deliveryTotal, pending: deliveryPending, claimed: deliveryClaimed, accepted: deliveryAccepted, rejected: deliveryRejected, dead_letter: deliveryDead },
+        installations: { total: installationTotal, connected: installationConnected, degraded: installationDegraded, disabled: installationDisabled },
+        sync_events: { total: eventTotal, processed: eventProcessed, failed: eventFailed, ignored: eventIgnored },
         generated_at: new Date().toISOString(),
       } });
     }

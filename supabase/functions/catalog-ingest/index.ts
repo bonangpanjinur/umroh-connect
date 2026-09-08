@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
     const canonical = `${req.method}\n${new URL(req.url).pathname}\n${timestamp}\n${nonce}\n${bodyHash}`;
     const expected = await hmac(derivedKey, canonical);
     if (!constantTimeEqual(expected, signature)) return fail('INVALID_SIGNATURE', 'Signature request tidak valid.', 401);
+    if (!Array.isArray(credential.scopes) || !credential.scopes.includes('catalog.write')) return fail('SCOPE_FORBIDDEN', 'Credential tidak memiliki scope catalog.write.', 403);
 
     const { error: nonceError } = await admin.from('tenant_integration_nonces').insert({ credential_id: credential.id, nonce, expires_at: new Date(Date.now() + 300_000).toISOString() });
     if (nonceError?.code === '23505') return fail('NONCE_REPLAYED', 'Nonce sudah pernah digunakan.', 409);

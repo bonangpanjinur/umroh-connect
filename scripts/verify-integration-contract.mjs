@@ -15,9 +15,13 @@ const checks = [
   ['delivery uniqueness', 'supabase/migrations/20260907120000_create_central_lead_routing.sql', /UNIQUE \(lead_id, installation_id\)/],
   ['lead idempotency', 'supabase/functions/lead-routing/index.ts', /idempotency_key/],
   ['lead acknowledgement', 'supabase/functions/lead-routing/index.ts', /action === 'ack'/],
+  ['lead scope authorization', 'supabase/functions/lead-routing/index.ts', /requireScope\('lead\.read'\)/],
+  ['claim status guard', 'supabase/functions/lead-routing/index.ts', /eq\('status', 'pending'\)/],
   ['admin retry', 'supabase/functions/lead-admin/index.ts', /action === 'retry'/],
+  ['exact metrics', 'supabase/functions/lead-admin/index.ts', /count: 'exact'/],
   ['HMAC verification', 'supabase/functions/lead-routing/index.ts', /x-integration-signature/],
   ['dashboard metrics', 'src/components/admin/LeadObservability.tsx', /Lead Observability/],
+  ['local product mapping', 'supabase/functions/lead-routing/index.ts', /central_catalog_products\(name,source_id\)/],
 ];
 for (const path of required) if (!existsSync(`${root}/${path}`)) throw new Error(`Missing required artifact: ${path}`);
 for (const [name, path, pattern] of checks) {
