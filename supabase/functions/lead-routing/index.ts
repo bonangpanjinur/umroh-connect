@@ -76,6 +76,8 @@ Deno.serve(async (req) => {
     if (action === 'pull') {
       requireScope('lead.read');
       const limit = Math.min(50, Math.max(1, Number(body.limit || 20)));
+      const staleBefore = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      await admin.from('central_lead_deliveries').update({ status: 'pending', available_at: new Date().toISOString(), last_error: 'CLAIM_TIMEOUT', updated_at: new Date().toISOString() }).eq('installation_id', auth.installation.id).eq('status', 'claimed').lt('claimed_at', staleBefore);
       const { data: deliveries, error } = await admin.from('central_lead_deliveries').select('id,lead_id,attempts,central_leads(id,full_name,phone,email,message,product_id,source_domain,created_at,central_catalog_products(name,source_id))').eq('installation_id', auth.installation.id).eq('status', 'pending').lte('available_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(limit);
       if (error) throw error;
       const claimedAt = new Date().toISOString();
@@ -94,8 +96,11 @@ Deno.serve(async (req) => {
       if (!deliveryId) return fail('DELIVERY_REQUIRED', 'delivery_id wajib diisi.');
       const { data: delivery } = await admin.from('central_lead_deliveries').select('id,lead_id,installation_id').eq('id', deliveryId).eq('installation_id', auth.installation.id).maybeSingle();
       if (!delivery) return fail('DELIVERY_NOT_FOUND', 'Delivery tidak ditemukan.', 404);
-      await admin.from('central_lead_deliveries').update({ status, accepted_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', deliveryId);
-      await admin.from('central_leads').update({ status, updated_at: new Date().toISOString() }).eq('id', delivery.lead_id);
+      const now = new Date().toISOString();
+      const { data: updatedDelivery, error: updateError } = await admin.from('central_lead_deliveries').update({ status, accepted_at: now, updated_at: now }).eq('id', deliveryId).eq('status', 'claimed').select('id,status').maybeSingle();
+      if (updateError) throw updateError;
+      if (!updatedDelivery) return jsonResponse({ data: { delivery_id: deliveryId, status: 'already_processed' } });
+      await admin.from('central_leads').update({ status, updated_at: now }).eq('id', delivery.lead_id);
       await admin.from('central_lead_delivery_audit').insert({ delivery_id: deliveryId, action: `delivery.${status}`, metadata: { installation_id: auth.installation.id } });
       return jsonResponse({ data: { delivery_id: deliveryId, status } });
     }
