@@ -45,6 +45,9 @@ Deno.serve(async (req) => {
       const message = body.message ? String(body.message).trim() : null;
       const productId = body.product_id ? String(body.product_id) : null;
       const sourceDomain = body.source_domain ? String(body.source_domain).toLowerCase().trim() : null;
+      let channel = body.channel && typeof body.channel === 'object' ? body.channel as Record<string, unknown> : {};
+      let sourceChannel = String(channel.channel_type || body.source_channel || 'central').toLowerCase();
+      if (!['central', 'branch', 'agent'].includes(sourceChannel)) return fail('INVALID_CHANNEL', 'source_channel harus central, branch, atau agent.');
       const idempotencyKey = String(req.headers.get('idempotency-key') || body.idempotency_key || '').trim();
       if (!fullName || !phone || !idempotencyKey) return fail('INVALID_LEAD_INPUT', 'full_name, phone, dan Idempotency-Key wajib diisi.');
       let tenantId: string | null = null;
@@ -53,15 +56,42 @@ Deno.serve(async (req) => {
         tenantId = product?.tenant_id || null;
       }
       if (!tenantId && sourceDomain) {
+        const { data: channelTenant } = await admin.from('tenant_channels').select('tenant_id,is_active').eq('domain', sourceDomain).maybeSingle();
+        if (channelTenant && !channelTenant.is_active) return fail('CHANNEL_DISABLED', 'Website channel sedang nonaktif.', 409);
+        tenantId = channelTenant?.tenant_id || null;
+      }
+      if (!tenantId && sourceDomain) {
         const { data: tenant } = await admin.from('tenant_registry').select('id').eq('custom_domain', sourceDomain).eq('status', 'active').maybeSingle();
         tenantId = tenant?.id || null;
       }
       if (!tenantId) return fail('TENANT_ROUTE_NOT_FOUND', 'Lead tidak dapat diarahkan ke travel.', 404);
+      if (sourceDomain) {
+        const { data: registeredChannel } = await admin.from('tenant_channels').select('channel_id,channel_type,branch_id,agent_id,default_pic_user_id,metadata,is_active').eq('tenant_id', tenantId).eq('domain', sourceDomain).maybeSingle();
+        if (registeredChannel && !registeredChannel.is_active) return fail('CHANNEL_DISABLED', 'Website channel sedang nonaktif.', 409);
+        if (registeredChannel) {
+          channel = { ...(registeredChannel.metadata || {}), channel_id: registeredChannel.channel_id, channel_type: registeredChannel.channel_type, branch_id: registeredChannel.branch_id, agent_id: registeredChannel.agent_id, pic_user_id: registeredChannel.default_pic_user_id };
+          sourceChannel = String(registeredChannel.channel_type).toLowerCase();
+        }
+      }
+      if (sourceDomain) {
+        await admin.from('tenant_channels').upsert({
+          tenant_id: tenantId,
+          channel_id: channel.channel_id ? String(channel.channel_id) : null,
+          domain: sourceDomain,
+          channel_type: sourceChannel,
+          branch_id: channel.branch_id ? String(channel.branch_id) : null,
+          agent_id: channel.agent_id ? String(channel.agent_id) : null,
+          default_pic_user_id: channel.pic_user_id ? String(channel.pic_user_id) : null,
+          metadata: channel,
+          last_seen_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'tenant_id,domain' });
+      }
       const { data: existing } = await admin.from('central_leads').select('id,status').eq('tenant_id', tenantId).eq('idempotency_key', idempotencyKey).maybeSingle();
       if (existing) return jsonResponse({ data: { lead_id: existing.id, status: 'duplicate', lead_status: existing.status } });
       const { data: installation } = await admin.from('tenant_installations').select('id').eq('tenant_id', tenantId).eq('environment', 'production').neq('status', 'disabled').maybeSingle();
       if (!installation) return fail('TENANT_NOT_CONNECTED', 'Travel belum memiliki installation aktif.', 409);
-      const { data: lead, error } = await admin.from('central_leads').insert({ tenant_id: tenantId, product_id: productId, source_domain: sourceDomain, idempotency_key: idempotencyKey, full_name: fullName, phone, email, message }).select('id,tenant_id,product_id,status,created_at').single();
+      const { data: lead, error } = await admin.from('central_leads').insert({ tenant_id: tenantId, product_id: productId, source_domain: sourceDomain, source_channel: sourceChannel, channel_id: channel.channel_id ? String(channel.channel_id) : null, channel_metadata: channel, idempotency_key: idempotencyKey, full_name: fullName, phone, email, message }).select('id,tenant_id,product_id,status,source_domain,source_channel,channel_id,channel_metadata,created_at').single();
       if (error) throw error;
       const { error: deliveryError } = await admin.from('central_lead_deliveries').insert({ lead_id: lead.id, tenant_id: tenantId, installation_id: installation.id });
       if (deliveryError) throw deliveryError;
@@ -78,7 +108,7 @@ Deno.serve(async (req) => {
       const limit = Math.min(50, Math.max(1, Number(body.limit || 20)));
       const staleBefore = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       await admin.from('central_lead_deliveries').update({ status: 'pending', available_at: new Date().toISOString(), last_error: 'CLAIM_TIMEOUT', updated_at: new Date().toISOString() }).eq('installation_id', auth.installation.id).eq('status', 'claimed').lt('claimed_at', staleBefore);
-      const { data: deliveries, error } = await admin.from('central_lead_deliveries').select('id,lead_id,attempts,central_leads(id,full_name,phone,email,message,product_id,source_domain,created_at,central_catalog_products(name,source_id))').eq('installation_id', auth.installation.id).eq('status', 'pending').lte('available_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(limit);
+      const { data: deliveries, error } = await admin.from('central_lead_deliveries').select('id,lead_id,attempts,central_leads(id,full_name,phone,email,message,product_id,source_domain,source_channel,channel_id,channel_metadata,created_at,central_catalog_products(name,source_id))').eq('installation_id', auth.installation.id).eq('status', 'pending').lte('available_at', new Date().toISOString()).order('created_at', { ascending: true }).limit(limit);
       if (error) throw error;
       const claimedAt = new Date().toISOString();
       const claimed = [];
