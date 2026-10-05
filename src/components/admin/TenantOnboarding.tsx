@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Building2, Copy, KeyRound, RefreshCw, ShieldOff } from 'lucide-react';
+import { Activity, Building2, Copy, KeyRound, RefreshCw, ShieldOff } from 'lucide-react';
 
 type Installation = { id: string; base_url: string; environment: string; status: string; app_version?: string | null; last_heartbeat_at?: string | null };
 type Tenant = { id: string; name: string; slug: string; custom_domain?: string | null; status: string; tenant_installations?: Installation[] };
 type Credential = { key_id: string; secret: string; scopes: string[] };
+type ConnectionResult = { status: 'connected' | 'failed'; message: string; latency_ms?: number };
 
 const invoke = async (payload?: Record<string, unknown>) => {
   const { data, error } = await supabase.functions.invoke('tenant-admin', { body: payload ?? { action: 'list' } });
@@ -24,6 +25,8 @@ export const TenantOnboarding = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [credential, setCredential] = useState<Credential | null>(null);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [connectionResults, setConnectionResults] = useState<Record<string, ConnectionResult>>({});
   const [form, setForm] = useState({ name: '', slug: '', base_url: '', custom_domain: '' });
 
   const load = useCallback(async () => {
@@ -61,6 +64,21 @@ export const TenantOnboarding = () => {
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Operasi credential gagal'); }
   };
 
+  const testConnection = async (installation_id: string) => {
+    setTesting(installation_id);
+    try {
+      const response = await invoke({ action: 'test_connection', installation_id });
+      const result = response.data as { status?: string; latency_ms?: number };
+      setConnectionResults((current) => ({ ...current, [installation_id]: { status: 'connected', message: 'Health check berhasil', latency_ms: result.latency_ms } }));
+      await load();
+      toast.success('Installation dapat dihubungi');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Health check gagal';
+      setConnectionResults((current) => ({ ...current, [installation_id]: { status: 'failed', message } }));
+      toast.error(message);
+    } finally { setTesting(null); }
+  };
+
   const copy = async (value: string) => { await navigator.clipboard.writeText(value); toast.success('Disalin ke clipboard'); };
 
   return (
@@ -79,7 +97,7 @@ export const TenantOnboarding = () => {
         </CardContent>
       </Card>
       {credential && <Card className="border-amber-500/50"><CardHeader><CardTitle className="flex items-center gap-2 text-amber-700"><KeyRound className="h-5 w-5" />Credential ditampilkan satu kali</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm text-muted-foreground">Simpan secret berikut di backend instalasi travel. Secret tidak dapat dilihat kembali setelah panel ini ditutup.</p><div className="grid gap-2 md:grid-cols-2"><code className="rounded bg-muted p-3 text-sm break-all">Key: {credential.key_id}</code><code className="rounded bg-muted p-3 text-sm break-all">Secret: {credential.secret}</code></div><Button variant="outline" onClick={() => void copy(`X-Integration-Key: ${credential.key_id}\nSecret: ${credential.secret}`)}><Copy className="mr-2 h-4 w-4" />Salin credential</Button></CardContent></Card>}
-      <Card><CardHeader><CardTitle>Installation terdaftar</CardTitle></CardHeader><CardContent>{loading ? <p className="text-muted-foreground">Memuat...</p> : tenants.length === 0 ? <p className="text-muted-foreground">Belum ada tenant.</p> : <div className="space-y-3">{tenants.map((tenant) => tenant.tenant_installations?.map((installation) => <div key={installation.id} className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"><div><p className="font-medium">{tenant.name} <span className="text-muted-foreground">({tenant.slug})</span></p><p className="text-sm text-muted-foreground">{installation.base_url}</p><p className="text-xs text-muted-foreground">Heartbeat: {installation.last_heartbeat_at ? new Date(installation.last_heartbeat_at).toLocaleString('id-ID') : 'belum ada'}</p></div><div className="flex items-center gap-2"><Badge variant={installation.status === 'connected' ? 'default' : 'secondary'}>{installation.status}</Badge><Button size="sm" variant="outline" onClick={() => void mutateCredential('rotate', installation.id)}><RefreshCw className="mr-1 h-3 w-3" />Rotasi</Button><Button size="sm" variant="destructive" onClick={() => void mutateCredential('revoke', installation.id)}><ShieldOff className="mr-1 h-3 w-3" />Cabut</Button></div></div>))}</div>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Installation terdaftar</CardTitle></CardHeader><CardContent>{loading ? <p className="text-muted-foreground">Memuat...</p> : tenants.length === 0 ? <p className="text-muted-foreground">Belum ada tenant.</p> : <div className="space-y-3">{tenants.map((tenant) => tenant.tenant_installations?.map((installation) => { const result = connectionResults[installation.id]; return <div key={installation.id} className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"><div><p className="font-medium">{tenant.name} <span className="text-muted-foreground">({tenant.slug})</span></p><p className="text-sm text-muted-foreground">{installation.base_url}</p><p className="text-xs text-muted-foreground">Heartbeat: {installation.last_heartbeat_at ? new Date(installation.last_heartbeat_at).toLocaleString('id-ID') : 'belum ada'}</p>{result && <p className={result.status === 'connected' ? 'text-xs text-emerald-600' : 'text-xs text-red-600'}>{result.message}{result.latency_ms ? ` (${result.latency_ms} ms)` : ''}</p>}</div><div className="flex flex-wrap items-center gap-2"><Badge variant={installation.status === 'connected' ? 'default' : 'secondary'}>{installation.status}</Badge><Button size="sm" variant="outline" disabled={testing === installation.id} onClick={() => void testConnection(installation.id)}><Activity className="mr-1 h-3 w-3" />{testing === installation.id ? 'Menguji...' : 'Test connection'}</Button><Button size="sm" variant="outline" onClick={() => void mutateCredential('rotate', installation.id)}><RefreshCw className="mr-1 h-3 w-3" />Rotasi</Button><Button size="sm" variant="destructive" onClick={() => void mutateCredential('revoke', installation.id)}><ShieldOff className="mr-1 h-3 w-3" />Cabut</Button></div></div>; }))}</div>}</CardContent></Card>
     </div>
   );
 };

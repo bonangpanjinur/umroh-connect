@@ -62,26 +62,36 @@ export const useSubmitInquiry = () => {
     }) => {
       // Validate form data
       const validated = inquirySchema.parse(formData);
+      // travelId remains part of the public hook contract for existing callers;
+      // routing is resolved centrally from the catalog product ownership.
+      void travelId;
 
-      const { data, error } = await supabase
-        .from('package_inquiries')
-        .insert({
-          package_id: packageId,
-          travel_id: travelId,
-          departure_id: departureId || null,
-          user_id: user?.id || null,
+      const sourceDomain = typeof window !== 'undefined' ? window.location.hostname : undefined;
+      const idempotencyKey = crypto.randomUUID();
+      const message = [
+        validated.message?.trim(),
+        `Jumlah jamaah: ${validated.numberOfPeople}`,
+        departureId ? `Departure ID: ${departureId}` : null,
+        user?.id ? `User ID: ${user.id}` : null,
+      ].filter(Boolean).join('\n');
+
+      const { data, error } = await supabase.functions.invoke('lead-routing', {
+        body: {
+          action: 'submit',
+          product_id: packageId,
+          source_domain: sourceDomain,
+          source_channel: 'central',
+          idempotency_key: idempotencyKey,
           full_name: validated.fullName,
           phone: validated.phone,
           email: validated.email || null,
-          message: validated.message || null,
-          number_of_people: validated.numberOfPeople,
-          status: 'pending',
-        })
-        .select()
-        .single();
+          message,
+        },
+      });
 
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error.message || data.error.code || 'Lead routing gagal');
+      return data?.data ?? data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-inquiries'] });

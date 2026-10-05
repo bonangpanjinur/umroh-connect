@@ -52,6 +52,19 @@ jobs:
           pnpm test:integration:contract
           pnpm typecheck
           pnpm build
+      - name: Verify required Supabase and Vercel secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || secrets.SUPABASE_PROJECT_REF }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo 'Missing GitHub Environment secret: SUPABASE_ACCESS_TOKEN'; exit 1; }
+          test -n "$SUPABASE_PROJECT_REF" || { echo 'Missing GitHub Environment secret: SUPABASE_PROJECT_REF'; exit 1; }
+          test -n "$VERCEL_TOKEN" || { echo 'Missing GitHub Environment secret: VERCEL_TOKEN'; exit 1; }
+          test -n "$VERCEL_ORG_ID" || { echo 'Missing GitHub Environment secret: VERCEL_ORG_ID'; exit 1; }
+          test -n "$VERCEL_PROJECT_ID" || { echo 'Missing GitHub Environment secret: VERCEL_PROJECT_ID'; exit 1; }
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -59,7 +72,7 @@ jobs:
       - name: Apply database migrations
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || secrets.SUPABASE_PROJECT_REF }}
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_PROJECT_REF"
@@ -68,7 +81,7 @@ jobs:
       - name: Deploy integration Edge Functions
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || secrets.SUPABASE_PROJECT_REF }}
         run: |
           supabase functions deploy catalog-ingest --no-verify-jwt
           supabase functions deploy lead-routing --no-verify-jwt

@@ -132,6 +132,23 @@ Deno.serve(async (req) => {
     if (installationError) throw installationError;
     if (!installation) return fail('INSTALLATION_NOT_FOUND', 'Installation tidak ditemukan.', 404);
 
+    if (action === 'test_connection') {
+      const healthUrl = new URL('/healthz', installation.base_url).toString();
+      const startedAt = Date.now();
+      try {
+        const response = await fetch(healthUrl, { method: 'GET', headers: { accept: 'application/json', 'x-arahumroh-probe': 'tenant-onboarding' }, signal: AbortSignal.timeout(8_000) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) return fail('INSTALLATION_HEALTH_FAILED', `Health check mengembalikan HTTP ${response.status}.`, 502, true);
+        await supabaseAdmin.from('tenant_installations').update({ status: 'connected', last_heartbeat_at: new Date().toISOString(), app_version: payload?.version || payload?.data?.version || null }).eq('id', installationId);
+        await audit({ tenantId: installation.tenant_id, installationId, actorUserId: userId, action: 'installation.connection_tested', metadata: { health_url: healthUrl, latency_ms: Date.now() - startedAt, status: response.status } });
+        return jsonResponse({ data: { installation_id: installationId, status: 'connected', health_url: healthUrl, http_status: response.status, latency_ms: Date.now() - startedAt, payload }, meta: { request_id: requestId } });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'request failed';
+        await audit({ tenantId: installation.tenant_id, installationId, actorUserId: userId, action: 'installation.connection_test_failed', metadata: { health_url: healthUrl, error: message } });
+        return fail('INSTALLATION_UNREACHABLE', `Installation tidak dapat dihubungi: ${message}`, 502, true);
+      }
+    }
+
     if (action === 'revoke' || action === 'rotate') {
       const { data: current, error: currentError } = await supabaseAdmin.from('tenant_credentials').select('id,key_id').eq('installation_id', installationId).is('revoked_at', null).order('created_at', { ascending: false }).limit(1).maybeSingle();
       if (currentError) throw currentError;
